@@ -1,6 +1,7 @@
 import hashlib
 import io
 import lzma
+import struct
 import zlib
 
 from collections import defaultdict
@@ -141,7 +142,8 @@ class Savegame:
                         size -= index_size
                     else:
                         index += 1
-                    self.read_item(tag, tables, index, reader.read(size))
+                    if size != 0:
+                        self.read_item(tag, tables, index, reader.read(size))
             else:
                 raise ValidationException("Unknown chunk type.")
 
@@ -156,23 +158,23 @@ class Savegame:
 
     def read_field(self, field, reader):
         if field == b"\x01":
-            return int.from_bytes(reader.read(1), "big", signed=True)
+            return struct.unpack(">b", reader.read(1))[0]
         if field == b"\x02":
-            return int.from_bytes(reader.read(1), "big", signed=False)
+            return struct.unpack(">B", reader.read(1))[0]
         if field == b"\x03":
-            return int.from_bytes(reader.read(2), "big", signed=True)
+            return struct.unpack(">h", reader.read(2))[0]
         if field == b"\x04":
-            return int.from_bytes(reader.read(2), "big", signed=False)
+            return struct.unpack(">H", reader.read(2))[0]
         if field == b"\x05":
-            return int.from_bytes(reader.read(4), "big", signed=True)
+            return struct.unpack(">i", reader.read(4))[0]
         if field == b"\x06":
-            return int.from_bytes(reader.read(4), "big", signed=False)
+            return struct.unpack(">I", reader.read(4))[0]
         if field == b"\x07":
-            return int.from_bytes(reader.read(8), "big", signed=True)
+            return struct.unpack(">q", reader.read(8))[0]
         if field == b"\x08":
-            return int.from_bytes(reader.read(8), "big", signed=False)
+            return struct.unpack(">Q", reader.read(8))[0]
         if field == b"\x09":
-            return int.from_bytes(reader.read(2), "big", signed=False)
+            return struct.unpack(">H", reader.read(2))[0]
         if field == b"\x0a":
             length = reader.gamma()[0]
             return reader.read(length).decode()
