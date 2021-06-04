@@ -58,9 +58,9 @@ class Savegame:
         self.filename = filename
         self.md5sum = None
         self.savegame_version = None
-        self.tables = defaultdict(dict)
+        self.tables = {}
 
-    def read_table(self, reader):
+    def read_table(self, tag, reader):
         fields = []
         size = 0
         while True:
@@ -74,6 +74,8 @@ class Savegame:
             key = reader.read(length)
 
             fields.append((type, key.decode()))
+
+        self.tables[tag] = {"header": {field[1]: int.from_bytes(field[0], "big") for field in fields}}
 
         return fields, size
 
@@ -119,7 +121,7 @@ class Savegame:
 
                     tables = []
                     while size > 0:
-                        table, length = self.read_table(reader)
+                        table, length = self.read_table(tag, reader)
                         size -= length
                         tables.append(table)
                 else:
@@ -176,20 +178,26 @@ class Savegame:
     def read_item(self, tag, tables, index, data):
         reader = BinaryReader(io.BytesIO(data))
 
-        self.tables[tag][0 if index == -1 else index] = {}
+        table_index = "0" if index == -1 else str(index)
+
+        if tag not in self.tables:
+            self.tables[tag] = {}
 
         if index == -1 and tag == "PATS" and self.savegame_version >= 292:
-            fields, _ = self.read_table(reader)
+            fields, _ = self.read_table(tag, reader)
+            self.tables[tag][table_index] = {}
 
             for field in fields:
                 res = self.read_field(field[0], reader)
-                self.tables[tag][0][field[1]] = res
+                self.tables[tag][table_index][field[1]] = res
 
             return
         elif tables:
+            self.tables[tag][table_index] = {}
+
             for table in tables:
                 for field in table:
                     res = self.read_field(field[0], reader)
-                    self.tables[tag][index][field[1]] = res
+                    self.tables[tag][table_index][field[1]] = res
         else:
-            self.tables[tag][0 if index == -1 else index]["unsupported"] = ""
+            self.tables[tag][table_index] = {"unsupported": ""}

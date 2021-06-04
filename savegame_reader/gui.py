@@ -61,7 +61,7 @@ class SavegameBrowser:
             return
 
         chunk = self.chunks[self.chunks.focus].original_widget.label
-        index = int(self.indexes[self.indexes.focus].original_widget.label)
+        index = self.indexes[self.indexes.focus].original_widget.label
 
         fields = self._savegame.tables[chunk][index]
         for key, value in fields.items():
@@ -92,6 +92,7 @@ class SavegameBrowser:
 
             button = urwid.Button(key)
             self.chunks.append(urwid.AttrMap(button, None, focus_map="reversed"))
+
         for key, indexes in self._savegame.tables.items():
             # Sort the supported chunks on top
             for fields in indexes.values():
