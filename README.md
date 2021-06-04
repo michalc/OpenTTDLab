@@ -20,6 +20,8 @@ python3 -m venv .env
 .env/bin/python -m savegame_reader <location-of-your-savegame>
 ```
 
+![image](docs/example.png)
+
 ### Export to JSON
 
 ```bash
