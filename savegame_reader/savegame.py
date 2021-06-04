@@ -58,7 +58,7 @@ class Savegame:
         self.filename = filename
         self.md5sum = None
         self.savegame_version = None
-        self.tables = {}
+        self.tables = defaultdict(dict)
 
     def read_table(self, tag, reader):
         fields = []
@@ -75,7 +75,11 @@ class Savegame:
 
             fields.append((type, key.decode()))
 
-        self.tables[tag] = {"header": {field[1]: int.from_bytes(field[0], "big") for field in fields}}
+        header = {field[1]: int.from_bytes(field[0], "big") for field in fields}
+        if "header" in self.tables[tag]:
+            self.tables[tag]["header"].update(header)
+        else:
+            self.tables[tag] = {"header": header}
 
         return fields, size
 
@@ -179,9 +183,6 @@ class Savegame:
         reader = BinaryReader(io.BytesIO(data))
 
         table_index = "0" if index == -1 else str(index)
-
-        if tag not in self.tables:
-            self.tables[tag] = {}
 
         if index == -1 and tag == "PATS" and self.savegame_version >= 292:
             fields, _ = self.read_table(tag, reader)
