@@ -65,18 +65,25 @@ class Savegame:
         fields = []
         size = 0
         while True:
-            type = reader.read(1)
+            type = struct.unpack(">B", reader.read(1))[0]
             size += 1
-            if type == b"\x00":
+
+            if type == 0:
                 break
 
-            length, index_size = reader.gamma()
-            size += length + index_size
-            key = reader.read(length)
+            if type & 0x10:
+                type_length = struct.unpack(">H", reader.read(2))[0]
+                size += 2
+            else:
+                type_length = 1
 
-            fields.append((type, key.decode()))
+            key_length, index_size = reader.gamma()
+            size += key_length + index_size
+            key = reader.read(key_length)
 
-        header = {field[1]: int.from_bytes(field[0], "big") for field in fields}
+            fields.append((type, type_length, key.decode()))
+
+        header = {field[2]: f"{field[0]:02x} ({field[1]})" for field in fields}
         if "header" in self.tables[tag]:
             self.tables[tag]["header"].update(header)
         else:
@@ -156,26 +163,29 @@ class Savegame:
 
         self.md5sum = md5sum.digest()
 
-    def read_field(self, field, reader):
-        if field == b"\x01":
+    def read_field(self, field, length, reader):
+        if field & 0x10:
+            return [self.read_field(field & 0xf, 1, reader) for _ in range(length)]
+
+        if field == 1:
             return struct.unpack(">b", reader.read(1))[0]
-        if field == b"\x02":
+        if field == 2:
             return struct.unpack(">B", reader.read(1))[0]
-        if field == b"\x03":
+        if field == 3:
             return struct.unpack(">h", reader.read(2))[0]
-        if field == b"\x04":
+        if field == 4:
             return struct.unpack(">H", reader.read(2))[0]
-        if field == b"\x05":
+        if field == 5:
             return struct.unpack(">i", reader.read(4))[0]
-        if field == b"\x06":
+        if field == 6:
             return struct.unpack(">I", reader.read(4))[0]
-        if field == b"\x07":
+        if field == 7:
             return struct.unpack(">q", reader.read(8))[0]
-        if field == b"\x08":
+        if field == 8:
             return struct.unpack(">Q", reader.read(8))[0]
-        if field == b"\x09":
+        if field == 9:
             return struct.unpack(">H", reader.read(2))[0]
-        if field == b"\x0a":
+        if field == 10:
             length = reader.gamma()[0]
             return reader.read(length).decode()
 
@@ -191,8 +201,8 @@ class Savegame:
             self.tables[tag][table_index] = {}
 
             for field in fields:
-                res = self.read_field(field[0], reader)
-                self.tables[tag][table_index][field[1]] = res
+                res = self.read_field(field[0], field[1], reader)
+                self.tables[tag][table_index][field[2]] = res
 
             return
         elif tables:
@@ -200,7 +210,7 @@ class Savegame:
 
             for table in tables:
                 for field in table:
-                    res = self.read_field(field[0], reader)
-                    self.tables[tag][table_index][field[1]] = res
+                    res = self.read_field(field[0], field[1], reader)
+                    self.tables[tag][table_index][field[2]] = res
         else:
             self.tables[tag][table_index] = {"unsupported": ""}
