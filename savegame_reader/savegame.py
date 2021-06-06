@@ -196,16 +196,7 @@ class Savegame:
 
         table_index = "0" if index == -1 else str(index)
 
-        if index == -1 and tag == "PATS" and self.savegame_version >= 292:
-            fields, _ = self.read_table(tag, reader)
-            self.tables[tag][table_index] = {}
-
-            for field in fields:
-                res = self.read_field(field[0], field[1], reader)
-                self.tables[tag][table_index][field[2]] = res
-
-            return
-        elif tables:
+        if tables:
             self.tables[tag][table_index] = {}
 
             for table in tables:
