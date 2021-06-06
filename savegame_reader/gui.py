@@ -50,9 +50,10 @@ class SavegameBrowser:
 
         chunk = self.chunks[self.chunks.focus].original_widget.label
 
-        for key in self._savegame.tables[chunk].keys():
-            button = urwid.Button(str(key))
-            self.indexes.append(urwid.AttrMap(button, None, focus_map="reversed"))
+        if "items" in self._savegame.tables[chunk]:
+            for key in self._savegame.tables[chunk]["items"].keys():
+                button = urwid.Button(str(key))
+                self.indexes.append(urwid.AttrMap(button, None, focus_map="reversed"))
 
     def IndexFocus(self):
         self.fields.clear()
@@ -63,13 +64,18 @@ class SavegameBrowser:
         chunk = self.chunks[self.chunks.focus].original_widget.label
         index = self.indexes[self.indexes.focus].original_widget.label
 
-        fields = self._savegame.tables[chunk][index]
+        fields = self._savegame.tables[chunk]["items"][index]
         for key, value in fields.items():
             value = json.dumps(value)
+            type = self._savegame.tables[chunk]["header"][key]
+
+            key_field = urwid.AttrMap(urwid.Text(key), None, focus_map="reversed")
+            value_field = urwid.AttrMap(urwid.Text(value), None, focus_map="reversed")
+            type_field = urwid.AttrMap(urwid.Text(type), None, focus_map="reversed")
 
             self.fields.append(
                 urwid.Columns(
-                    [(50, urwid.AttrMap(urwid.Text(key), None, focus_map="reversed")), urwid.Text(value)],
+                    [(30, key_field), value_field, (10, type_field)],
                     dividechars=2,
                 )
             )
@@ -81,24 +87,15 @@ class SavegameBrowser:
         self.indexes = urwid.SimpleFocusListWalker([])
         self.fields = urwid.SimpleFocusListWalker([])
 
-        for key, indexes in self._savegame.tables.items():
-            # Sort the supported chunks on top
-            for fields in indexes.values():
-                if len(fields.keys()) == 1 and "unsupported" in fields.keys():
-                    continue
-                break
-            else:
+        for key, table in self._savegame.tables.items():
+            if "unsupported" in table["header"]:
                 continue
 
             button = urwid.Button(key)
             self.chunks.append(urwid.AttrMap(button, None, focus_map="reversed"))
 
-        for key, indexes in self._savegame.tables.items():
-            # Sort the supported chunks on top
-            for fields in indexes.values():
-                if len(fields.keys()) == 1 and "unsupported" in fields.keys():
-                    break
-            else:
+        for key, table in self._savegame.tables.items():
+            if "unsupported" not in table["header"]:
                 continue
 
             button = urwid.Button(key)

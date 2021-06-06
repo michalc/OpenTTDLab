@@ -87,7 +87,7 @@ class Savegame:
         if "header" in self.tables[tag]:
             self.tables[tag]["header"].update(header)
         else:
-            self.tables[tag] = {"header": header}
+            self.tables[tag] = {"header": header, "items": {}}
 
         return fields, size
 
@@ -197,11 +197,11 @@ class Savegame:
         table_index = "0" if index == -1 else str(index)
 
         if tables:
-            self.tables[tag][table_index] = {}
+            self.tables[tag]["items"][table_index] = {}
 
             for table in tables:
                 for field in table:
                     res = self.read_field(field[0], field[1], reader)
-                    self.tables[tag][table_index][field[2]] = res
+                    self.tables[tag]["items"][table_index][field[2]] = res
         else:
-            self.tables[tag][table_index] = {"unsupported": ""}
+            self.tables[tag]["header"] = {"unsupported": ""}
