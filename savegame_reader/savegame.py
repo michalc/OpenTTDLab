@@ -59,9 +59,9 @@ class Savegame:
         self.filename = filename
         self.md5sum = None
         self.savegame_version = None
-        self.tables = defaultdict(dict)
+        self.tables = defaultdict(lambda: {"header": {}, "items": {}})
 
-    def read_table(self, tag, reader):
+    def _read_table(self, reader):
         fields = []
         size = 0
         while True:
@@ -83,13 +83,22 @@ class Savegame:
 
             fields.append((type, type_length, key.decode()))
 
-        header = {field[2]: f"{field[0]:02x} ({field[1]})" for field in fields}
-        if "header" in self.tables[tag]:
-            self.tables[tag]["header"].update(header)
-        else:
-            self.tables[tag] = {"header": header, "items": {}}
-
         return fields, size
+
+    def read_table(self, tag, reader):
+        tables = {}
+
+        tables["root"], size = self._read_table(reader)
+
+        for field in tables["root"]:
+            if field[0] == 11 | 0x10:
+                tables[field[2]], sub_size = self._read_table(reader)
+                size += sub_size
+
+        header = {field[2]: f"{field[0]:02x} ({field[1]})" for field in tables["root"]}
+        self.tables[tag]["header"].update(header)
+
+        return tables, size
 
     def read(self, fp):
         """
@@ -131,13 +140,11 @@ class Savegame:
                 if type >= 3:
                     size = reader.gamma()[0] - 1
 
-                    tables = []
-                    while size > 0:
-                        table, length = self.read_table(tag, reader)
-                        size -= length
-                        tables.append(table)
+                    tables, size_read = self.read_table(tag, reader)
+                    if size_read != size:
+                        raise ValidationException("Table header size mismatch.")
                 else:
-                    tables = []
+                    tables = {}
 
                 index = -1
                 while True:
@@ -163,9 +170,11 @@ class Savegame:
 
         self.md5sum = md5sum.digest()
 
-    def read_field(self, field, length, reader):
+    def read_field(self, reader, tables, field, length, field_name):
         if field & 0x10:
-            return [self.read_field(field & 0xf, 1, reader) for _ in range(length)]
+            if length == 0:
+                length = reader.gamma()[0]
+            return [self.read_field(reader, tables, field & 0xf, 1, field_name) for _ in range(length)]
 
         if field == 1:
             return struct.unpack(">b", reader.read(1))[0]
@@ -188,20 +197,26 @@ class Savegame:
         if field == 10:
             length = reader.gamma()[0]
             return reader.read(length).decode()
+        if field == 11:
+            return self._read_item(reader, tables, field_name)
 
         raise ValidationException("Unknown field type.")
 
-    def read_item(self, tag, tables, index, data):
+    def _read_item(self, reader, tables, key="root"):
+        result = {}
+
+        for field in tables[key]:
+            res = self.read_field(reader, tables, field[0], field[1], field[2])
+            result[field[2]] = res
+
+        return result
+
+    def read_item(self, tag, tables, index, data, key="root"):
         reader = BinaryReader(io.BytesIO(data))
 
         table_index = "0" if index == -1 else str(index)
 
         if tables:
-            self.tables[tag]["items"][table_index] = {}
-
-            for table in tables:
-                for field in table:
-                    res = self.read_field(field[0], field[1], reader)
-                    self.tables[tag]["items"][table_index][field[2]] = res
+            self.tables[tag]["items"][table_index] = self._read_item(reader, tables)
         else:
             self.tables[tag]["header"] = {"unsupported": ""}

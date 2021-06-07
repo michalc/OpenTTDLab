@@ -66,12 +66,18 @@ class SavegameBrowser:
 
         fields = self._savegame.tables[chunk]["items"][index]
         for key, value in fields.items():
-            value = json.dumps(value)
-            type = self._savegame.tables[chunk]["header"][key]
+            if type(value) == list:
+                res = ""
+                for i, item in enumerate(value):
+                    res += f"[{i:-3d}] {json.dumps(item)}\n"
+                value = res[:-1]
+            else:
+                value = json.dumps(value)
+            type_name = self._savegame.tables[chunk]["header"][key]
 
             key_field = urwid.AttrMap(urwid.Text(key), None, focus_map="reversed")
-            value_field = urwid.AttrMap(urwid.Text(value), None, focus_map="reversed")
-            type_field = urwid.AttrMap(urwid.Text(type), None, focus_map="reversed")
+            value_field = urwid.Text(value)
+            type_field = urwid.Text(type_name)
 
             self.fields.append(
                 urwid.Columns(
