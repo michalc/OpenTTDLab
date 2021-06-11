@@ -85,15 +85,22 @@ class Savegame:
 
         return fields, size
 
+    def _read_substruct(self, reader, tables, key):
+        size = 0
+
+        for field in tables[key]:
+            if field[0] & 0xf == 11:
+                tables[field[2]], sub_size = self._read_table(reader)
+                size += sub_size
+                size += self._read_substruct(reader, tables, field[2])
+
+        return size
+
     def read_table(self, tag, reader):
         tables = {}
 
         tables["root"], size = self._read_table(reader)
-
-        for field in tables["root"]:
-            if field[0] == 11 | 0x10:
-                tables[field[2]], sub_size = self._read_table(reader)
-                size += sub_size
+        size += self._read_substruct(reader, tables, "root")
 
         header = {field[2]: f"{field[0]:02x} ({field[1]})" for field in tables["root"]}
         self.tables[tag]["header"].update(header)
