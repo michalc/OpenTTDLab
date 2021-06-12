@@ -71,17 +71,11 @@ class Savegame:
             if type == 0:
                 break
 
-            if type & 0x10:
-                type_length = struct.unpack(">H", reader.read(2))[0]
-                size += 2
-            else:
-                type_length = 1
-
             key_length, index_size = reader.gamma()
             size += key_length + index_size
             key = reader.read(key_length)
 
-            fields.append((type, type_length, key.decode()))
+            fields.append((type, key.decode()))
 
         return fields, size
 
@@ -90,9 +84,9 @@ class Savegame:
 
         for field in tables[key]:
             if field[0] & 0xf == 11:
-                tables[field[2]], sub_size = self._read_table(reader)
+                tables[field[1]], sub_size = self._read_table(reader)
                 size += sub_size
-                size += self._read_substruct(reader, tables, field[2])
+                size += self._read_substruct(reader, tables, field[1])
 
         return size
 
@@ -102,7 +96,7 @@ class Savegame:
         tables["root"], size = self._read_table(reader)
         size += self._read_substruct(reader, tables, "root")
 
-        header = {field[2]: f"{field[0]:02x} ({field[1]})" for field in tables["root"]}
+        header = {field[1]: f"{field[0]:02x}" for field in tables["root"]}
         self.tables[tag]["header"].update(header)
 
         return tables, size
@@ -177,11 +171,11 @@ class Savegame:
 
         self.md5sum = md5sum.digest()
 
-    def read_field(self, reader, tables, field, length, field_name):
-        if field & 0x10:
-            if length == 0:
-                length = reader.gamma()[0]
-            return [self.read_field(reader, tables, field & 0xf, 1, field_name) for _ in range(length)]
+    def read_field(self, reader, tables, field, field_name):
+        # Lists, with the exception of a string
+        if field & 0x10 and (field & 0xf) != 10:
+            length = reader.gamma()[0]
+            return [self.read_field(reader, tables, field & 0xf, field_name) for _ in range(length)]
 
         if field == 1:
             return struct.unpack(">b", reader.read(1))[0]
@@ -201,20 +195,20 @@ class Savegame:
             return struct.unpack(">Q", reader.read(8))[0]
         if field == 9:
             return struct.unpack(">H", reader.read(2))[0]
-        if field == 10:
+        if field == 10 | 0x10:
             length = reader.gamma()[0]
             return reader.read(length).decode()
         if field == 11:
             return self._read_item(reader, tables, field_name)
 
-        raise ValidationException("Unknown field type.")
+        raise ValidationException("Unknown field type.", field)
 
     def _read_item(self, reader, tables, key="root"):
         result = {}
 
         for field in tables[key]:
-            res = self.read_field(reader, tables, field[0], field[1], field[2])
-            result[field[2]] = res
+            res = self.read_field(reader, tables, field[0], field[1])
+            result[field[1]] = res
 
         return result
 
