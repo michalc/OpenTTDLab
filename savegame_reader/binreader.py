@@ -47,11 +47,11 @@ class BinaryReader:
         elif (b & 0xC0) == 0x80:
             return ((b & 0x3F) << 8 | self.uint8(), 2)
         elif (b & 0xE0) == 0xC0:
-            return ((b & 0x1F) << 16 | self.uint16(be=True), 3)
+            return ((b & 0x1F) << 16 | self.uint16(), 3)
         elif (b & 0xF0) == 0xE0:
-            return ((b & 0x0F) << 24 | self.uint24(be=True), 4)
+            return ((b & 0x0F) << 24 | self.uint24(), 4)
         elif (b & 0xF8) == 0xF0:
-            return ((b & 0x07) << 32 | self.uint32(be=True), 5)
+            return ((b & 0x07) << 32 | self.uint32(), 5)
         else:
             raise ValidationException("Invalid gamma encoding.")
 
