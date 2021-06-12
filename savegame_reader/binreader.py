@@ -1,3 +1,4 @@
+import io
 import struct
 
 from .exceptions import ValidationException
@@ -6,29 +7,10 @@ from .exceptions import ValidationException
 class BinaryReader:
     """
     Read binary data.
-
-    @ivar file: Underlying file-like object.
-    @type file: File-like
-
-    @ivar hash: Hash of all read data.
-    @type hash: C{hash}
     """
 
-    def __init__(self, file, hash=None):
-        self.file = file
-        self.hash = hash
-
-    def attach_hash(self, hash):
-        self.hash = hash
-
-    def detach_hash(self):
-        self.hash = None
-
     def read(self, amount):
-        b = self.file.read(amount)
-        if self.hash:
-            self.hash.update(b)
-        return b
+        raise NotImplementedError
 
     def str(self):
         """
@@ -36,8 +18,8 @@ class BinaryReader:
         """
         result = bytearray()
         while True:
-            b = self.read(1)
-            if b == b"\0" or b == b"" or b is None:
+            b = self.uint8()
+            if b == b"\0":
                 break
             else:
                 result.extend(b)
@@ -81,58 +63,86 @@ class BinaryReader:
         return self.read(size)
 
     def int8(self):
-        b = self.read(1)
-        if len(b) != 1:
+        try:
+            return struct.unpack(">b", self.read(1))[0]
+        except struct.error:
             raise ValidationException("Unexpected end-of-file.")
-        return struct.unpack("<b", b)[0]
 
     def uint8(self):
-        b = self.read(1)
-        if len(b) != 1:
+        try:
+            return struct.unpack(">B", self.read(1))[0]
+        except struct.error:
             raise ValidationException("Unexpected end-of-file.")
-        return struct.unpack("<B", b)[0]
 
-    def int16(self, be=False):
-        b = self.read(2)
-        if len(b) != 2:
+    def int16(self):
+        try:
+            return struct.unpack(">h", self.read(2))[0]
+        except struct.error:
             raise ValidationException("Unexpected end-of-file.")
-        return struct.unpack(">h" if be else "<h", b)[0]
 
-    def uint16(self, be=False):
-        b = self.read(2)
-        if len(b) != 2:
+    def uint16(self):
+        try:
+            return struct.unpack(">H", self.read(2))[0]
+        except struct.error:
             raise ValidationException("Unexpected end-of-file.")
-        return struct.unpack(">H" if be else "<H", b)[0]
 
-    def uint24(self, be=False):
-        b = self.read(3)
-        if len(b) != 3:
-            raise ValidationException("Unexpected end-of-file.")
-        if be:
-            return b[0] << 16 | b[1] << 8 | b[2]
-        else:
-            return b[2] << 16 | b[1] << 8 | b[0]
+    def uint24(self):
+        return (self.uint16() << 8) | self.uint8()
 
-    def int32(self, be=False):
-        b = self.read(4)
-        if len(b) != 4:
+    def int32(self):
+        try:
+            return struct.unpack(">l", self.read(4))[0]
+        except struct.error:
             raise ValidationException("Unexpected end-of-file.")
-        return struct.unpack(">l" if be else "<l", b)[0]
 
-    def uint32(self, be=False):
-        b = self.read(4)
-        if len(b) != 4:
+    def uint32(self):
+        try:
+            return struct.unpack(">L", self.read(4))[0]
+        except struct.error:
             raise ValidationException("Unexpected end-of-file.")
-        return struct.unpack(">L" if be else "<L", b)[0]
 
-    def int64(self, be=False):
-        b = self.read(8)
-        if len(b) != 8:
+    def int64(self):
+        try:
+            return struct.unpack(">q", self.read(8))[0]
+        except struct.error:
             raise ValidationException("Unexpected end-of-file.")
-        return struct.unpack(">q" if be else "<q", b)[0]
 
-    def uint64(self, be=False):
-        b = self.read(8)
-        if len(b) != 8:
+    def uint64(self):
+        try:
+            return struct.unpack(">Q", self.read(8))[0]
+        except struct.error:
             raise ValidationException("Unexpected end-of-file.")
-        return struct.unpack(">Q" if be else "<Q", b)[0]
+
+
+class BinaryReaderFile(BinaryReader):
+    """
+    Read binary data from file.
+    """
+
+    def __init__(self, file):
+        self._file = file
+
+    def read(self, amount):
+        return self._file.read(amount)
+
+
+class BinaryReaderFileBlockMode(BinaryReader):
+    """
+    Read binary data from file in blocks of at least 1024 bytes.
+    """
+
+    def __init__(self, file):
+        self._file = file
+        self._buffer = b""
+
+    def read(self, amount):
+        # Read in chunks, to improve performance.
+        if len(self._buffer) < amount:
+            self._buffer += self._file.read(1024 + amount)
+
+        if len(self._buffer) < amount:
+            raise ValidationException("Unexpected end-of-file.")
+
+        data = self._buffer[:amount]
+        self._buffer = self._buffer[amount:]
+        return data

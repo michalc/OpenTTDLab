@@ -17,7 +17,7 @@ def main(savegame, export_json):
         sg.read(fp)
 
     if export_json:
-        print(json.dumps(sg.tables))
+        print(json.dumps({"savegame_version": sg.savegame_version, "chunks": sg.items}))
         return
 
     SavegameBrowser(sg).run()

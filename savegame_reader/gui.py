@@ -50,8 +50,8 @@ class SavegameBrowser:
 
         chunk = self.chunks[self.chunks.focus].original_widget.label
 
-        if "items" in self._savegame.tables[chunk]:
-            for key in self._savegame.tables[chunk]["items"].keys():
+        if self._savegame.items[chunk]:
+            for key in self._savegame.items[chunk].keys():
                 button = urwid.Button(str(key))
                 self.indexes.append(urwid.AttrMap(button, None, focus_map="reversed"))
 
@@ -64,7 +64,7 @@ class SavegameBrowser:
         chunk = self.chunks[self.chunks.focus].original_widget.label
         index = self.indexes[self.indexes.focus].original_widget.label
 
-        fields = self._savegame.tables[chunk]["items"][index]
+        fields = self._savegame.items[chunk][index]
         for key, value in fields.items():
             if type(value) == list:
                 res = ""
@@ -73,11 +73,13 @@ class SavegameBrowser:
                 value = res[:-1]
             else:
                 value = json.dumps(value)
-            type_name = self._savegame.tables[chunk]["header"][key]
+
+            field = [field for field in self._savegame.tables[chunk]["root"] if field[2] == key][0]
+            header = f"{field[0].name}"
 
             key_field = urwid.AttrMap(urwid.Text(key), None, focus_map="reversed")
             value_field = urwid.Text(value)
-            type_field = urwid.Text(type_name)
+            type_field = urwid.Text(header)
 
             self.fields.append(
                 urwid.Columns(
@@ -94,14 +96,14 @@ class SavegameBrowser:
         self.fields = urwid.SimpleFocusListWalker([])
 
         for key, table in self._savegame.tables.items():
-            if "unsupported" in table["header"]:
+            if "unsupported" in table:
                 continue
 
             button = urwid.Button(key)
             self.chunks.append(urwid.AttrMap(button, None, focus_map="reversed"))
 
         for key, table in self._savegame.tables.items():
-            if "unsupported" not in table["header"]:
+            if "unsupported" not in table:
                 continue
 
             button = urwid.Button(key)
