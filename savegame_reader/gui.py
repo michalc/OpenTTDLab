@@ -2,6 +2,8 @@ import json
 import os
 import urwid
 
+from .enums import FieldType
+
 
 class SavegameBrowser:
     palette = [
@@ -55,6 +57,34 @@ class SavegameBrowser:
                 button = urwid.Button(str(key))
                 self.indexes.append(urwid.AttrMap(button, None, focus_map="reversed"))
 
+    def add_table(self, tables, fields, table_key="root", prefix=""):
+        table = tables[table_key]
+
+        for key, value in fields.items():
+            field = [field for field in table if field[2] == key][0]
+            header = f"{field[0].name}"
+
+            if field[0] == FieldType.STRUCT:
+                svalue = value
+                value = f"(length: {len(svalue)})"
+            else:
+                value = json.dumps(value)
+
+            key_field = urwid.AttrMap(urwid.Text(f"{prefix}{key}"), None, focus_map="reversed")
+            value_field = urwid.Text(value)
+            type_field = urwid.Text(header)
+
+            self.fields.append(
+                urwid.Columns(
+                    [(50, key_field), value_field, (10, type_field)],
+                    dividechars=2,
+                )
+            )
+
+            if field[0] == FieldType.STRUCT:
+                for i, item in enumerate(svalue):
+                    self.add_table(tables, item, field[2], f"{prefix}{field[2]}[{i}].")
+
     def IndexFocus(self):
         self.fields.clear()
 
@@ -64,29 +94,10 @@ class SavegameBrowser:
         chunk = self.chunks[self.chunks.focus].original_widget.label
         index = self.indexes[self.indexes.focus].original_widget.label
 
+        tables = self._savegame.tables[chunk]
         fields = self._savegame.items[chunk][index]
-        for key, value in fields.items():
-            if type(value) == list:
-                res = ""
-                for i, item in enumerate(value):
-                    res += f"[{i:-3d}] {json.dumps(item)}\n"
-                value = res[:-1]
-            else:
-                value = json.dumps(value)
 
-            field = [field for field in self._savegame.tables[chunk]["root"] if field[2] == key][0]
-            header = f"{field[0].name}"
-
-            key_field = urwid.AttrMap(urwid.Text(key), None, focus_map="reversed")
-            value_field = urwid.Text(value)
-            type_field = urwid.Text(header)
-
-            self.fields.append(
-                urwid.Columns(
-                    [(30, key_field), value_field, (10, type_field)],
-                    dividechars=2,
-                )
-            )
+        self.add_table(tables, fields)
 
     def __init__(self, savegame):
         self._savegame = savegame
