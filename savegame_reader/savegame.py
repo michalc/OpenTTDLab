@@ -163,7 +163,7 @@ class Savegame(PassthroughReader):
 
         if tables:
             self.items[tag][table_index], data = self._read_item(data, tables)
-            if tag != "GSDT":  # Known chunk with garbage at the end
+            if tag not in ("GSDT", "AIPL"):  # Known chunk with garbage at the end
                 if len(data):
                     raise ValidationException(f"Junk at end of chunk {tag}")
         else:
