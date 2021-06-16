@@ -9,6 +9,7 @@ function Main() {
 
   return (
     <div>
+      <p>Don't have a valid savegame? <a href="ottdc_pzsg5.sav">Download the #openttdcoop ProZone Server Game #5 here</a>.</p>
       <Savegame setData={setData} />
       <Viewer data={data} />
     </div>
