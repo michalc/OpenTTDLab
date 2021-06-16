@@ -1,9 +1,11 @@
-import React, { useCallback } from 'react'
+import React, { useCallback, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
 import {decompress} from 'xz'
 
 function Savegame(props: any) {
-    const onDrop = useCallback((acceptedFiles) => {
+  const [isAnalyzing, setIsAnalyzing] = useState(false)
+
+  const onDrop = useCallback((acceptedFiles) => {
     acceptedFiles.forEach((file: File) => {
       const reader = new FileReader()
 
@@ -13,15 +15,22 @@ function Savegame(props: any) {
         const buffer = reader.result
         if (buffer === null || !(buffer instanceof ArrayBuffer)) return
 
-        let res = decompress(new Uint8Array(buffer))
-        let data = JSON.parse(res)
-        for (const chunk in data["chunks"]) {
-          for (const index in data["chunks"][chunk]) {
-            data["chunks"][chunk][index] = JSON.parse(data["chunks"][chunk][index])
-          }
-        }
+        setIsAnalyzing(true)
+        const resultPromise = new Promise((resolve, reject) => {
+          setTimeout(() => {
+            let res = decompress(new Uint8Array(buffer))
+            let data = JSON.parse(res)
+            for (const chunk in data["chunks"]) {
+              for (const index in data["chunks"][chunk]) {
+                data["chunks"][chunk][index] = JSON.parse(data["chunks"][chunk][index])
+              }
+            }
 
-        props.setData(data)
+            props.setData(data)
+            setIsAnalyzing(false)
+          }, 10);
+        })
+        return resultPromise
       }
       reader.readAsArrayBuffer(file)
     })
@@ -34,9 +43,11 @@ function Savegame(props: any) {
       <div className="card-body" {...getRootProps()}>
         <input {...getInputProps()} />
         {
+          isAnalyzing ?
+            <p>Analyzing ... this might take a while ...</p> :
           isDragActive ?
             <p>Drop the savegame here ...</p> :
-            <p>Drag 'n' drop your savegame here, or click to select</p>
+            <p>Drag 'n' drop your savegame here, or click to select.<br/>Savegames uploaded here never leave your computer</p>
         }
       </div>
     </div>
