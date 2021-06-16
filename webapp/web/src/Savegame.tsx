@@ -17,16 +17,10 @@ function Savegame(props: any) {
 
         setIsAnalyzing(true)
         const resultPromise = new Promise((resolve, reject) => {
+          /* Small timeout for the GUI to update the "isAnalyzing" state. */
           setTimeout(() => {
             let res = decompress(new Uint8Array(buffer))
-            let data = JSON.parse(res)
-            for (const chunk in data["chunks"]) {
-              for (const index in data["chunks"][chunk]) {
-                data["chunks"][chunk][index] = JSON.parse(data["chunks"][chunk][index])
-              }
-            }
-
-            props.setData(data)
+            props.setData(JSON.parse(res))
             setIsAnalyzing(false)
           }, 10);
         })

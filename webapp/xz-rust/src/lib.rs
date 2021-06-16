@@ -7,11 +7,28 @@ use std::collections::{VecDeque, HashMap};
 use std::iter::FromIterator;
 
 
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(untagged)]
+enum Value {
+    I8(i8),
+    U8(u8),
+    I16(i16),
+    U16(u16),
+    I32(i32),
+    U32(u32),
+    I64(i64),
+    U64(u64),
+    String(String),
+    Struct(HashMap<String, Value>),
+    List(Vec<Value>),
+}
+
+
 #[derive(Serialize, Deserialize, Debug, Default)]
 struct Savegame {
     error: String,
     revision: u16,
-    chunks: HashMap<String, HashMap<u32, String>>,
+    chunks: HashMap<String, HashMap<u32, Value>>,
 }
 
 #[wasm_bindgen()]
@@ -117,54 +134,48 @@ fn read_header(data: &mut VecDeque<&u8>) -> HashMap<String, Vec<(String, u8)>> {
     return tables;
 }
 
-fn read_field(data: &mut VecDeque<&u8>, tables: &HashMap<String, Vec<(String, u8)>>, field_name: &String, field_type: u8) -> String {
+fn read_field(data: &mut VecDeque<&u8>, tables: &HashMap<String, Vec<(String, u8)>>, field_name: &String, field_type: u8) -> Value {
     if field_type & 0x10 != 0 && field_type != (0x10 | 10) {
         let length = read_gamma(data);
 
-        let mut record: String = "[".to_string();
+        let mut record: Vec<Value> = Vec::new();
+
         for _ in 0..length {
-            let value = read_field(data, tables, field_name, field_type & 0xf);
-            record.push_str(format!("{},", value).as_str());
+            record.push(read_field(data, tables, field_name, field_type & 0xf));
         }
         if record.len() > 2 {
             record.remove(record.len() - 1);
         }
-        record.push_str("]");
-        return record;
+        return Value::List(record);
     }
 
     return match field_type & 0xf {
-        1 => format!("\"{}\"", read_uint8(data) as i8),
-        2 => format!("\"{}\"", read_uint8(data)),
-        3 => format!("\"{}\"", read_uint16(data) as i16),
-        4 => format!("\"{}\"", read_uint16(data)),
-        5 => format!("\"{}\"", read_uint32(data) as i32),
-        6 => format!("\"{}\"", read_uint32(data)),
-        7 => format!("\"{}\"", read_uint64(data) as i64),
-        8 => format!("\"{}\"", read_uint64(data)),
-        9 => format!("\"{}\"", read_uint16(data)),
-        10 => { let length = read_gamma(data); return format!("\"{}\"", read_string(data, length).replace("\"", "\\\"")); },
+        1 => Value::I8(read_uint8(data) as i8),
+        2 => Value::U8(read_uint8(data)),
+        3 => Value::I16(read_uint16(data) as i16),
+        4 => Value::U16(read_uint16(data)),
+        5 => Value::I32(read_uint32(data) as i32),
+        6 => Value::U32(read_uint32(data)),
+        7 => Value::I64(read_uint64(data) as i64),
+        8 => Value::U64(read_uint64(data)),
+        9 => Value::U16(read_uint16(data)),
+        10 => { let length = read_gamma(data); return Value::String(read_string(data, length)); },
         11 => read_record(data, tables, field_name),
         _ => { console_log!("Unknown field type {}", field_type); panic!("Unknown field type"); },
     }
 }
 
-fn read_record(data: &mut VecDeque<&u8>, tables: &HashMap<String, Vec<(String, u8)>>, key: &String) -> String {
-    let mut record: String = "{".to_string();
+fn read_record(data: &mut VecDeque<&u8>, tables: &HashMap<String, Vec<(String, u8)>>, key: &String) -> Value {
+    let mut record: HashMap<String, Value> = HashMap::new();
 
     for (field_name, field_type) in &tables[key] {
-        let value = read_field(data, tables, field_name, *field_type);
-        record.push_str(format!("\"{}\":{},", field_name, value).as_str());
+        record.insert(field_name.clone(), read_field(data, tables, field_name, *field_type));
     }
 
-    if record.len() > 2 {
-        record.remove(record.len() - 1);
-    }
-    record.push_str("}");
-    return record;
+    return Value::Struct(record);
 }
 
-fn read_root_record(data: &mut VecDeque<&u8>, tables: &HashMap<String, Vec<(String, u8)>>) -> String {
+fn read_root_record(data: &mut VecDeque<&u8>, tables: &HashMap<String, Vec<(String, u8)>>) -> Value {
     return read_record(data, tables, &"root".to_string());
 }
 
@@ -227,7 +238,7 @@ pub fn decompress(incoming: &Uint8Array) -> String {
                 return serde_json::to_string(&savegame).unwrap();
             }
 
-            let mut records: HashMap<u32, String> = HashMap::new();
+            let mut records: HashMap<u32, Value> = HashMap::new();
 
             let mut index = -1;
             loop {
