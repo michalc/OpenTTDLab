@@ -143,9 +143,6 @@ fn read_field(data: &mut VecDeque<&u8>, tables: &HashMap<String, Vec<(String, u8
         for _ in 0..length {
             record.push(read_field(data, tables, field_name, field_type & 0xf));
         }
-        if record.len() > 2 {
-            record.remove(record.len() - 1);
-        }
         return Value::List(record);
     }
 
