@@ -9,7 +9,7 @@ use std::iter::FromIterator;
 
 #[derive(Serialize, Deserialize, Debug, Default)]
 struct Savegame {
-    error: bool,
+    error: String,
     revision: u16,
     chunks: HashMap<String, HashMap<u32, String>>,
 }
@@ -180,17 +180,17 @@ pub fn decompress(incoming: &Uint8Array) -> String {
         .collect();
 
     if compression_str != "OTTX" {
-        console_log!("ERROR: savegame uses unsupported compression: {}", compression_str);
-        return serde_json::to_string(&Savegame { ..Default::default() }).unwrap();
+        let error = format!("Savegame uses unsupported compression: {}", compression_str);
+        return serde_json::to_string(&Savegame { error: error, ..Default::default() }).unwrap();
     }
 
     let revision = read_uint16(&mut data);
     read_uint16(&mut data);
 
-    let mut savegame : Savegame = Savegame { error: true, revision: revision, ..Default::default() };
+    let mut savegame : Savegame = Savegame { error: "Unknown error".to_string(), revision: revision, ..Default::default() };
 
     if revision < 295 {
-        console_log!("ERROR: savegame too old for analysis: {}", revision);
+        savegame.error = format!("Savegame too old for analysis: {} < 295", revision);
         return serde_json::to_string(&savegame).unwrap();
     }
 
@@ -223,7 +223,7 @@ pub fn decompress(incoming: &Uint8Array) -> String {
             let decomp_length = decomp.len() as u32;
             let tables = read_header(&mut decomp);
             if decomp_length - header_size + 1 != decomp.len() as u32 {
-                console_log!("Invalid header size: {} vs {}", decomp_length - header_size + 1, decomp.len());
+                savegame.error = format!("Invalid header size: {} vs {}", decomp_length - header_size + 1, decomp.len());
                 return serde_json::to_string(&savegame).unwrap();
             }
 
@@ -255,7 +255,7 @@ pub fn decompress(incoming: &Uint8Array) -> String {
                             let done = decomp_length - (decomp.len() as u32);
                             read_bytes(&mut decomp, size - 1 - done);
                         } else {
-                            console_log!("Invalid record size for {}: {} vs {}", tag_str, decomp_length - size + 1, decomp.len());
+                            savegame.error = format!("Invalid record size for {}: {} vs {}", tag_str, decomp_length - size + 1, decomp.len());
                             return serde_json::to_string(&savegame).unwrap();
                         }
                     }
@@ -266,7 +266,7 @@ pub fn decompress(incoming: &Uint8Array) -> String {
         }
     }
 
-    savegame.error = false;
+    savegame.error = "".to_string();
     return serde_json::to_string(&savegame).unwrap();
 }
 

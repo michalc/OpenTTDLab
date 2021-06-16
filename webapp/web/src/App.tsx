@@ -9,7 +9,11 @@ function Main() {
 
   return (
     <div>
-      <p>Don't have a valid savegame? <a href="ottdc_pzsg5.sav">Download the #openttdcoop ProZone Server Game #5 here</a>.</p>
+      <div className="card border-info bg-warning container mt-1 text-center">
+        <p>Savegames have to be made with <a target="_new" href="https://github.com/OpenTTD/OpenTTD/pull/9322">PR9322</a></p>
+        <p>Don't have a valid savegame?<br /><a href="ottdc_pzsg5.sav">Download the converted #openttdcoop ProZone Server Game #5 here</a>.</p>
+      </div>
+
       <Savegame setData={setData} />
       <Viewer data={data} />
     </div>
