@@ -10,8 +10,7 @@ function Main() {
   return (
     <div>
       <div className="card border-info bg-warning container mt-1 text-center">
-        <p>Savegames have to be made with <a target="_new" href="https://github.com/OpenTTD/OpenTTD/pull/9322">PR9322</a></p>
-        <p>Don't have a valid savegame?<br /><a href="ottdc_pzsg5.sav">Download the converted #openttdcoop ProZone Server Game #5 here</a>.</p>
+        <p>Savegames have to be made with 12.0-beta1 or later</p>
       </div>
 
       <Savegame setData={setData} />
