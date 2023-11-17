@@ -1,9 +1,6 @@
-# OpenTTD Savegame Reader
+# OpenTTDLab
 
-This is a very early version of an OpenTTD Savegame Reader.
-
-It depends on a new savegame iteration which prefixes all chunks with a header.
-Chunks that do not have a header, are reported as `unsupported`.
+Python framework for running reproducible experiments using OpenTTD
 
 ## Python
 
