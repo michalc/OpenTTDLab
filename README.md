@@ -61,3 +61,10 @@ run_experiment, get_experimental_config = setup_experiment(config=config)
 results = run_experiment()
 print(results)
 ```
+
+
+## API design considerations
+
+- Mutability is avoided
+- Impure functions are avoided
+- Designed so if type checking were in place and passes, API misuse should be close to impossible
