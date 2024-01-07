@@ -14,17 +14,35 @@ pip install OpenTTDLab
 ```
 
 
+## Concepts
+
+OpenTTDLab is based around the concept of an _experiment_, which encapsulates:
+
+- Exact version of OpenTTD
+- OpenTTD and command line arguments
+- Versions of any AIs used
+- Number of runs of OpenTTD
+- Random seed used for each run
+- Version of OpenTTDLab itself
+
+This information is generated an available for each experiment, allowing it to be extracted in either machine or human readable forms, for use in code or publishing respectively.
+
+
 ## Usage
 
+The core function of OpenTTD is the `setup_experiment` function.
 
 ```python
-from openttdlab import experiment
+from openttdlab import setup_experiment
 
-results, reproducibility = experiment()
+# If necessary, this will download the latest OpenTTD
+run_experiment, get_experimental_config = setup_experiment()
 
-# The actual results
+# Run the experiment and get results. This may take time
+results = run_experiment()
 print(results)
 
 # The information needed to reproduce the experiment
-print(reproducibility)
+config = get_experiment_config()
+print(config)
 ```
