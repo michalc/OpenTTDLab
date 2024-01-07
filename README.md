@@ -1,6 +1,8 @@
 # OpenTTDLab
 
-Python framework for running reproducible experiments using OpenTTD
+Python framework for running reproducible experiments using OpenTTD.
+
+Forked from [TrueBrain's OpenTTD Savegame Reader](https://github.com/TrueBrain/OpenTTD-savegame-reader).
 
 ## Python
 
