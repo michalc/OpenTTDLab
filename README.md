@@ -55,7 +55,10 @@ If you have the `config` from a previous experiment, you can pass it into `setup
 ```python
 from openttdlab import setup_experiment
 
-run_experiment, get_experimental_config = setup_experiment(config=config)
+# allow_platform_difference=True will allow experiments from a platform other than the one
+# the original experiments were performed on. Otherwise, setup_experiment may error because
+# the exact same OpenTTD will not be able to be run on this platform
+run_experiment, get_experimental_config = setup_experiment(config=config, allow_platform_difference=True)
 
 # Run the experiment and get results
 results = run_experiment()
