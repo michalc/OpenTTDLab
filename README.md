@@ -1,6 +1,12 @@
 # OpenTTDLab
 
-Python framework for running reproducible experiments using OpenTTD.
+Python framework for running reproducible experiments using OpenTTD. An _experiment_ in OpenTTDLab terms is the combination of:
+
+- Exact version of OpenTTD, any AIs used, and OpenTTDLab itself
+- Ranges of values for OpenTTD config settings, command line arguments and random seed
+- Granularity of output
+
+This can be configured/extracted for each experiment in either machine or human readable forms, for use in code or publishing respectively.
 
 Based on [TrueBrain's OpenTTD Savegame Reader](https://github.com/TrueBrain/OpenTTD-savegame-reader).
 
@@ -12,17 +18,6 @@ Based on [TrueBrain's OpenTTD Savegame Reader](https://github.com/TrueBrain/Open
 ```shell
 pip install OpenTTDLab
 ```
-
-
-## Concepts
-
-OpenTTDLab is based around the concept of an _experiment_, which encapsulates three classes of information:
-
-- Exact version of OpenTTD, any AIs used, and OpenTTDLab itself
-- Ranges of values for OpenTTD config settings, command line arguments and random seed
-- Granularity of output
-
-This can be extracted for each experiment in either machine or human readable forms, for use in code or publishing respectively.
 
 
 ## Usage
