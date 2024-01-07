@@ -12,3 +12,19 @@ Based on [TrueBrain's OpenTTD Savegame Reader](https://github.com/TrueBrain/Open
 ```shell
 pip install OpenTTDLab
 ```
+
+
+## Usage
+
+
+```python
+from openttdlab import experiment
+
+results, reproducibility = experiment()
+
+# The actual results
+print(results)
+
+# The information needed to reproduce the experiment
+print(reproducibility)
+```
