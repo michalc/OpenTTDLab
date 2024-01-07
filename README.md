@@ -16,16 +16,13 @@ pip install OpenTTDLab
 
 ## Concepts
 
-OpenTTDLab is based around the concept of an _experiment_, which encapsulates:
+OpenTTDLab is based around the concept of an _experiment_, which encapsulates three classes of information:
 
-- Exact version of OpenTTD
-- OpenTTD and command line arguments
-- Versions of any AIs used
-- Number of runs of OpenTTD
-- Random seed used for each run
-- Version of OpenTTDLab itself
+- Exact version of OpenTTD, any AIs used, and OpenTTDLab itself
+- Ranges of values for OpenTTD config settings, command line arguments and random seed
+- Granularity of output
 
-This information is generated an available for each experiment, allowing it to be extracted in either machine or human readable forms, for use in code or publishing respectively.
+This can be extracted for each experiment in either machine or human readable forms, for use in code or publishing respectively.
 
 
 ## Usage
