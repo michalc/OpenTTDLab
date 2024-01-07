@@ -46,3 +46,18 @@ print(results)
 config = get_experiment_config()
 print(config)
 ```
+
+
+## Reproducing an experiment
+
+If you have the `config` from a previous experiment, you can pass it into `setup_experiment` to exactly reproduce
+
+```python
+from openttdlab import setup_experiment
+
+run_experiment, get_experimental_config = setup_experiment(config=config)
+
+# Run the experiment and get results
+results = run_experiment()
+print(results)
+```
