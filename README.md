@@ -8,7 +8,7 @@ Python framework for running reproducible experiments using OpenTTD. An _experim
 
 This can be configured/extracted for each experiment in either machine or human readable forms, for use in code or publishing respectively.
 
-Based on [TrueBrain's OpenTTD Savegame Reader](https://github.com/TrueBrain/OpenTTD-savegame-reader).
+OpenTTDLab is based on [TrueBrain's OpenTTD Savegame Reader](https://github.com/TrueBrain/OpenTTD-savegame-reader), but it is not affiliated with OpenTTD.
 
 > [!NOTE]
 > Work in progress. This README serves as a rough design spec.
