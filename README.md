@@ -1,4 +1,4 @@
-# OpenTTDLab
+# OpenTTDLab • [![PyPI package](https://img.shields.io/pypi/v/OpenTTDLab?label=PyPI%20package)](https://pypi.org/project/OpenTTDLab/) [![Test suite](https://img.shields.io/github/actions/workflow/status/michalc/OpenTTDLab/test.yml?label=Test%20suite)](https://github.com/michalc/OpenTTDLab/actions/workflows/test.yml) [![Code coverage](https://img.shields.io/codecov/c/github/michalc/OpenTTDLab?label=Code%20coverage)](https://app.codecov.io/gh/michalc/OpenTTDLab)
 
 Python framework for running reproducible experiments using OpenTTD. An _experiment_ in OpenTTDLab terms is the combination of:
 
