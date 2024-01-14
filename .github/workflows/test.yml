@@ -38,4 +38,5 @@ jobs:
           pip install ".[ci]"
       - name: "Run tests"
         run: |
-          pytest
+          pytest --cov
+      - uses: codecov/codecov-action@v3

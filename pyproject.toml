@@ -24,10 +24,14 @@ classifiers = [
 
 [project.optional-dependencies]
 dev = [
+  "coverage>=6.2",
   "pytest>=7.0.1",
+  "pytest-cov>=3.0.0",
 ]
 ci = [
-  "pytest==7.0.1",
+  "coverage>=6.2",
+  "pytest>=7.0.1",
+  "pytest-cov>=3.0.0",
 ]
 
 [tool.hatch.build]
