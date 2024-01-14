@@ -12,11 +12,16 @@ authors = [
 ]
 description = "Python framework for running reproducible experiments using OpenTTD"
 readme = "README.md"
-requires-python = ">=3.6.7"
+requires-python = ">=3.8.0"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: GNU General Public License v2 (GPLv2)",
     "Operating System :: OS Independent",
+]
+dependencies = [
+    "httpx>=0.26.0",
+    "platformdirs>=4.1.0",
+    "PyYAML>=6.0.1",
 ]
 
 [project.urls]
@@ -24,14 +29,19 @@ classifiers = [
 
 [project.optional-dependencies]
 dev = [
-  "coverage>=6.2",
-  "pytest>=7.0.1",
-  "pytest-cov>=3.0.0",
+  "coverage>=7.4.0",
+  "pytest>=7.4.4",
+  "pytest-cov>=4.1.0",
 ]
 ci = [
-  "coverage>=6.2",
-  "pytest>=7.0.1",
-  "pytest-cov>=3.0.0",
+  # Pinned dev dependencies
+  "coverage==7.4.0",
+  "pytest==7.4.4",
+  "pytest-cov==4.1.0",
+  # Pinned normal dependencies
+  "httpx==0.26.0",
+  "platformdirs==4.1.0",
+  "PyYAML==6.0.1",
 ]
 
 [tool.hatch.build]
