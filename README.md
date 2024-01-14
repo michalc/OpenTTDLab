@@ -21,12 +21,12 @@ pip install OpenTTDLab
 ```
 
 
-## Usage
+## Running an experiment
 
 The core function of OpenTTD is the `setup_experiment` function.
 
 ```python
-from openttdlab import setup_experiment
+from openttdlab import setup_experiment, save_config
 
 # If necessary, this will download the latest OpenTTD
 run_experiment, get_experimental_config = setup_experiment()
@@ -38,15 +38,21 @@ print(results)
 # The information needed to reproduce the experiment
 config = get_experiment_config()
 print(config)
+
+# Which can be saved to a file and then shared
+save_config('my-config.yml', config)
 ```
 
 
 ## Reproducing an experiment
 
-If you have the `config` from a previous experiment, you can pass it into `setup_experiment` to exactly reproduce
+If you have the config from a previous experiment, you can pass it into `setup_experiment` to exactly reproduce
 
 ```python
-from openttdlab import setup_experiment
+from openttdlab import setup_experiment, load_config
+
+# Load the config from file
+config = load_config('my-config.yml')
 
 # allow_platform_difference=True will allow experiments from a platform other than the one
 # the original experiments were performed on. Otherwise, setup_experiment may error because
