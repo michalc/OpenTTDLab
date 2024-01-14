@@ -29,14 +29,14 @@ The core function of OpenTTD is the `setup_experiment` function.
 from openttdlab import setup_experiment, save_config
 
 # If necessary, this will download the latest OpenTTD
-run_experiment, get_experimental_config = setup_experiment()
+run_experiment, get_config = setup_experiment()
 
 # Run the experiment and get results. This may take time
 results = run_experiment()
 print(results)
 
 # The information needed to reproduce the experiment
-config = get_experiment_config()
+config = get_config()
 print(config)
 
 # Which can be saved to a file and then shared
