@@ -22,6 +22,14 @@ classifiers = [
 [project.urls]
 "Source" = "https://github.com/michalc/OpenTTDLab"
 
+[project.optional-dependencies]
+dev = [
+  "pytest>=7.0.1",
+]
+ci = [
+  "pytest==7.0.1",
+]
+
 [tool.hatch.build]
 include = [
   "openttdlab.py"
