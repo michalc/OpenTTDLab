@@ -1,6 +1,7 @@
 import hashlib
 import os.path
 import platform
+import subprocess
 
 import httpx
 import yaml
@@ -63,8 +64,12 @@ def setup_experiment(
         for chunk in iter(lambda: f.read(65536), b''):
             sha256.update(chunk)
 
-    if sha256.hexdigest() != file_details['sha256sum']:
+    digest = sha256.hexdigest()
+    if digest != file_details['sha256sum']:
         raise Exception(f"SHA256 of {expected_file_location} does not match its published value")
+
+    # Extract the file
+    subprocess.check_output(['7z', 'x', '-y', f'-o{expected_file_location}-{digest}', expected_file_location])
 
 
 def save_config():
