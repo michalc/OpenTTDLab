@@ -17,7 +17,7 @@ OpenTTDLab is based on [TrueBrain's OpenTTD Savegame Reader](https://github.com/
 ## Installation
 
 ```shell
-pip install OpenTTDLab
+python -m pip install OpenTTDLab
 ```
 
 
