@@ -71,6 +71,13 @@ def setup_experiment(
     # Extract the file
     subprocess.check_output(['7z', 'x', '-y', f'-o{expected_file_location}-{digest}', expected_file_location])
 
+    def run_experiment():
+        pass
+
+    def get_config():
+        pass
+
+    return run_experiment, get_config
 
 def save_config():
     pass
