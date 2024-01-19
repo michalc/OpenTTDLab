@@ -20,25 +20,10 @@ OpenTTDLab is based on [TrueBrain's OpenTTD Savegame Reader](https://github.com/
 python -m pip install OpenTTDLab
 ```
 
-OpenTTDLab itself depends on [7-zip](https://www.7-zip.org/), but this is not installed automatically.
-
-To install 7-zip on macOS, first install [Homebrew](https://brew.sh/), and then use Homebrew to install the p7zip package that contains 7-zip.
+On macOS, OpenTTDLab requires [7-zip](https://www.7-zip.org/), but this is not installed automatically. To install 7-zip on macOS, first install [Homebrew](https://brew.sh/), and then use Homebrew to install the p7zip package that contains 7-zip.
 
 ```shell
 brew install p7zip
-```
-
-On Linux, you can usually install 7-zip from your distribution's package repository. For example, for apt-based distributions:
-
-```shell
-sudo apt update
-sudo apt install -y p7zip-full
-```
-
-or for dnf-based distrubtions
-
-```shell
-sudo dnf install p7zip
 ```
 
 
