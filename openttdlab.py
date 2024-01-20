@@ -14,6 +14,10 @@ import yaml
 from platformdirs import user_cache_dir
 
 
+# On release this is replaced by the release's corresponding git tag
+__version__ = '0.0.0.dev0'
+
+
 def setup_experiment(
     openttd_base_url='https://cdn.openttd.org/openttd-releases/',
     opengfx_base_url='https://cdn.openttd.org/opengfx-releases/',
