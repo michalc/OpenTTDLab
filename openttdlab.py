@@ -122,7 +122,7 @@ def setup_experiment(
     def run_experiment():
         experiment_id = uuid.uuid4().hex
         experiment_dir = os.path.join(cache_dir, 'experiments', experiment_id)
-        experiment_baseset_dir = os.path.join(cache_dir, experiment_dir, 'baseset')
+        experiment_baseset_dir = os.path.join(experiment_dir, 'baseset')
         Path(experiment_baseset_dir).mkdir(parents=True, exist_ok=True)
         shutil.copy(opengfx_binary, experiment_baseset_dir)
         subprocess.check_output(
