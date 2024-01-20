@@ -2,7 +2,7 @@
   <img alt="OpenTTDLab logo" width="256" height="254" src="./docs/assets/openttdlab-logo.svg">
 </p>
 
-<p align="center"><strong>OpenTTDLab</strong> - <em>Run reproducible experiments on OpenTTD</em></p>
+<p align="center"><strong>OpenTTDLab</strong> - <em>Run reproducible experiments using OpenTTD</em></p>
 
 <p align="center">
     <a href="https://pypi.org/project/OpenTTDLab/"><img alt="PyPI package" src="https://img.shields.io/pypi/v/OpenTTDLab?label=PyPI%20package"></a>
@@ -12,7 +12,7 @@
 
 ---
 
-OpenTTD is a Python framework for running reproducible experiments using OpenTTD. An _experiment_ in OpenTTDLab terms is the combination of:
+OpenTTD is a Python framework for running reproducible experiments using OpenTTD, and extracting results from them. An _experiment_ in OpenTTDLab terms is the combination of:
 
 - Exact version of OpenTTD, any AIs used, and OpenTTDLab itself
 - Ranges of values for OpenTTD config settings, command line arguments and random seed
