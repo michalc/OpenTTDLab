@@ -5,8 +5,10 @@ import platform
 import shutil
 import stat
 import subprocess
+import tarfile
 import textwrap
 import uuid
+import zipfile
 from pathlib import Path
 
 import httpx
@@ -62,20 +64,28 @@ def run_experiment(
         if digest != expected_sha_256:
             raise Exception(f"SHA256 of {location} does not match its published value")
 
-    def extract(template, archive_location, output_dir):
-        subprocess.check_output([
-            arg.format_map({
-                'archive_location': archive_location,
-                'output_dir': output_dir,
-            })
-            for arg in template
-        ])
+    def extract_7z(archive_location, output_dir):
+        subprocess.check_output(('7z', 'x', '-y', f'-o{output_dir}', f'{archive_location}'))
+
+    def extract_tar_xz(archive_location, output_dir):
+        with tarfile.open(archive_location, 'r:xz') as f_tar:
+            for name in f_tar.getnames():
+                if '..' in name or name.strip().startswith('/'):
+                    raise Exception('Unsafe', archive_location)
+            f_tar.extractall(output_dir)
+
+    def extract_zip(archive_location, output_dir):
+        with zipfile.ZipFile(archive_location, 'r') as f_zip:
+            for name in f_zip.namelist():
+                if '..' in name or name.strip().startswith('/'):
+                    raise Exception('Unsafe', archive_location)
+            f_zip.extractall(output_dir)
 
     # Choose platform-specific details
-    extract_templates = {
-        'dmg': ('7z', 'x', '-y', '-o{output_dir}', '{archive_location}'),
-        'tar.xz': ('tar', 'xf', '{archive_location}', '-C', '{output_dir}'),
-        'zip': ('unzip', '-o', '{archive_location}', '-d', '{output_dir}'),
+    extractors = {
+        'dmg': extract_7z,
+        'tar.xz': extract_tar_xz,
+        'zip': extract_zip,
     }
     system_machine_to_release_params = {
         ('Darwin', 'arm64'): ('macos', 'universal', 'dmg', '{binary_dir}/openttd-{version}-macos-universal/OpenTTD.app/Contents/MacOS/openttd'),
@@ -114,8 +124,8 @@ def run_experiment(
     opengfx_binary_dir = f'{opengfx_archive_location}-{opengfx_file_details["sha256sum"]}'
     Path(openttd_binary_dir).mkdir(parents=True, exist_ok=True)
     Path(opengfx_binary_dir).mkdir(parents=True, exist_ok=True)
-    extract(extract_templates[openttd_extension], openttd_archive_location, openttd_binary_dir)
-    extract(extract_templates['zip'], opengfx_archive_location, opengfx_binary_dir)
+    extractors[openttd_extension](openttd_archive_location, openttd_binary_dir)
+    extractors['zip'](opengfx_archive_location, opengfx_binary_dir)
 
     # Construct the location of the binaries
     openttd_binary = os.path.join(openttd_binary_dir, openttd_binary_template.format_map({
