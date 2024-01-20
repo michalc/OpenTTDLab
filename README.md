@@ -50,43 +50,37 @@ You do not need to separately download or install OpenTTD (or [OpenGFX](https://
 
 ## Running an experiment
 
-The core function of OpenTTD is the `setup_experiment` function.
+The core function of OpenTTD is the `run_experiment` function.
 
 ```python
-from openttdlab import setup_experiment, save_config
+from openttdlab import run_experiment, save_config
 
-# If necessary, this will download the latest OpenTTD
-run_experiment, get_config = setup_experiment()
+# Run the experiment and get results
+results, config = run_experiment()
 
-# Run the experiment and get results. This may take time
-results = run_experiment()
+# Print the results...
 print(results)
 
-# The information needed to reproduce the experiment
-config = get_config()
+# ... and config
 print(config)
 
-# Which can be saved to a file and then shared
-save_config('my-config.yml', config)
+# ... which can be saved to a file and then shared (or archived)
+save_config('my-experiment-{experiment_id}.yml', config)
 ```
 
 
 ## Reproducing an experiment
 
-If you have the config from a previous experiment, you can pass it into `setup_experiment` to exactly reproduce
+If you have the config from a previous experiment, you can pass it into `run_experiment` to exactly reproduce. If for some reason it cannot be reproduced, it will error.
 
 ```python
-from openttdlab import setup_experiment, load_config
+from openttdlab import run_experiment, load_config
 
-# Load the config from file
-config = load_config('my-config.yml')
+# Load the config from a file...
+config = load_config('my-config-a5e95018.yml')
 
-# allow_platform_difference=True will allow experiments from a platform other than the one
-# the original experiments were performed on. Otherwise, setup_experiment may error because
-# the exact same OpenTTD will not be able to be run on this platform
-run_experiment, get_config = setup_experiment(config=config, allow_platform_difference=True)
+# ... and use it to run the same experiment
+results, config = run_experiment(config=config)
 
-# Run the experiment and get results
-results = run_experiment()
 print(results)
 ```
