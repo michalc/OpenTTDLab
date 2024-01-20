@@ -27,11 +27,19 @@ OpenTTDLab is based on [TrueBrain's OpenTTD Savegame Reader](https://github.com/
 
 ## Installation
 
+OpenTTDLab is distributed via [PyPI](https://pypi.org/project/OpenTTDLab/), and so can usually be installed using pip.
+
 ```shell
 python -m pip install OpenTTDLab
 ```
 
-On macOS, OpenTTDLab requires [7-zip](https://www.7-zip.org/), but this is not installed automatically. To install 7-zip on macOS, first install [Homebrew](https://brew.sh/), and then use Homebrew to install the p7zip package that contains 7-zip.
+OenTTDLab itself requires programs to extract the OpenTTD and OpenGFX binaries after it downloads them.
+
+1. unzip
+1. (Linux only) tar
+2. (macOS only) 7-zip
+
+The only one of these not likely to already be installed is [7-zip](https://www.7-zip.org/). To install 7-zip on macOS, first install [Homebrew](https://brew.sh/), and then use Homebrew to install the p7zip package that contains 7-zip.
 
 ```shell
 brew install p7zip
