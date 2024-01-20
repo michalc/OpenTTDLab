@@ -81,11 +81,3 @@ run_experiment, get_config = setup_experiment(config=config, allow_platform_diff
 results = run_experiment()
 print(results)
 ```
-
-
-## API design considerations
-
-- Mutability is avoided
-- Impure functions are avoided
-- In terms of the user-facing API, keeping it mostly OOP-free, and deliberately focused on key behaviour
-- Designed so if type checking were in place and passes, API misuse should be close to impossible
