@@ -1,6 +1,18 @@
-# OpenTTDLab • [![PyPI package](https://img.shields.io/pypi/v/OpenTTDLab?label=PyPI%20package)](https://pypi.org/project/OpenTTDLab/) [![Test suite](https://img.shields.io/github/actions/workflow/status/michalc/OpenTTDLab/test.yml?label=Test%20suite)](https://github.com/michalc/OpenTTDLab/actions/workflows/test.yml) [![Code coverage](https://img.shields.io/codecov/c/github/michalc/OpenTTDLab?label=Code%20coverage)](https://app.codecov.io/gh/michalc/OpenTTDLab)
+<p align="center">
+  <img alt="OpenTTDLab logo" width="256" height="248" src="./docs/assets/openttdlab-logo.svg">
+</p>
 
-Python framework for running reproducible experiments using OpenTTD. An _experiment_ in OpenTTDLab terms is the combination of:
+<p align="center"><strong>OpenTTDLab</strong> - <em>Run reproducible experiments on OpenTTD</em></p>
+
+<p align="center">
+    <a title="PyPI package" href="https://pypi.org/project/OpenTTDLab/"><img src="https://img.shields.io/pypi/v/OpenTTDLab?label=PyPI%20package"></a>
+    <a title="Test suite" href="https://github.com/michalc/OpenTTDLab/actions/workflows/test.yml"><img src="https://img.shields.io/github/actions/workflow/status/michalc/OpenTTDLab/test.yml?label=Test%20suite"></a>
+    <a title="Code coverage" href="https://app.codecov.io/gh/michalc/OpenTTDLab"><img src="https://img.shields.io/codecov/c/github/michalc/OpenTTDLab?label=Code%20coverage"></a>
+</p>
+
+---
+
+OpenTTD is a Python framework for running reproducible experiments using OpenTTD. An _experiment_ in OpenTTDLab terms is the combination of:
 
 - Exact version of OpenTTD, any AIs used, and OpenTTDLab itself
 - Ranges of values for OpenTTD config settings, command line arguments and random seed
@@ -77,3 +89,6 @@ print(results)
 - Impure functions are avoided
 - In terms of the user-facing API, keeping it mostly OOP-free, and deliberately focused on key behaviour
 - Designed so if type checking were in place and passes, API misuse should be close to impossible
+
+
+## API design considerations
