@@ -5,6 +5,7 @@ import platform
 import shutil
 import stat
 import subprocess
+import textwrap
 import uuid
 from pathlib import Path
 
@@ -125,16 +126,34 @@ def setup_experiment(
         experiment_baseset_dir = os.path.join(experiment_dir, 'baseset')
         Path(experiment_baseset_dir).mkdir(parents=True, exist_ok=True)
         shutil.copy(opengfx_binary, experiment_baseset_dir)
+        config_file = os.path.join(experiment_dir, 'openttdlab.cfg')
+        with open(config_file, 'w') as f:
+            f.write(textwrap.dedent('''
+                [gui]
+                autosave = daily
+                keep_all_autosave = true
+            ''')
+        )
         subprocess.check_output(
             (openttd_binary,) + (
-                '-g',              # Start game immediately
-                '-G', str(1),      # Seed for random number generator
-                '-snull',          # No sound
-                '-mnull',          # No music
-                '-vnull:ticks=5',  # No video, with fixed number of "ticks" and then exit
+                # Start game immediately
+                '-g',
+                # Seed for random number generator
+                '-G', str(1),
+                # No sound
+                '-snull',
+                # No music
+                '-mnull',
+                # No video, with fixed number of "ticks" and then exit
+                '-vnull:ticks=5000',
+                # Config file
+                 '-c', config_file,
             ),
             cwd=experiment_dir,    # OpenTTD looks in the current working directory for files
         )
+        # Not a long term plan, but so the tests can assert on something
+        with open(os.path.join(experiment_dir, 'save', 'autosave', 'Spectator, 1950-02-01-autosave.sav'), 'rb') as f:
+            return f.read()
 
     def get_config():
         pass
