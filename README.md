@@ -89,6 +89,3 @@ print(results)
 - Impure functions are avoided
 - In terms of the user-facing API, keeping it mostly OOP-free, and deliberately focused on key behaviour
 - Designed so if type checking were in place and passes, API misuse should be close to impossible
-
-
-## API design considerations
