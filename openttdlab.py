@@ -126,8 +126,14 @@ def setup_experiment(
         Path(experiment_baseset_dir).mkdir(parents=True, exist_ok=True)
         shutil.copy(opengfx_binary, experiment_baseset_dir)
         subprocess.check_output(
-            (openttd_binary,) + ('-g', '-G', str(1), '-snull', '-mnull', '-vnull:ticks=5',),
-            cwd=experiment_dir,
+            (openttd_binary,) + (
+                '-g',              # Start game immediately
+                '-G', str(1),      # Seed for random number generator
+                '-snull',          # No sound
+                '-mnull',          # No music
+                '-vnull:ticks=5',  # No video, with fixed number of "ticks" and then exit
+            ),
+            cwd=experiment_dir,    # OpenTTD looks in the current working directory for files
         )
 
     def get_config():
