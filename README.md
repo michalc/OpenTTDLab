@@ -33,19 +33,13 @@ OpenTTDLab is distributed via [PyPI](https://pypi.org/project/OpenTTDLab/), and 
 python -m pip install OpenTTDLab
 ```
 
-OenTTDLab itself requires additional binaries:
-
-1. unzip
-1. (Linux only) tar
-2. (macOS only) 7-zip
-
-The only one of these not likely to already be installed is [7-zip](https://www.7-zip.org/). To install 7-zip on macOS, first install [Homebrew](https://brew.sh/), and then use Homebrew to install the p7zip package that contains 7-zip.
+When run on macOS has a dependency that pip does not install: [7-zip](https://www.7-zip.org/). To install 7-zip, first install [Homebrew](https://brew.sh/), and then use Homebrew to install the p7zip package that contains 7-zip.
 
 ```shell
 brew install p7zip
 ```
 
-You do not need to separately download or install OpenTTD (or [OpenGFX](https://github.com/OpenTTD/OpenGFX)) in order to use OpenTTDLab. OpenTTDLab handles downloading them, which is the reason OpenTTDLab requires the binaries mentioned above.
+You do not need to separately download or install OpenTTD (or [OpenGFX](https://github.com/OpenTTD/OpenGFX)) in order to use OpenTTDLab. OpenTTDLab itself handles downloading them.
 
 
 ## Running an experiment
