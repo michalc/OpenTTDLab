@@ -1,5 +1,5 @@
 <p align="center">
-  <img alt="OpenTTDLab logo" width="256" height="248" src="./docs/assets/openttdlab-logo.svg">
+  <img alt="OpenTTDLab logo" width="256" height="254" src="./docs/assets/openttdlab-logo.svg">
 </p>
 
 <p align="center"><strong>OpenTTDLab</strong> - <em>Run reproducible experiments on OpenTTD</em></p>
