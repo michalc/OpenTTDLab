@@ -12,7 +12,7 @@
 
 ---
 
-OpenTTD is a Python framework for running reproducible experiments using OpenTTD, and extracting results from them. An _experiment_ in OpenTTDLab terms is the combination of:
+OpenTTDLab is a Python framework for running reproducible experiments using OpenTTD, and extracting results from them. An _experiment_ in OpenTTDLab terms is the combination of:
 
 - Exact version of OpenTTD, any AIs used, and OpenTTDLab itself
 - Ranges of values for OpenTTD config settings, command line arguments and random seed
@@ -33,7 +33,7 @@ OpenTTDLab is distributed via [PyPI](https://pypi.org/project/OpenTTDLab/), and 
 python -m pip install OpenTTDLab
 ```
 
-When run on macOS has a dependency that pip does not install: [7-zip](https://www.7-zip.org/). To install 7-zip, first install [Homebrew](https://brew.sh/), and then use Homebrew to install the p7zip package that contains 7-zip.
+When run on macOS, OpenTTDLab has a dependency that pip does not install: [7-zip](https://www.7-zip.org/). To install 7-zip, first install [Homebrew](https://brew.sh/), and then use Homebrew to install the p7zip package that contains 7-zip.
 
 ```shell
 brew install p7zip
