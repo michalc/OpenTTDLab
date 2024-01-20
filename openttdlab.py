@@ -18,7 +18,7 @@ from platformdirs import user_cache_dir
 __version__ = '0.0.0.dev0'
 
 
-def setup_experiment(
+def run_experiment(
     openttd_base_url='https://cdn.openttd.org/openttd-releases/',
     opengfx_base_url='https://cdn.openttd.org/opengfx-releases/',
 ):
@@ -117,52 +117,51 @@ def setup_experiment(
     extract(extract_templates[openttd_extension], openttd_archive_location, openttd_binary_dir)
     extract(extract_templates['zip'], opengfx_archive_location, opengfx_binary_dir)
 
+    # Construct the location of the binaries
     openttd_binary = os.path.join(openttd_binary_dir, openttd_binary_template.format_map({
         'binary_dir': openttd_binary_dir,
         'version': openttd_version,
     }))
     opengfx_binary = os.path.join(opengfx_binary_dir, f'opengfx-{opengfx_version}.tar')
+
+    # Ensure the OpenTTD binary is executable
     os.chmod(openttd_binary, os.stat(openttd_binary).st_mode | stat.S_IEXEC)
 
-    def run_experiment():
-        experiment_id = uuid.uuid4().hex
-        experiment_dir = os.path.join(cache_dir, 'experiments', experiment_id)
-        experiment_baseset_dir = os.path.join(experiment_dir, 'baseset')
-        Path(experiment_baseset_dir).mkdir(parents=True, exist_ok=True)
-        shutil.copy(opengfx_binary, experiment_baseset_dir)
-        config_file = os.path.join(experiment_dir, 'openttdlab.cfg')
-        with open(config_file, 'w') as f:
-            f.write(textwrap.dedent('''
-                [gui]
-                autosave = daily
-                keep_all_autosave = true
-            ''')
-        )
-        subprocess.check_output(
-            (openttd_binary,) + (
-                # Start game immediately
-                '-g',
-                # Seed for random number generator
-                '-G', str(1),
-                # No sound
-                '-snull',
-                # No music
-                '-mnull',
-                # No video, with fixed number of "ticks" and then exit
-                '-vnull:ticks=5000',
-                # Config file
-                 '-c', config_file,
-            ),
-            cwd=experiment_dir,    # OpenTTD looks in the current working directory for files
-        )
-        # Not a long term plan, but so the tests can assert on something
-        with open(os.path.join(experiment_dir, 'save', 'autosave', 'Spectator, 1950-02-01-autosave.sav'), 'rb') as f:
-            return f.read()
+    # Run the experiment
+    experiment_id = uuid.uuid4().hex
+    experiment_dir = os.path.join(cache_dir, 'experiments', experiment_id)
+    experiment_baseset_dir = os.path.join(experiment_dir, 'baseset')
+    Path(experiment_baseset_dir).mkdir(parents=True, exist_ok=True)
+    shutil.copy(opengfx_binary, experiment_baseset_dir)
+    config_file = os.path.join(experiment_dir, 'openttdlab.cfg')
+    with open(config_file, 'w') as f:
+        f.write(textwrap.dedent('''
+            [gui]
+            autosave = daily
+            keep_all_autosave = true
+        ''')
+    )
+    subprocess.check_output(
+        (openttd_binary,) + (
+            # Start game immediately
+            '-g',
+            # Seed for random number generator
+            '-G', str(1),
+            # No sound
+            '-snull',
+            # No music
+            '-mnull',
+            # No video, with fixed number of "ticks" and then exit
+            '-vnull:ticks=5000',
+            # Config file
+             '-c', config_file,
+        ),
+        cwd=experiment_dir,    # OpenTTD looks in the current working directory for files
+    )
+    # Not a long term plan, but so the tests can assert on something
+    with open(os.path.join(experiment_dir, 'save', 'autosave', 'Spectator, 1950-02-01-autosave.sav'), 'rb') as f:
+        return f.read(), None
 
-    def get_config():
-        pass
-
-    return run_experiment, get_config
 
 def save_config():
     pass
