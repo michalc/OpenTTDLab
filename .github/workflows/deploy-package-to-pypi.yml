@@ -15,7 +15,7 @@ jobs:
           python-version: 3.11
 
       - name: Update version from current git tag
-        run: >-
+        run: |
           sed -i "s/0\\.0\\.0\\.dev0/${GITHUB_REF/refs\/tags\/v/}/g" pyproject.toml
           sed -i "s/0\\.0\\.0\\.dev0/${GITHUB_REF/refs\/tags\/v/}/g" openttdlab.py
 
