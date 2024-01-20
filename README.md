@@ -33,7 +33,7 @@ OpenTTDLab is distributed via [PyPI](https://pypi.org/project/OpenTTDLab/), and 
 python -m pip install OpenTTDLab
 ```
 
-OenTTDLab itself requires programs to extract the OpenTTD and OpenGFX binaries after it downloads them.
+OenTTDLab itself requires additional binaries:
 
 1. unzip
 1. (Linux only) tar
@@ -44,6 +44,8 @@ The only one of these not likely to already be installed is [7-zip](https://www.
 ```shell
 brew install p7zip
 ```
+
+You do not need to separately download or install OpenTTD (or [OpenGFX](https://github.com/OpenTTD/OpenGFX)) in order to use OpenTTDLab. OpenTTDLab handles downloading them, which is the reason OpenTTDLab requires the binaries mentioned above.
 
 
 ## Running an experiment
