@@ -16,7 +16,6 @@ OpenTTD is a Python framework for running reproducible experiments using OpenTTD
 
 - Exact version of OpenTTD, any AIs used, and OpenTTDLab itself
 - Ranges of values for OpenTTD config settings, command line arguments and random seed
-- Granularity of output
 
 This can be configured/extracted for each experiment in either machine or human readable forms, for use in code or publishing respectively.
 
