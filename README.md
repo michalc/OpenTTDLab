@@ -42,9 +42,10 @@ The core function of OpenTTD is the `run_experiment` function.
 ```python
 from openttdlab import run_experiment, save_config
 
-# Run the experiment and get results
+# Run the experiment for a range of random seeds
 results, config = run_experiment(
     days=365 * 4 + 1,
+    seeds=range(0, 10),
     ais=(
         'trAIns', 'path/to/54524149-trAIns-2.1.tar',
     ),

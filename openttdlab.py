@@ -40,6 +40,7 @@ __version__ = '0.0.0.dev0'
 def run_experiment(
     ais=(),
     days=365 * 4 + 1,
+    seeds=(1,),
     openttd_base_url='https://cdn.openttd.org/openttd-releases/',
     opengfx_base_url='https://cdn.openttd.org/opengfx-releases/',
 ):
@@ -162,19 +163,18 @@ def run_experiment(
     # Ensure the OpenTTD binary is executable
     os.chmod(openttd_binary, os.stat(openttd_binary).st_mode | stat.S_IEXEC)
 
-    # Construct experiment directory
-    experiment_id = str(uuid.uuid4())
-    with tempfile.TemporaryDirectory(prefix=f'OpenTTDLab-{experiment_id}-') as experiment_dir:
-        experiment_baseset_dir = os.path.join(experiment_dir, 'baseset')
+    def run(experiment_dir, i, seed):
+        run_dir = os.path.join(experiment_dir, str(i))
+        experiment_baseset_dir = os.path.join(run_dir, 'baseset')
         Path(experiment_baseset_dir).mkdir(parents=True)
-        experiment_ai_dir = os.path.join(experiment_dir, 'ai')
+        experiment_ai_dir = os.path.join(run_dir, 'ai')
         Path(experiment_ai_dir).mkdir(parents=True)
 
-        # Populate experiment directory
+        # Populate run directory
         shutil.copy(opengfx_binary, experiment_baseset_dir)
         for ai_name, ai_file in ais:
             shutil.copy(ai_file, experiment_ai_dir)
-        config_file = os.path.join(experiment_dir, 'openttdlab.cfg')
+        config_file = os.path.join(run_dir, 'openttdlab.cfg')
         ai_players_config = '[ai_players]\n' + ''.join(
             f'{ai_name} = start_date=0\n' for ai_name, file in ais
         )
@@ -201,16 +201,23 @@ def run_experiment(
                 '-vnull:ticks=' + ticks,  # No video, with fixed number of "ticks" and then exit
                  '-c', config_file,       # Config file
             ),
-            cwd=experiment_dir,           # OpenTTD looks in the current working directory for files
+            cwd=run_dir,                  # OpenTTD looks in the current working directory for files
         )
 
-        autosave_dir = os.path.join(experiment_dir, 'save', 'autosave')
+        autosave_dir = os.path.join(run_dir, 'save', 'autosave')
         autosave_filenames = sorted(list(os.listdir(autosave_dir)))
-        savegames = [
+        return [
             parse_savegame(os.path.join(autosave_dir, filename))
             for filename in autosave_filenames
         ]
-        return savegames, None
+
+    experiment_id = str(uuid.uuid4())
+    with tempfile.TemporaryDirectory(prefix=f'OpenTTDLab-{experiment_id}-') as experiment_dir:
+        return [
+            (seed, savegame)
+            for i, seed in enumerate(seeds)
+            for savegame in run(experiment_dir, i, seed)
+        ], None
 
 
 def save_config():
