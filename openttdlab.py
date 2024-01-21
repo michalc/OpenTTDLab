@@ -20,6 +20,7 @@ import struct
 import subprocess
 import sys
 import tarfile
+import tempfile
 import textwrap
 import uuid
 import zipfile
@@ -162,54 +163,54 @@ def run_experiment(
     os.chmod(openttd_binary, os.stat(openttd_binary).st_mode | stat.S_IEXEC)
 
     # Construct experiment directory
-    experiment_id = uuid.uuid4().hex
-    experiment_dir = os.path.join(cache_dir, 'experiments', experiment_id)
-    experiment_baseset_dir = os.path.join(experiment_dir, 'baseset')
-    Path(experiment_baseset_dir).mkdir(parents=True, exist_ok=True)
-    experiment_ai_dir = os.path.join(experiment_dir, 'ai')
-    Path(experiment_ai_dir).mkdir(parents=True, exist_ok=True)
+    experiment_id = str(uuid.uuid4())
+    with tempfile.TemporaryDirectory(prefix=f'OpenTTDLab-{experiment_id}-') as experiment_dir:
+        experiment_baseset_dir = os.path.join(experiment_dir, 'baseset')
+        Path(experiment_baseset_dir).mkdir(parents=True)
+        experiment_ai_dir = os.path.join(experiment_dir, 'ai')
+        Path(experiment_ai_dir).mkdir(parents=True)
 
-    # Populate experiment directory
-    shutil.copy(opengfx_binary, experiment_baseset_dir)
-    for ai_name, ai_file in ais:
-        shutil.copy(ai_file, experiment_ai_dir)
-    config_file = os.path.join(experiment_dir, 'openttdlab.cfg')
-    ai_players_config = '[ai_players]\n' + ''.join(
-        f'{ai_name} = start_date=0\n' for ai_name, file in ais
-    )
-    with open(config_file, 'w') as f:
-        f.write(textwrap.dedent('''
-            [gui]
-            autosave = monthly
-            keep_all_autosave = true
-            threaded_saves = false
-            [difficulty]
-            max_no_competitors = 1
-        ''' + ai_players_config)
-    )
+        # Populate experiment directory
+        shutil.copy(opengfx_binary, experiment_baseset_dir)
+        for ai_name, ai_file in ais:
+            shutil.copy(ai_file, experiment_ai_dir)
+        config_file = os.path.join(experiment_dir, 'openttdlab.cfg')
+        ai_players_config = '[ai_players]\n' + ''.join(
+            f'{ai_name} = start_date=0\n' for ai_name, file in ais
+        )
+        with open(config_file, 'w') as f:
+            f.write(textwrap.dedent('''
+                [gui]
+                autosave = monthly
+                keep_all_autosave = true
+                threaded_saves = false
+                [difficulty]
+                max_no_competitors = 1
+            ''' + ai_players_config)
+        )
 
-    # Run the experiment
-    ticks_per_day = 74
-    ticks = str(ticks_per_day * days)
-    subprocess.check_output(
-        (openttd_binary,) + (
-            '-g',                     # Start game immediately
-            '-G', str(2),             # Seed for random number generator
-            '-snull',                 # No sound
-            '-mnull',                 # No music
-            '-vnull:ticks=' + ticks,  # No video, with fixed number of "ticks" and then exit
-             '-c', config_file,       # Config file
-        ),
-        cwd=experiment_dir,           # OpenTTD looks in the current working directory for files
-    )
+        # Run the experiment
+        ticks_per_day = 74
+        ticks = str(ticks_per_day * days)
+        subprocess.check_output(
+            (openttd_binary,) + (
+                '-g',                     # Start game immediately
+                '-G', str(2),             # Seed for random number generator
+                '-snull',                 # No sound
+                '-mnull',                 # No music
+                '-vnull:ticks=' + ticks,  # No video, with fixed number of "ticks" and then exit
+                 '-c', config_file,       # Config file
+            ),
+            cwd=experiment_dir,           # OpenTTD looks in the current working directory for files
+        )
 
-    autosave_dir = os.path.join(experiment_dir, 'save', 'autosave')
-    autosave_filenames = sorted(list(os.listdir(autosave_dir)))
-    savegames = [
-        parse_savegame(os.path.join(autosave_dir, filename))
-        for filename in autosave_filenames
-    ]
-    return savegames, None
+        autosave_dir = os.path.join(experiment_dir, 'save', 'autosave')
+        autosave_filenames = sorted(list(os.listdir(autosave_dir)))
+        savegames = [
+            parse_savegame(os.path.join(autosave_dir, filename))
+            for filename in autosave_filenames
+        ]
+        return savegames, None
 
 
 def save_config():
