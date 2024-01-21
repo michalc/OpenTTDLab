@@ -32,7 +32,7 @@ When run on macOS, OpenTTDLab has a dependency that pip does not install: [7-zip
 brew install p7zip
 ```
 
-You do not need to separately download or install OpenTTD (or [OpenGFX](https://github.com/OpenTTD/OpenGFX)) in order to use OpenTTDLab. OpenTTDLab itself handles downloading them. However, OpenTTDLab does not download AIs: these must be downloaded separately.
+You do not need to separately download or install OpenTTD (or [OpenGFX](https://github.com/OpenTTD/OpenGFX)) in order to use OpenTTDLab. OpenTTDLab itself handles downloading them.
 
 
 ## Running an experiment
@@ -40,14 +40,16 @@ You do not need to separately download or install OpenTTD (or [OpenGFX](https://
 The core function of OpenTTD is the `run_experiment` function.
 
 ```python
-from openttdlab import run_experiment, local_file, save_config
+from openttdlab import run_experiment, remote_file, save_config
 
 # Run the experiment for a range of random seeds
 results, config = run_experiment(
     days=365 * 4 + 1,
     seeds=range(0, 10),
     ais=(
-        ('trAIns', local_file('path/to/54524149-trAIns-2.1.tar')),
+        # remote_file: takes a url of a .tar.gz AI file
+        # local_file: takes a path to a local .tar AI file
+        ('trAIns', remote_file('https://github.com/lhrios/trains/archive/refs/tags/2014_02_14.tar.gz')),
     ),
 )
 

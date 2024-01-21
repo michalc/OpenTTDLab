@@ -185,7 +185,7 @@ def run_experiment(
         # Populate run directory
         shutil.copy(opengfx_binary, experiment_baseset_dir)
         for ai_name, ai_file in ais:
-            ai_file(experiment_ai_dir)
+            ai_file(ai_name, experiment_ai_dir)
         config_file = os.path.join(run_dir, 'openttdlab.cfg')
         ai_players_config = '[ai_players]\n' + ''.join(
             f'{ai_name} = start_date=0\n' for ai_name, file in ais
@@ -234,10 +234,31 @@ def run_experiment(
 
 
 def local_file(filename):
-    def _copy(target):
-        shutil.copy(filename, target)
+    def _copy(ai_name, target):
+        shutil.copy(filename, os.path.join(target, ai_name + '.tar'))
 
     return _copy
+
+
+def remote_file(url):
+    def gz_decompress(compressed_chunks):
+        dec = zlib.decompressobj(32 + zlib.MAX_WBITS)
+        for compressed_chunk in compressed_chunks:
+            chunk = dec.decompress(compressed_chunk)
+            if chunk:
+                yield chunk
+        chunk = dec.flush()
+        if chunk:
+            yield chunk
+
+    def _download(ai_name, target):
+        with httpx.stream("GET", url, follow_redirects=True) as r:
+            r.raise_for_status()
+            with open(os.path.join(target, ai_name + '.tar'), 'wb') as f:
+                for chunk in gz_decompress(r.iter_bytes()):
+                    f.write(chunk)
+
+    return _download
 
 
 def save_config():
