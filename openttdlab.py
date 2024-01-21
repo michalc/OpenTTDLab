@@ -26,6 +26,7 @@ import uuid
 import zipfile
 import zlib
 from collections import defaultdict
+from datetime import date, timedelta
 from pathlib import Path
 
 import httpx
@@ -101,11 +102,23 @@ def run_experiment(
                     raise Exception('Unsafe', archive_location)
             f_zip.extractall(output_dir)
 
-    def parse_savegame(filename):
+    def parse_savegame(seed, filename):
         with open(filename, 'rb') as f:
             game = Savegame(filename)
             game.read(f)
-            return game.items
+
+            # Python (and indeed, the gregorian calendar) doesn't have a year zero,
+            # and according to the OpenTTD source, year 1 was a leap year
+            days_since_year_zero = game.items['DATE']['0']['date']
+            days_since_year_one = days_since_year_zero - 366
+            for index, player in game.items['PLYR'].items():
+                yield {
+                    'seed': seed,
+                    'date': date(1, 1 , 1) + timedelta(days_since_year_one),
+                    'player': player['name'],
+                    'money': player['money'],
+                    'loan': player['current_loan'],
+                }
 
     # Choose platform-specific details
     extractors = {
@@ -207,16 +220,17 @@ def run_experiment(
         autosave_dir = os.path.join(run_dir, 'save', 'autosave')
         autosave_filenames = sorted(list(os.listdir(autosave_dir)))
         return [
-            parse_savegame(os.path.join(autosave_dir, filename))
+            savegame_row
             for filename in autosave_filenames
+            for savegame_row in parse_savegame(seed, os.path.join(autosave_dir, filename))
         ]
 
     experiment_id = str(uuid.uuid4())
     with tempfile.TemporaryDirectory(prefix=f'OpenTTDLab-{experiment_id}-') as experiment_dir:
         return [
-            (seed, savegame)
+            savegame_row
             for i, seed in enumerate(seeds)
-            for savegame in run(experiment_dir, i, seed)
+            for savegame_row in run(experiment_dir, i, seed)
         ], None
 
 

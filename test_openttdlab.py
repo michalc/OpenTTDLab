@@ -1,3 +1,5 @@
+from datetime import date
+
 from openttdlab import run_experiment, save_config, load_config
 
 
@@ -11,7 +13,20 @@ def test_run_experiment():
     )
 
     assert len(results) == 118
-    assert results[0][1]['PLYR']['0']['name'] == 'trAIns AI'
+    assert results[58] == {
+        'seed': 2,
+        'player': 'trAIns AI',
+        'date': date(1954, 12, 1),
+        'loan': 110000,
+        'money': 6546,
+    }
+    assert results[117] == {
+        'seed': 3,
+        'player': 'trAIns AI',
+        'date': date(1954, 12, 1),
+        'loan': 300000,
+        'money': 672573,
+    }
 
 
 def test_save_config():
