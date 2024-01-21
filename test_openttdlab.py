@@ -2,7 +2,9 @@ from openttdlab import run_experiment, save_config, load_config
 
 
 def test_run_experiment():
-    results, config = run_experiment()
+    results, config = run_experiment(ais=(
+        ('trAIns', './fixtures/54524149-trAIns-2.1.tar'),
+    ))
 
     assert results
 
