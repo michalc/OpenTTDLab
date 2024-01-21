@@ -19,7 +19,7 @@ OpenTTDLab is a Python framework for running reproducible experiments using Open
 
 This can be configured/extracted for each experiment in either machine or human readable forms, for use in code or publishing respectively.
 
-OpenTTDLab is based on [TrueBrain's OpenTTD Savegame Reader](https://github.com/TrueBrain/OpenTTD-savegame-reader), but it is not affiliated with OpenTTD.
+OpenTTDLab is based on [Patric Stout's OpenTTD Savegame Reader](https://github.com/TrueBrain/OpenTTD-savegame-reader), but it is not affiliated with OpenTTD.
 
 > [!NOTE]
 > Work in progress. This README serves as a rough design spec.
@@ -84,7 +84,7 @@ print(results)
 
 OpenTTDLab is licensed under the [GNU General Public License version 2.0](./LICENSE).
 
-OpenTTDLab is based on [TrueBrain's OpenTTD Savegame Reader](https://github.com/TrueBrain/OpenTTD-savegame-reader), also licensed under the GNU General Public License version 2.0.
+OpenTTDLab is based on [Patric Stout's OpenTTD Savegame Reader](https://github.com/TrueBrain/OpenTTD-savegame-reader), also licensed under the GNU General Public License version 2.0.
 
 The [OpenTTDLab logo](./docs/assets/openttdlab-logo.svg) is a modified version of the [OpenTTD logo](https://commons.wikimedia.org/wiki/File:Openttdlogo.svg). The OpenTTD logo is licensed under the GNU General Public License version 2.0.
 
