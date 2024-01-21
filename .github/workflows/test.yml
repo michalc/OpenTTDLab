@@ -14,14 +14,12 @@ jobs:
         include:
           - python-version: "3.8.0"
             os: "ubuntu-20.04"
-          - python-version: "3.9.0"
-            os: "ubuntu-20.04"
-          - python-version: "3.10.0"
-            os: "ubuntu-20.04"
-          - python-version: "3.11.0"
-            os: "ubuntu-20.04"
           - python-version: "3.12.0"
             os: "ubuntu-20.04"
+          - python-version: "3.8.0"
+            os: "macos-11"
+          - python-version: "3.12.0"
+            os: "macos-11"
     runs-on: ${{ matrix.os }}
     steps:
       - name: "Checkout"
@@ -30,8 +28,9 @@ jobs:
         with:
           python-version: '${{ matrix.python-version }}'
       - name: "Install 7z"
+        if: matrix.os == 'macos-13'
         run: |
-           sudo apt-get install -y p7zip-full
+           brew install p7zip
       - name: "Install python dependencies"
         run: |
           pip install ".[ci]"
