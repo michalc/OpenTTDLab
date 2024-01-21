@@ -160,20 +160,14 @@ def run_experiment(
     )
     subprocess.check_output(
         (openttd_binary,) + (
-            # Start game immediately
-            '-g',
-            # Seed for random number generator
-            '-G', str(1),
-            # No sound
-            '-snull',
-            # No music
-            '-mnull',
-            # No video, with fixed number of "ticks" and then exit
-            '-vnull:ticks=5000',
-            # Config file
-             '-c', config_file,
+            '-g',                 # Start game immediately
+            '-G', str(1),         # Seed for random number generator
+            '-snull',             # No sound
+            '-mnull',             # No music
+            '-vnull:ticks=5000',  # No video, with fixed number of "ticks" and then exit
+             '-c', config_file,   # Config file
         ),
-        cwd=experiment_dir,    # OpenTTD looks in the current working directory for files
+        cwd=experiment_dir,       # OpenTTD looks in the current working directory for files
     )
     # Not a long term plan, but so the tests can assert on something
     with open(os.path.join(experiment_dir, 'save', 'autosave', 'Spectator, 1950-02-01-autosave.sav'), 'rb') as f:
