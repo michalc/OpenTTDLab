@@ -78,3 +78,16 @@ results, config = run_experiment(config=config)
 
 print(results)
 ```
+
+
+## Licenses and attributions
+
+OpenTTDLab is licensed under the [GNU General Public License version 2.0](./LICENSE).
+
+OpenTTDLab is based on [TrueBrain's OpenTTD Savegame Reader](https://github.com/TrueBrain/OpenTTD-savegame-reader), also licensed under the GNU General Public License version 2.0.
+
+The [OpenTTDLab logo](./docs/assets/openttdlab-logo.svg) is a modified version of the [OpenTTD logo](https://commons.wikimedia.org/wiki/File:Openttdlogo.svg). The OpenTTD logo is licensed under the GNU General Public License version 2.0.
+
+The [.gitignore](./.gitignore) file is based on [GitHub's Python .gitignore file](https://github.com/github/gitignore/blob/main/Python.gitignore). This was originally supplied under CC0 1.0 Universal. However, as part of OpenTTDLab it is licensed under GNU General Public License version 2.0.
+
+[OpenTTD](https://github.com/OpenTTD/OpenTTD) is authored by the [OpenTTD team](https://github.com/OpenTTD/OpenTTD/blob/master/CREDITS.md). OpenTTD is also licensed under the GNU General Public License version 2.0.
