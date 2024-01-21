@@ -6,7 +6,7 @@ def test_run_experiment():
         ('trAIns', './fixtures/54524149-trAIns-2.1.tar'),
     ))
 
-    assert results
+    assert results['PLYR']['0']['name'] == 'trAIns AI'
 
 
 def test_save_config():
