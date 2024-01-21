@@ -1,5 +1,5 @@
 # This file is part of OpenTTDLab.
-# Copyright © TrueBrain: initial implementation of OpenTTD savegame parsing and converting to link graph
+# Copyright © Patric Stout: initial implementation of OpenTTD savegame parsing and converting to link graph
 # Copyright © Michal Charemza: additions and changes to run OpenTTD to generate savegames, and to process parsed savegames further
 # OpenTTDLab is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 2.
 # OpenTTDLab is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
