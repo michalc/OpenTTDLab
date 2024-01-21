@@ -43,9 +43,12 @@ The core function of OpenTTD is the `run_experiment` function.
 from openttdlab import run_experiment, save_config
 
 # Run the experiment and get results
-results, config = run_experiment(ais=(
-    'trAIns', 'path/to/54524149-trAIns-2.1.tar',
-))
+results, config = run_experiment(
+    days=365 * 4 + 1,
+    ais=(
+        'trAIns', 'path/to/54524149-trAIns-2.1.tar',
+    ),
+)
 
 # Print the results...
 print(results)
