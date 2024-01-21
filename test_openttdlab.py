@@ -9,7 +9,7 @@ def test_run_experiment():
         ),
     )
 
-    assert len(results) == 51
+    assert len(results) == 59
     assert results[0]['PLYR']['0']['name'] == 'trAIns AI'
 
 
