@@ -40,14 +40,14 @@ You do not need to separately download or install OpenTTD (or [OpenGFX](https://
 The core function of OpenTTD is the `run_experiment` function.
 
 ```python
-from openttdlab import run_experiment, save_config
+from openttdlab import run_experiment, local_file, save_config
 
 # Run the experiment for a range of random seeds
 results, config = run_experiment(
     days=365 * 4 + 1,
     seeds=range(0, 10),
     ais=(
-        'trAIns', 'path/to/54524149-trAIns-2.1.tar',
+        ('trAIns', local_file('path/to/54524149-trAIns-2.1.tar')),
     ),
 )
 

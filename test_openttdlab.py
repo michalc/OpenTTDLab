@@ -1,6 +1,6 @@
 from datetime import date
 
-from openttdlab import run_experiment, save_config, load_config
+from openttdlab import run_experiment, local_file, save_config, load_config
 
 
 def test_run_experiment():
@@ -8,7 +8,7 @@ def test_run_experiment():
         days=365 * 5 + 1,
         seeds=range(2, 4),
         ais=(
-            ('trAIns', './fixtures/54524149-trAIns-2.1.tar'),
+            ('trAIns', local_file('./fixtures/54524149-trAIns-2.1.tar')),
         ),
     )
 
