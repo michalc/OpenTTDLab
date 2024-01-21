@@ -37,9 +37,10 @@ __version__ = '0.0.0.dev0'
 
 
 def run_experiment(
+    ais=(),
+    days=365 * 4 + 1,
     openttd_base_url='https://cdn.openttd.org/openttd-releases/',
     opengfx_base_url='https://cdn.openttd.org/opengfx-releases/',
-    ais=(),
 ):
     def get(url):
         response = httpx.get(url)
@@ -97,6 +98,12 @@ def run_experiment(
                 if '..' in name or name.strip().startswith('/'):
                     raise Exception('Unsafe', archive_location)
             f_zip.extractall(output_dir)
+
+    def parse_savegame(filename):
+        with open(filename, 'rb') as f:
+            game = Savegame(filename)
+            game.read(f)
+            return game.items
 
     # Choose platform-specific details
     extractors = {
@@ -181,24 +188,27 @@ def run_experiment(
     )
 
     # Run the experiment
+    ticks_per_day = 74
+    ticks = str(ticks_per_day * days)
     subprocess.check_output(
         (openttd_binary,) + (
-            '-g',                  # Start game immediately
-            '-G', str(2),          # Seed for random number generator
-            '-snull',              # No sound
-            '-mnull',              # No music
-            '-vnull:ticks=100000', # No video, with fixed number of "ticks" and then exit
-             '-c', config_file,    # Config file
+            '-g',                     # Start game immediately
+            '-G', str(2),             # Seed for random number generator
+            '-snull',                 # No sound
+            '-mnull',                 # No music
+            '-vnull:ticks=' + ticks,  # No video, with fixed number of "ticks" and then exit
+             '-c', config_file,       # Config file
         ),
-        cwd=experiment_dir,        # OpenTTD looks in the current working directory for files
+        cwd=experiment_dir,           # OpenTTD looks in the current working directory for files
     )
 
-    # Not a long term plan, but so the tests can assert on something
-    filename = os.path.join(experiment_dir, 'save', 'autosave', 'trAIns AI, 1953-09-01-autosave.sav')
-    with open(filename, 'rb') as f:
-        game = Savegame(filename)
-        game.read(f)
-        return game.items, None
+    autosave_dir = os.path.join(experiment_dir, 'save', 'autosave')
+    autosave_filenames = sorted(list(os.listdir(autosave_dir)))
+    savegames = [
+        parse_savegame(os.path.join(autosave_dir, filename))
+        for filename in autosave_filenames
+    ]
+    return savegames, None
 
 
 def save_config():
