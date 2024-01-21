@@ -195,7 +195,7 @@ def run_experiment(
         subprocess.check_output(
             (openttd_binary,) + (
                 '-g',                     # Start game immediately
-                '-G', str(2),             # Seed for random number generator
+                '-G', str(seed),          # Seed for random number generator
                 '-snull',                 # No sound
                 '-mnull',                 # No music
                 '-vnull:ticks=' + ticks,  # No video, with fixed number of "ticks" and then exit
