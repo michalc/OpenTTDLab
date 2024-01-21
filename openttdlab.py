@@ -182,6 +182,7 @@ def run_experiment(
             [gui]
             autosave = monthly
             keep_all_autosave = true
+            threaded_saves = false
             [difficulty]
             max_no_competitors = 1
         ''' + ai_players_config)
