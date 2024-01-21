@@ -6,7 +6,6 @@
 # See the GNU General Public License for more details. You should have received a copy of the GNU General Public License along with OpenTTDLab. If not, see <http://www.gnu.org/licenses/>.
 
 import enum
-import enum
 import hashlib
 import io
 import json
