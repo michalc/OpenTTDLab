@@ -62,6 +62,25 @@ save_config('my-experiment-{experiment_id}.yml', config)
 ```
 
 
+## Plotting results
+
+OpenTTD does not require any particular library for plotting results. However, [pandas](https://pandas.pydata.org/) and [Plotly Express](https://plotly.com/python/plotly-express/) are common options for plotting from Python. For example if you have a `results` object from `run_experiment` as in the above example, the following code
+
+```python
+import pandas as pd
+import plotly.express as px
+
+df = pd.DataFrame(results)
+df = df.pivot(index='date', columns='seed', values='money')
+fig = px.line(df)
+fig.show()
+```
+
+should output a plot much like this one.
+
+![A plot of money against time for 10 random seeds](./docs/assets/example-results.svg)
+
+
 ## Reproducing an experiment
 
 If you have the config from a previous experiment, you can pass it into `run_experiment` to exactly reproduce. If for some reason it cannot be reproduced, it will error.
