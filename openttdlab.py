@@ -185,7 +185,7 @@ def run_experiment(
         # Populate run directory
         shutil.copy(opengfx_binary, experiment_baseset_dir)
         for ai_name, ai_file in ais:
-            shutil.copy(ai_file(), experiment_ai_dir)
+            ai_file(experiment_ai_dir)
         config_file = os.path.join(run_dir, 'openttdlab.cfg')
         ai_players_config = '[ai_players]\n' + ''.join(
             f'{ai_name} = start_date=0\n' for ai_name, file in ais
@@ -234,7 +234,10 @@ def run_experiment(
 
 
 def local_file(filename):
-    return lambda: filename
+    def _copy(target):
+        shutil.copy(filename, target)
+
+    return _copy
 
 
 def save_config():
