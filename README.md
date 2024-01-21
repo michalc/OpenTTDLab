@@ -32,7 +32,7 @@ When run on macOS, OpenTTDLab has a dependency that pip does not install: [7-zip
 brew install p7zip
 ```
 
-You do not need to separately download or install OpenTTD (or [OpenGFX](https://github.com/OpenTTD/OpenGFX)) in order to use OpenTTDLab. OpenTTDLab itself handles downloading them.
+You do not need to separately download or install OpenTTD (or [OpenGFX](https://github.com/OpenTTD/OpenGFX)) in order to use OpenTTDLab. OpenTTDLab itself handles downloading them. However, OpenTTDLab does not download AIs: these must be downloaded separately.
 
 
 ## Running an experiment
@@ -43,7 +43,9 @@ The core function of OpenTTD is the `run_experiment` function.
 from openttdlab import run_experiment, save_config
 
 # Run the experiment and get results
-results, config = run_experiment()
+results, config = run_experiment(ais=(
+    'trAIns', 'path/to/54524149-trAIns-2.1.tar',
+))
 
 # Print the results...
 print(results)
@@ -84,3 +86,5 @@ The [OpenTTDLab logo](./docs/assets/openttdlab-logo.svg) is a modified version o
 The [.gitignore](./.gitignore) file is based on [GitHub's Python .gitignore file](https://github.com/github/gitignore/blob/main/Python.gitignore). This was originally supplied under CC0 1.0 Universal. However, as part of OpenTTDLab it is licensed under GNU General Public License version 2.0.
 
 [OpenTTD](https://github.com/OpenTTD/OpenTTD) is authored by the [OpenTTD team](https://github.com/OpenTTD/OpenTTD/blob/master/CREDITS.md). OpenTTD is also licensed under the GNU General Public License version 2.0.
+
+[trAIns](./fixtures/54524149-trAIns-2.1.tar) is authored by Luis Henrique O. Rios, and licensed under the GNU General Public License version 2.0.

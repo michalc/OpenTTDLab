@@ -39,6 +39,7 @@ __version__ = '0.0.0.dev0'
 def run_experiment(
     openttd_base_url='https://cdn.openttd.org/openttd-releases/',
     opengfx_base_url='https://cdn.openttd.org/opengfx-releases/',
+    ais=(),
 ):
     def get(url):
         response = httpx.get(url)
@@ -153,20 +154,31 @@ def run_experiment(
     # Ensure the OpenTTD binary is executable
     os.chmod(openttd_binary, os.stat(openttd_binary).st_mode | stat.S_IEXEC)
 
-    # Run the experiment
+    # Construct experiment directory
     experiment_id = uuid.uuid4().hex
     experiment_dir = os.path.join(cache_dir, 'experiments', experiment_id)
     experiment_baseset_dir = os.path.join(experiment_dir, 'baseset')
     Path(experiment_baseset_dir).mkdir(parents=True, exist_ok=True)
+    experiment_ai_dir = os.path.join(experiment_dir, 'ai')
+    Path(experiment_ai_dir).mkdir(parents=True, exist_ok=True)
+
+    # Populate experiment directory
     shutil.copy(opengfx_binary, experiment_baseset_dir)
+    for ai_name, ai_file in ais:
+        shutil.copy(ai_file, experiment_ai_dir)
     config_file = os.path.join(experiment_dir, 'openttdlab.cfg')
+    ai_players_config = '[ai_players]\n' + ''.join(
+        f'{ai_name} = start_date=0\n' for ai_name, file in ais
+    )
     with open(config_file, 'w') as f:
         f.write(textwrap.dedent('''
             [gui]
             autosave = daily
             keep_all_autosave = true
-        ''')
+        ''' + ai_players_config)
     )
+
+    # Run the experiment
     subprocess.check_output(
         (openttd_binary,) + (
             '-g',                 # Start game immediately
