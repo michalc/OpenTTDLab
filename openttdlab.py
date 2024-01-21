@@ -5,17 +5,26 @@
 # OpenTTDLab is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 # See the GNU General Public License for more details. You should have received a copy of the GNU General Public License along with OpenTTDLab. If not, see <http://www.gnu.org/licenses/>.
 
+import enum
+import enum
 import hashlib
+import io
+import json
+import lzma
 import os
 import os.path
 import platform
 import shutil
 import stat
+import struct
 import subprocess
+import sys
 import tarfile
 import textwrap
 import uuid
 import zipfile
+import zlib
+from collections import defaultdict
 from pathlib import Path
 
 import httpx
@@ -182,10 +191,6 @@ def load_config():
     pass
 
 
-import io
-import struct
-
-
 class BinaryReader:
     """
     Read binary data.
@@ -330,9 +335,6 @@ class BinaryReaderFileBlockMode(BinaryReader):
         return data
 
 
-import lzma
-import zlib
-
 
 class PlainFile:
     @staticmethod
@@ -378,8 +380,6 @@ UNCOMPRESS = {
 }
 
 
-import enum
-
 FIELD_TYPE_HAS_LENGTH_FIELD = 0x10
 
 
@@ -400,10 +400,6 @@ class FieldType(enum.IntEnum):
 
 class ValidationException(Exception):
     pass
-
-
-import struct
-
 
 class PassthroughReader:
     def read_gamma(self, data):
@@ -490,12 +486,6 @@ class PassthroughReader:
         FieldType.STRINGID: read_uint16,
         FieldType.STRING: read_string,
     }
-
-
-import enum
-import struct
-
-from collections import defaultdict
 
 
 class Savegame(PassthroughReader):
@@ -663,10 +653,6 @@ On the root is a list of cargos. For each cargo there is [from][to] containing
 all the edges. "from" and "to" are stationIDs.
 """
 
-import json
-import sys
-
-from collections import defaultdict
 
 def linkgraph():
     result = defaultdict(lambda: defaultdict(lambda: dict()))
