@@ -15,7 +15,7 @@
 OpenTTDLab is a Python framework for using [OpenTTD](https://github.com/OpenTTD/OpenTTD) to run reproducible experiments and extracting results from them. OpenTTDLab is based on [Patric Stout's OpenTTD Savegame Reader](https://github.com/TrueBrain/OpenTTD-savegame-reader).
 
 > [!NOTE]
-> Work in progress. This README serves as a rough design spec.
+> Work in progress. Most things in this README won't work: it serves as a rough design spec.
 
 
 ## Installation
