@@ -173,26 +173,32 @@ def run_experiment(
     with open(config_file, 'w') as f:
         f.write(textwrap.dedent('''
             [gui]
-            autosave = daily
+            autosave = monthly
             keep_all_autosave = true
+            [difficulty]
+            max_no_competitors = 1
         ''' + ai_players_config)
     )
 
     # Run the experiment
     subprocess.check_output(
         (openttd_binary,) + (
-            '-g',                 # Start game immediately
-            '-G', str(1),         # Seed for random number generator
-            '-snull',             # No sound
-            '-mnull',             # No music
-            '-vnull:ticks=5000',  # No video, with fixed number of "ticks" and then exit
-             '-c', config_file,   # Config file
+            '-g',                  # Start game immediately
+            '-G', str(2),          # Seed for random number generator
+            '-snull',              # No sound
+            '-mnull',              # No music
+            '-vnull:ticks=100000', # No video, with fixed number of "ticks" and then exit
+             '-c', config_file,    # Config file
         ),
-        cwd=experiment_dir,       # OpenTTD looks in the current working directory for files
+        cwd=experiment_dir,        # OpenTTD looks in the current working directory for files
     )
+
     # Not a long term plan, but so the tests can assert on something
-    with open(os.path.join(experiment_dir, 'save', 'autosave', 'Spectator, 1950-02-01-autosave.sav'), 'rb') as f:
-        return f.read(), None
+    filename = os.path.join(experiment_dir, 'save', 'autosave', 'trAIns AI, 1953-09-01-autosave.sav')
+    with open(filename, 'rb') as f:
+        game = Savegame(filename)
+        game.read(f)
+        return game.items, None
 
 
 def save_config():
