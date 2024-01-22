@@ -82,7 +82,7 @@ fig.show()
 
 should output a plot much like this one.
 
-![A plot of money against time for 10 random seeds](./docs/assets/example-results.svg)
+![A plot of money against time for 10 random seeds](https://raw.githubusercontent.com/michalc/OpenTTDLab/main/docs/assets/example-results.svg)
 
 
 ## Reproducing an experiment
