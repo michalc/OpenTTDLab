@@ -106,7 +106,7 @@ print(results)
 
 ### TL;DR
 
-OpenTTDLab is licensed under the [GNU General Public License version 2.0](./LICENSE). This covers every file in this repository.
+OpenTTDLab is licensed under the [GNU General Public License version 2.0](./LICENSE).
 
 ### In more detail
 
