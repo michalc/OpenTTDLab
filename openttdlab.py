@@ -186,7 +186,7 @@ def run_experiment(
         # Populate run directory
         shutil.copy(opengfx_binary, experiment_baseset_dir)
         for ai_name, ai_file in ais:
-            ai_file(ai_name, experiment_ai_dir)
+            shutil.copy(os.path.join(experiment_dir, ai_name + '.tar'), experiment_ai_dir)
         config_file = os.path.join(run_dir, 'openttdlab.cfg')
         ai_players_config = '[ai_players]\n' + ''.join(
             f'{ai_name} = start_date=0\n' for ai_name, file in ais
@@ -227,6 +227,8 @@ def run_experiment(
 
     experiment_id = str(uuid.uuid4())
     with tempfile.TemporaryDirectory(prefix=f'OpenTTDLab-{experiment_id}-') as experiment_dir:
+        for ai_name, ai_file in ais:
+            ai_file(ai_name, experiment_dir)
         return [
             savegame_row
             for i, seed in enumerate(seeds)
