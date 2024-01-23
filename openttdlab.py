@@ -482,7 +482,15 @@ class FieldType(enum.IntEnum):
 class ValidationException(Exception):
     pass
 
-class PassthroughReader:
+
+class Savegame():
+
+    def __init__(self, filename):
+        self.filename = filename
+        self.savegame_version = None
+        self.tables = {}
+        self.items = defaultdict(dict)
+
     def read_gamma(self, data):
         try:
             b = struct.unpack_from(">B", data, 0)[0]
@@ -554,27 +562,6 @@ class PassthroughReader:
             return struct.unpack_from(">Q", data, 0)[0], data[8:]
         except struct.error:
             raise ValidationException("Unexpected end-of-file.")
-
-    READERS = {
-        FieldType.I8: read_int8,
-        FieldType.U8: read_uint8,
-        FieldType.I16: read_int16,
-        FieldType.U16: read_uint16,
-        FieldType.I32: read_int32,
-        FieldType.U32: read_uint32,
-        FieldType.I64: read_int64,
-        FieldType.U64: read_uint64,
-        FieldType.STRINGID: read_uint16,
-        FieldType.STRING: read_string,
-    }
-
-
-class Savegame(PassthroughReader):
-    def __init__(self, filename):
-        self.filename = filename
-        self.savegame_version = None
-        self.tables = {}
-        self.items = defaultdict(dict)
 
     def _read_table(self, reader):
         """Read a single table from the header."""
@@ -722,6 +709,18 @@ class Savegame(PassthroughReader):
         else:
             self.tables[tag] = {"unsupported": ""}
 
+    READERS = {
+        FieldType.I8: read_int8,
+        FieldType.U8: read_uint8,
+        FieldType.I16: read_int16,
+        FieldType.U16: read_uint16,
+        FieldType.I32: read_int32,
+        FieldType.U32: read_uint32,
+        FieldType.I64: read_int64,
+        FieldType.U64: read_uint64,
+        FieldType.STRINGID: read_uint16,
+        FieldType.STRING: read_string,
+    }
 
 
 """
