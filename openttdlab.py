@@ -579,25 +579,30 @@ class Savegame():
 
         return fields, size
 
-    def _read_substruct(self, reader, tables, key):
+    def _read_substruct(self, reader, table):
         """Check if there are sub-tables and read them too."""
-        size = 0
 
-        for field_type, is_list, sub_key in tables[key]:
+        for field_type, is_list, sub_key in table:
             if field_type == FieldType.STRUCT:
-                tables[sub_key], sub_size = self._read_table(reader)
-                size += sub_size
-                # Check if this table contains any other tables.
-                size += self._read_substruct(reader, tables, sub_key)
+                sub_table, sub_size = self._read_table(reader)
+                yield sub_key, sub_table, sub_size
+                yield from self._read_substruct(reader, sub_table)
 
-        return size
 
     def read_all_tables(self, reader):
         """Read all the tables from the header."""
-        tables = {}
 
-        tables["root"], size = self._read_table(reader)
-        size += self._read_substruct(reader, tables, "root")
+        root_table, root_size = self._read_table(reader)
+        sub_key_tables_sizes = list(self._read_substruct(reader, root_table))
+
+        tables = {
+            "root": root_table,
+            **({
+                sub_key: sub_table
+                for sub_key, sub_table, _ in sub_key_tables_sizes
+            }),
+        }
+        size = root_size + sum(sub_size for _, _, sub_size in sub_key_tables_sizes)
 
         return tables, size
 
