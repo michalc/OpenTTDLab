@@ -102,6 +102,12 @@ print(results)
 ```
 
 
+## Compatibility
+
+- Linux (tested on Ubuntu 20.04), Windows (tested on Windows Server 2019), or macOS (tested on macOS 11)
+- Python >= 3.8.0 (tested on 3.8.0 and 3.12.0)
+
+
 ## Licenses and attributions
 
 ### TL;DR
