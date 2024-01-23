@@ -593,7 +593,7 @@ class Savegame():
 
         return size
 
-    def read_all_tables(self, tag, reader):
+    def read_all_tables(self, reader):
         """Read all the tables from the header."""
         tables = {}
 
@@ -644,7 +644,7 @@ class Savegame():
                 if type >= 3:  # CH_TABLE or CH_SPARSE_TABLE
                     size = reader.gamma()[0] - 1
 
-                    tables, size_read = self.read_all_tables(tag, reader)
+                    tables, size_read = self.read_all_tables(reader)
                     if size_read != size:
                         raise ValidationException("Table header size mismatch.")
 
