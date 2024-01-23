@@ -103,7 +103,7 @@ def run_experiment(
 
     def parse_savegame(seed, filename):
         with open(filename, 'rb') as f:
-            game = Savegame(filename)
+            game = Savegame()
             game.read(f)
 
             # Python (and indeed, the gregorian calendar) doesn't have a year zero,
@@ -482,8 +482,7 @@ class ValidationException(Exception):
 
 class Savegame():
 
-    def __init__(self, filename):
-        self.filename = filename
+    def __init__(self):
         self.savegame_version = None
         self.tables = {}
         self.items = defaultdict(dict)
