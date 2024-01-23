@@ -559,8 +559,8 @@ class Savegame():
         except struct.error:
             raise ValidationException("Unexpected end-of-file.")
 
-    def _read_table(self, reader):
-        """Read a single table from the header."""
+    def read_all_tables(self, reader):
+        """Read all the tables from the header."""
 
         def read_fields_sizes():
             while True:
@@ -583,21 +583,21 @@ class Savegame():
                     key.decode(),
                 ), 0
 
-        fields_sizes = list(read_fields_sizes())
+        def read_table():
+            """Read a single table from the header."""
 
-        return [field for field, _ in fields_sizes if field is not None], sum(size for _, size in fields_sizes)
+            fields_sizes = list(read_fields_sizes())
 
-    def read_all_tables(self, reader):
-        """Read all the tables from the header."""
+            return [field for field, _ in fields_sizes if field is not None], sum(size for _, size in fields_sizes)
 
         def read_substruct(table):
             for field_type, is_list, sub_key in table:
                 if field_type == FieldType.STRUCT:
-                    sub_table, sub_size = self._read_table(reader)
+                    sub_table, sub_size = read_table()
                     yield sub_key, sub_table, sub_size
                     yield from read_substruct(sub_table)
 
-        root_table, root_size = self._read_table(reader)
+        root_table, root_size = read_table()
         sub_key_tables_sizes = list(read_substruct(root_table))
 
         tables = {
