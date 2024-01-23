@@ -1,6 +1,7 @@
+import json
 from datetime import date
 
-from openttdlab import run_experiment, local_file, remote_file, save_config, load_config
+from openttdlab import Savegame, run_experiment, local_file, remote_file, save_config, load_config
 
 
 def test_run_experiment_local():
@@ -46,6 +47,21 @@ def test_run_experiment_remote():
         'loan': 300000,
         'money': 280615,
     }
+
+
+def test_savegame_parser():
+    with open('./fixtures/warbourne-cross-transport-2029-01-06.sav', 'rb') as f:
+        game = Savegame()
+        game.read(f)
+
+    # There is a little bit of information loss in JSON encoding, e.g. lists and tuples both
+    # get converted to lists. But I suspect it's acceptable to ignore.
+    # (The dumping and loading here is to "normalise" into the post information loss form)
+    with open('./fixtures/warbourne-cross-transport-2029-01-06-items.json','rb') as f:
+        assert json.loads(json.dumps(game.items)) == json.loads(f.read())
+
+    with open('./fixtures/warbourne-cross-transport-2029-01-06-tables.json','rb') as f:
+        assert json.loads(json.dumps(game.tables)) == json.loads(f.read())
 
 
 def test_save_config():
