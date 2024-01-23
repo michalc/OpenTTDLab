@@ -559,45 +559,55 @@ class Savegame():
         except struct.error:
             raise ValidationException("Unexpected end-of-file.")
 
-    def _read_table(self, reader):
-        """Read a single table from the header."""
-        fields = []
-        size = 0
-        while True:
-            type = struct.unpack(">b", reader.read(1))[0]
-            size += 1
-
-            if type == 0:
-                break
-
-            key_length, index_size = reader.gamma()
-            key = reader.read(key_length)
-            field_type = FieldType(type & 0xf)
-            fields.append((field_type, True if type & FIELD_TYPE_HAS_LENGTH_FIELD else False, key.decode()))
-
-            size += key_length + index_size
-
-        return fields, size
-
-    def _read_substruct(self, reader, tables, key):
-        """Check if there are sub-tables and read them too."""
-        size = 0
-
-        for field in tables[key]:
-            if field[0] == FieldType.STRUCT:
-                tables[field[2]], sub_size = self._read_table(reader)
-                size += sub_size
-                # Check if this table contains any other tables.
-                size += self._read_substruct(reader, tables, field[2])
-
-        return size
-
     def read_all_tables(self, reader):
         """Read all the tables from the header."""
-        tables = {}
 
-        tables["root"], size = self._read_table(reader)
-        size += self._read_substruct(reader, tables, "root")
+        def read_fields_sizes():
+            while True:
+                type = struct.unpack(">b", reader.read(1))[0]
+                yield None, 1
+
+                if type == 0:
+                    break
+
+                key_length, index_size = reader.gamma()
+                yield None, index_size
+
+                key = reader.read(key_length)
+                yield None, key_length
+
+                field_type = FieldType(type & 0xf)
+                yield (
+                    field_type,
+                    True if type & FIELD_TYPE_HAS_LENGTH_FIELD else False,
+                    key.decode(),
+                ), 0
+
+        def read_table():
+            """Read a single table from the header."""
+
+            fields_sizes = list(read_fields_sizes())
+
+            return [field for field, _ in fields_sizes if field is not None], sum(size for _, size in fields_sizes)
+
+        def read_substruct(table):
+            for field_type, is_list, sub_key in table:
+                if field_type == FieldType.STRUCT:
+                    sub_table, sub_size = read_table()
+                    yield sub_key, sub_table, sub_size
+                    yield from read_substruct(sub_table)
+
+        root_table, root_size = read_table()
+        sub_key_tables_sizes = list(read_substruct(root_table))
+
+        tables = {
+            "root": root_table,
+            **({
+                sub_key: sub_table
+                for sub_key, sub_table, _ in sub_key_tables_sizes
+            }),
+        }
+        size = root_size + sum(sub_size for _, _, sub_size in sub_key_tables_sizes)
 
         return tables, size
 
