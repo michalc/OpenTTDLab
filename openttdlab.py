@@ -293,9 +293,6 @@ class BinaryReader:
                 result.extend(b)
         return result
 
-    def skip(self, amount):
-        self.read(amount)
-
     def uint_ext(self):
         """
         Read NewGRF-style extended byte.
