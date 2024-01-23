@@ -103,7 +103,7 @@ def run_experiment(
 
     def parse_savegame(seed, filename):
         with open(filename, 'rb') as f:
-            game = Savegame(filename)
+            game = Savegame()
             game.read(f)
 
             # Python (and indeed, the gregorian calendar) doesn't have a year zero,
@@ -292,9 +292,6 @@ class BinaryReader:
             else:
                 result.extend(b)
         return result
-
-    def skip(self, amount):
-        self.read(amount)
 
     def uint_ext(self):
         """
@@ -485,8 +482,7 @@ class ValidationException(Exception):
 
 class Savegame():
 
-    def __init__(self, filename):
-        self.filename = filename
+    def __init__(self):
         self.savegame_version = None
         self.tables = {}
         self.items = defaultdict(dict)
@@ -596,7 +592,7 @@ class Savegame():
 
         return size
 
-    def read_all_tables(self, tag, reader):
+    def read_all_tables(self, reader):
         """Read all the tables from the header."""
         tables = {}
 
@@ -647,7 +643,7 @@ class Savegame():
                 if type >= 3:  # CH_TABLE or CH_SPARSE_TABLE
                     size = reader.gamma()[0] - 1
 
-                    tables, size_read = self.read_all_tables(tag, reader)
+                    tables, size_read = self.read_all_tables(reader)
                     if size_read != size:
                         raise ValidationException("Table header size mismatch.")
 
