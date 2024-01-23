@@ -561,23 +561,31 @@ class Savegame():
 
     def _read_table(self, reader):
         """Read a single table from the header."""
-        fields = []
-        size = 0
-        while True:
-            type = struct.unpack(">b", reader.read(1))[0]
-            size += 1
 
-            if type == 0:
-                break
+        def read_fields_sizes():
+            while True:
+                type = struct.unpack(">b", reader.read(1))[0]
+                yield None, 1
 
-            key_length, index_size = reader.gamma()
-            key = reader.read(key_length)
-            field_type = FieldType(type & 0xf)
-            fields.append((field_type, True if type & FIELD_TYPE_HAS_LENGTH_FIELD else False, key.decode()))
+                if type == 0:
+                    break
 
-            size += key_length + index_size
+                key_length, index_size = reader.gamma()
+                yield None, index_size
 
-        return fields, size
+                key = reader.read(key_length)
+                yield None, key_length
+
+                field_type = FieldType(type & 0xf)
+                yield (
+                    field_type,
+                    True if type & FIELD_TYPE_HAS_LENGTH_FIELD else False,
+                    key.decode(),
+                ), 0
+
+        fields_sizes = list(read_fields_sizes())
+
+        return [field for field, _ in fields_sizes if field is not None], sum(size for _, size in fields_sizes)
 
     def read_all_tables(self, reader):
         """Read all the tables from the header."""
