@@ -583,12 +583,12 @@ class Savegame():
         """Check if there are sub-tables and read them too."""
         size = 0
 
-        for field in tables[key]:
-            if field[0] == FieldType.STRUCT:
-                tables[field[2]], sub_size = self._read_table(reader)
+        for field_type, is_list, sub_key in tables[key]:
+            if field_type == FieldType.STRUCT:
+                tables[sub_key], sub_size = self._read_table(reader)
                 size += sub_size
                 # Check if this table contains any other tables.
-                size += self._read_substruct(reader, tables, field[2])
+                size += self._read_substruct(reader, tables, sub_key)
 
         return size
 
