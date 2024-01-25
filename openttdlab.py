@@ -272,6 +272,21 @@ def load_config():
     pass
 
 
+class FieldType(enum.IntEnum):
+    END = 0
+    I8 = 1
+    U8 = 2
+    I16 = 3
+    U16 = 4
+    I32 = 5
+    U32 = 6
+    I64 = 7
+    U64 = 8
+    STRINGID = 9
+    STRING = 10
+    STRUCT = 11
+
+
 class BinaryReader:
     """
     Read binary data.
@@ -318,7 +333,7 @@ class BinaryReader:
         Read OTTD-savegame-style gamma string (SLE_STR).
         """
         size, _size = self.gamma()
-        string = self.read(size)
+        string = self.read(size).decode()
         return string, size + _size
 
     def int8(self):
@@ -371,6 +386,19 @@ class BinaryReader:
             return struct.unpack(">Q", self.read(8))[0], 8
         except struct.error:
             raise ValidationException("Unexpected end-of-file.")
+
+    READERS = {
+        FieldType.I8: int8,
+        FieldType.U8: uint8,
+        FieldType.I16: int16,
+        FieldType.U16: uint16,
+        FieldType.I32: int32,
+        FieldType.U32: uint32,
+        FieldType.I64: int64,
+        FieldType.U64: uint64,
+        FieldType.STRINGID: uint16,
+        FieldType.STRING: gamma_str,
+    }
 
 
 class BinaryReaderFile(BinaryReader):
@@ -455,21 +483,6 @@ UNCOMPRESS = {
 FIELD_TYPE_HAS_LENGTH_FIELD = 0x10
 
 
-class FieldType(enum.IntEnum):
-    END = 0
-    I8 = 1
-    U8 = 2
-    I16 = 3
-    U16 = 4
-    I32 = 5
-    U32 = 6
-    I64 = 7
-    U64 = 8
-    STRINGID = 9
-    STRING = 10
-    STRUCT = 11
-
-
 class ValidationException(Exception):
     pass
 
@@ -480,78 +493,6 @@ class Savegame():
         self.savegame_version = None
         self.tables = {}
         self.items = defaultdict(dict)
-
-    def read_gamma(self, data):
-        try:
-            b = struct.unpack_from(">B", data, 0)[0]
-            if (b & 0x80) == 0:
-                return b & 0x7F, data[1:]
-            if (b & 0xC0) == 0x80:
-                return (b & 0x3F) << 8 | struct.unpack_from(">B", data, 1)[0], data[2:]
-            if (b & 0xE0) == 0xC0:
-                return (b & 0x1F) << 16 | struct.unpack_from(">H", data, 1)[0], data[3:]
-            if (b & 0xF0) == 0xE0:
-                length = struct.unpack_from(">H", data, 1)[0] << 8
-                length |= struct.unpack_from(">B", data, 3)[0]
-                return (b & 0x0F) << 24 | self.uint24(), data[4:]
-            if (b & 0xF8) == 0xF0:
-                return (b & 0x07) << 32 | struct.unpack_from(">I", data, 1)[0], data[5:]
-
-            raise ValidationException("Invalid gamma encoding.")
-        except struct.error:
-            raise ValidationException("Unexpected end-of-file.")
-
-    def read_string(self, data):
-        length, data = self.read_gamma(data)
-        return data[0:length].tobytes().decode(), data[length:]
-
-    def read_int8(self, data):
-        try:
-            return struct.unpack_from(">b", data, 0)[0], data[1:]
-        except struct.error:
-            raise ValidationException("Unexpected end-of-file.")
-
-    def read_uint8(self, data):
-        try:
-            return struct.unpack_from(">B", data, 0)[0], data[1:]
-        except struct.error:
-            raise ValidationException("Unexpected end-of-file.")
-
-    def read_int16(self, data):
-        try:
-            return struct.unpack_from(">h", data, 0)[0], data[2:]
-        except struct.error:
-            raise ValidationException("Unexpected end-of-file.")
-
-    def read_uint16(self, data):
-        try:
-            return struct.unpack_from(">H", data, 0)[0], data[2:]
-        except struct.error:
-            raise ValidationException("Unexpected end-of-file.")
-
-    def read_int32(self, data):
-        try:
-            return struct.unpack_from(">i", data, 0)[0], data[4:]
-        except struct.error:
-            raise ValidationException("Unexpected end-of-file.")
-
-    def read_uint32(self, data):
-        try:
-            return struct.unpack_from(">I", data, 0)[0], data[4:]
-        except struct.error:
-            raise ValidationException("Unexpected end-of-file.")
-
-    def read_int64(self, data):
-        try:
-            return struct.unpack_from(">q", data, 0)[0], data[8:]
-        except struct.error:
-            raise ValidationException("Unexpected end-of-file.")
-
-    def read_uint64(self, data):
-        try:
-            return struct.unpack_from(">Q", data, 0)[0], data[8:]
-        except struct.error:
-            raise ValidationException("Unexpected end-of-file.")
 
     def read_all_tables(self, reader):
         """Read all the tables from the header."""
@@ -642,7 +583,7 @@ class Savegame():
             type = m & 0xF
             if type == 0:
                 size = (m >> 4) << 24 | reader.uint24()[0]
-                self.read_item(tag, {}, -1, reader.read(size))
+                self.read_item(tag, {}, -1, size, reader)
             elif 1 <= type <= 4:
                 if type >= 3:  # CH_TABLE or CH_SPARSE_TABLE
                     size = reader.gamma()[0] - 1
@@ -666,61 +607,52 @@ class Savegame():
                     else:
                         index += 1
                     if size != 0:
-                        self.read_item(tag, tables, index, reader.read(size))
+                        self.read_item(tag, tables, index, size, reader)
             else:
                 raise ValidationException("Unknown chunk type.")
 
         self._check_tail(reader, "file")
 
-    def _read_item(self, data, tables, key="root"):
+    def _read_item(self, reader, tables, key="root"):
+        size = 0
         result = {}
 
         for field in tables[key]:
-            res, data = self.read_field(data, tables, field[0], field[1], field[2])
+            res, _size = self.read_field(reader, tables, field[0], field[1], field[2])
+            size += _size
             result[field[2]] = res
 
-        return result, data
+        return result, size
 
-    def read_field(self, data, tables, field, is_list, field_name):
+    def read_field(self, reader, tables, field, is_list, field_name):
         if is_list and field != FieldType.STRING:
-            length, data = self.read_gamma(data)
+            length, size = reader.gamma()
 
             res = []
             for _ in range(length):
-                item, data = self.read_field(data, tables, field, False, field_name)
+                item, _size = self.read_field(reader, tables, field, False, field_name)
+                size += _size
                 res.append(item)
-            return res, data
+            return res, size
 
         if field == FieldType.STRUCT:
-            return self._read_item(data, tables, field_name)
+            return self._read_item(reader, tables, field_name)
 
-        return self.READERS[field](self, data)
+        return reader.READERS[field](reader)
 
-    def read_item(self, tag, tables, index, data):
-        data = memoryview(data)
-
+    def read_item(self, tag, tables, index, expected_size, reader):
         table_index = "0" if index == -1 else str(index)
+        size = 0
 
         if tables:
-            self.items[tag][table_index], data = self._read_item(data, tables)
+            self.items[tag][table_index], size = self._read_item(reader, tables)
             if tag not in ("GSDT", "AIPL"):  # Known chunk with garbage at the end
-                if len(data):
+                if size != expected_size:
                     raise ValidationException(f"Junk at end of chunk {tag}")
         else:
             self.tables[tag] = {"unsupported": ""}
 
-    READERS = {
-        FieldType.I8: read_int8,
-        FieldType.U8: read_uint8,
-        FieldType.I16: read_int16,
-        FieldType.U16: read_uint16,
-        FieldType.I32: read_int32,
-        FieldType.U32: read_uint32,
-        FieldType.I64: read_int64,
-        FieldType.U64: read_uint64,
-        FieldType.STRINGID: read_uint16,
-        FieldType.STRING: read_string,
-    }
+        reader.read(expected_size - size)
 
 
 """
