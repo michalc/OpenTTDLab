@@ -295,21 +295,6 @@ class BinaryReader:
     def read(self, amount):
         raise NotImplementedError
 
-    def str(self):
-        """
-        Read zero-terminated string.
-        """
-        result = bytearray()
-        size = 0
-        while True:
-            b, _size = self.uint8()
-            size += _size
-            if b == b"\0":
-                break
-            else:
-                result.extend(b)
-        return result, size
-
     def gamma(self):
         """
         Read OTTD-savegame-style gamma value.
