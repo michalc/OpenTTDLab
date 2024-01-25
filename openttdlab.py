@@ -285,38 +285,31 @@ class BinaryReader:
         Read zero-terminated string.
         """
         result = bytearray()
+        size = 0
         while True:
-            b = self.uint8()
+            b, _size = self.uint8()
+            size += _size
             if b == b"\0":
                 break
             else:
                 result.extend(b)
-        return result
-
-    def uint_ext(self):
-        """
-        Read NewGRF-style extended byte.
-        """
-        b = self.uint8()
-        if b == 0xFF:
-            b = self.uint16()
-        return b
+        return result, size
 
     def gamma(self):
         """
         Read OTTD-savegame-style gamma value.
         """
-        b = self.uint8()
+        b = self.uint8()[0]
         if (b & 0x80) == 0:
             return (b & 0x7F, 1)
         elif (b & 0xC0) == 0x80:
-            return ((b & 0x3F) << 8 | self.uint8(), 2)
+            return ((b & 0x3F) << 8 | self.uint8()[0], 2)
         elif (b & 0xE0) == 0xC0:
-            return ((b & 0x1F) << 16 | self.uint16(), 3)
+            return ((b & 0x1F) << 16 | self.uint16()[0], 3)
         elif (b & 0xF0) == 0xE0:
-            return ((b & 0x0F) << 24 | self.uint24(), 4)
+            return ((b & 0x0F) << 24 | self.uint24()[0], 4)
         elif (b & 0xF8) == 0xF0:
-            return ((b & 0x07) << 32 | self.uint32(), 5)
+            return ((b & 0x07) << 32 | self.uint32()[0], 5)
         else:
             raise ValidationException("Invalid gamma encoding.")
 
@@ -324,57 +317,58 @@ class BinaryReader:
         """
         Read OTTD-savegame-style gamma string (SLE_STR).
         """
-        size = self.gamma()[0]
-        return self.read(size)
+        size, _size = self.gamma()
+        string = self.read(size)
+        return string, size + _size
 
     def int8(self):
         try:
-            return struct.unpack(">b", self.read(1))[0]
+            return struct.unpack(">b", self.read(1))[0], 1
         except struct.error:
             raise ValidationException("Unexpected end-of-file.")
 
     def uint8(self):
         try:
-            return struct.unpack(">B", self.read(1))[0]
+            return struct.unpack(">B", self.read(1))[0], 1
         except struct.error:
             raise ValidationException("Unexpected end-of-file.")
 
     def int16(self):
         try:
-            return struct.unpack(">h", self.read(2))[0]
+            return struct.unpack(">h", self.read(2))[0], 2
         except struct.error:
             raise ValidationException("Unexpected end-of-file.")
 
     def uint16(self):
         try:
-            return struct.unpack(">H", self.read(2))[0]
+            return struct.unpack(">H", self.read(2))[0], 2
         except struct.error:
             raise ValidationException("Unexpected end-of-file.")
 
     def uint24(self):
-        return (self.uint16() << 8) | self.uint8()
+        return (self.uint16()[0] << 8) | self.uint8()[0], 3
 
     def int32(self):
         try:
-            return struct.unpack(">l", self.read(4))[0]
+            return struct.unpack(">l", self.read(4))[0], 4
         except struct.error:
             raise ValidationException("Unexpected end-of-file.")
 
     def uint32(self):
         try:
-            return struct.unpack(">L", self.read(4))[0]
+            return struct.unpack(">L", self.read(4))[0], 4
         except struct.error:
             raise ValidationException("Unexpected end-of-file.")
 
     def int64(self):
         try:
-            return struct.unpack(">q", self.read(8))[0]
+            return struct.unpack(">q", self.read(8))[0], 8
         except struct.error:
             raise ValidationException("Unexpected end-of-file.")
 
     def uint64(self):
         try:
-            return struct.unpack(">Q", self.read(8))[0]
+            return struct.unpack(">Q", self.read(8))[0], 8
         except struct.error:
             raise ValidationException("Unexpected end-of-file.")
 
@@ -625,7 +619,7 @@ class Savegame():
         reader = BinaryReaderFile(fp)
 
         compression = reader.read(4)
-        self.savegame_version = reader.uint16()
+        self.savegame_version = reader.uint16()[0]
         reader.uint16()
 
         decompressor = UNCOMPRESS.get(compression)
@@ -644,10 +638,10 @@ class Savegame():
 
             tag = tag.decode()
 
-            m = reader.uint8()
+            m = reader.uint8()[0]
             type = m & 0xF
             if type == 0:
-                size = (m >> 4) << 24 | reader.uint24()
+                size = (m >> 4) << 24 | reader.uint24()[0]
                 self.read_item(tag, {}, -1, reader.read(size))
             elif 1 <= type <= 4:
                 if type >= 3:  # CH_TABLE or CH_SPARSE_TABLE
