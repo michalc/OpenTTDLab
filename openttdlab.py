@@ -547,11 +547,11 @@ def parse_savegame(f):
 
     all_tables = {}
     all_items = defaultdict(dict)
-    reader = BinaryReaderFile(f)
+    outer_reader = BinaryReaderFile(f)
 
-    compression = reader.read(4)
-    savegame_version = uint16(reader)[0]
-    uint16(reader)
+    compression = outer_reader.read(4)
+    savegame_version = uint16(outer_reader)[0]
+    uint16(outer_reader)
 
     decompressor = UNCOMPRESS.get(compression)
     if decompressor is None:
