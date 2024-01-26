@@ -275,23 +275,25 @@ def parse_savegame(chunks, chunk_size=65536):
 
     def get_readers(iterable):
         chunk = b''
+        chunk_offset = 0
         offset = 0
         it = iter(iterable)
 
         def _num_iter(num):
-            nonlocal chunk, offset
+            nonlocal chunk, chunk_offset, offset
 
             while num:
-                if offset == len(chunk):
+                if chunk_offset == len(chunk):
                     try:
                         chunk = next(it)
                     except StopIteration:
                         raise ValidationException("Unexpected end-of-file.")
-                    offset = 0
-                to_yield = min(num, len(chunk) - offset, chunk_size)
+                    chunk_offset = 0
+                to_yield = min(num, len(chunk) - chunk_offset, chunk_size)
                 num -= to_yield
+                chunk_offset += to_yield
                 offset += to_yield
-                yield chunk[offset - to_yield:offset]
+                yield chunk[chunk_offset - to_yield:chunk_offset]
 
         def _read_iter():
             try:
@@ -302,7 +304,10 @@ def parse_savegame(chunks, chunk_size=65536):
         def _read(num):
             return b''.join(_num_iter(num))
 
-        return _read, _read_iter
+        def _offset():
+            return offset
+
+        return _read, _read_iter, _offset
 
     def decompress_zlib(compressed_chunks):
         dobj = zlib.decompressobj()
@@ -443,57 +448,43 @@ def parse_savegame(chunks, chunk_size=65536):
         # b"OTTD": lzo2,
     }
 
-    def read_all_tables(read):
+    def read_all_tables(read, offset):
         """Read all the tables from the header."""
 
-        def read_fields_sizes():
+        def read_fields():
             while True:
                 type = struct.unpack(">b", read(1))[0]
-                yield None, 1
 
                 if type == 0:
                     break
 
-                key_length, index_size = gamma(read)
-                yield None, index_size
-
+                key_length = gamma(read)[0]
                 key = read(key_length)
-                yield None, key_length
 
                 field_type = FieldType(type & 0xf)
                 yield (
                     field_type,
                     True if type & FIELD_TYPE_HAS_LENGTH_FIELD else False,
                     key.decode(),
-                ), 0
-
-        def read_table():
-            """Read a single table from the header."""
-
-            fields_sizes = list(read_fields_sizes())
-
-            return [field for field, _ in fields_sizes if field is not None], sum(size for _, size in fields_sizes)
+                )
 
         def read_substruct(table):
             for field_type, is_list, sub_key in table:
                 if field_type == FieldType.STRUCT:
-                    sub_table, sub_size = read_table()
-                    yield sub_key, sub_table, sub_size
+                    sub_table = list(read_fields())
+                    yield sub_key, sub_table
                     yield from read_substruct(sub_table)
 
-        root_table, root_size = read_table()
-        sub_key_tables_sizes = list(read_substruct(root_table))
-
+        start_offset = offset()
+        root_table = list(read_fields())
+        sub_key_tables = list(read_substruct(root_table))
         tables = {
             "root": root_table,
-            **({
-                sub_key: sub_table
-                for sub_key, sub_table, _ in sub_key_tables_sizes
-            }),
+            **dict(sub_key_tables),
         }
-        size = root_size + sum(sub_size for _, _, sub_size in sub_key_tables_sizes)
+        end_offset = offset()
 
-        return tables, size
+        return tables, end_offset - start_offset
 
     def read_item(tag, tables, index, expected_size, read):
         def _read_item(key):
@@ -539,7 +530,7 @@ def parse_savegame(chunks, chunk_size=65536):
     all_tables = {}
     all_items = defaultdict(dict)
 
-    outer_read, outer_read_iter = get_readers(chunks)
+    outer_read, outer_read_iter, _ = get_readers(chunks)
 
     compression = outer_read(4)
     savegame_version = uint16(outer_read)[0]
@@ -549,7 +540,7 @@ def parse_savegame(chunks, chunk_size=65536):
     if decompressor is None:
         raise ValidationException(f"Unknown savegame compression {compression}.")
 
-    inner_read, _ = get_readers(decompressor(outer_read_iter()))
+    inner_read, _, inner_offset = get_readers(decompressor(outer_read_iter()))
 
     while True:
         tag = inner_read(4)
@@ -569,7 +560,7 @@ def parse_savegame(chunks, chunk_size=65536):
             if type >= 3:  # CH_TABLE or CH_SPARSE_TABLE
                 size = gamma(inner_read)[0] - 1
 
-                tables, size_read = read_all_tables(inner_read)
+                tables, size_read = read_all_tables(inner_read, inner_offset)
                 if size_read != size:
                     raise ValidationException("Table header size mismatch.")
 
