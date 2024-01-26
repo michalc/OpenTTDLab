@@ -1,7 +1,7 @@
 import json
 from datetime import date
 
-from openttdlab import Savegame, run_experiment, local_file, remote_file, save_config, load_config
+from openttdlab import parse_savegame, run_experiment, local_file, remote_file, save_config, load_config
 
 
 def test_run_experiment_local():
@@ -51,8 +51,7 @@ def test_run_experiment_remote():
 
 def test_savegame_parser():
     with open('./fixtures/warbourne-cross-transport-2029-01-06.sav', 'rb') as f:
-        game = Savegame()
-        game.read(f)
+        game = parse_savegame(f)
 
     # There is a little bit of information loss in JSON encoding, e.g. lists and tuples both
     # get converted to lists. But I suspect it's acceptable to ignore.

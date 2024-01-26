@@ -101,10 +101,9 @@ def run_experiment(
                     raise Exception('Unsafe', archive_location)
             f_zip.extractall(output_dir)
 
-    def parse_savegame(seed, filename):
+    def get_savegame_row(seed, filename):
         with open(filename, 'rb') as f:
-            game = Savegame()
-            game.read(f)
+            game = parse_savegame(f)
 
             # Python (and indeed, the gregorian calendar) doesn't have a year zero,
             # and according to the OpenTTD source, year 1 was a leap year
@@ -222,7 +221,7 @@ def run_experiment(
         return [
             savegame_row
             for filename in autosave_filenames
-            for savegame_row in parse_savegame(seed, os.path.join(autosave_dir, filename))
+            for savegame_row in get_savegame_row(seed, os.path.join(autosave_dir, filename))
         ]
 
     experiment_id = str(uuid.uuid4())
@@ -272,369 +271,366 @@ def load_config():
     pass
 
 
-class FieldType(enum.IntEnum):
-    END = 0
-    I8 = 1
-    U8 = 2
-    I16 = 3
-    U16 = 4
-    I32 = 5
-    U32 = 6
-    I64 = 7
-    U64 = 8
-    STRINGID = 9
-    STRING = 10
-    STRUCT = 11
+def parse_savegame(f):
 
+    class FieldType(enum.IntEnum):
+        END = 0
+        I8 = 1
+        U8 = 2
+        I16 = 3
+        U16 = 4
+        I32 = 5
+        U32 = 6
+        I64 = 7
+        U64 = 8
+        STRINGID = 9
+        STRING = 10
+        STRUCT = 11
 
-class BinaryReader:
-    """
-    Read binary data.
-    """
-
-    def gamma(self):
+    class BinaryReader:
         """
-        Read OTTD-savegame-style gamma value.
+        Read binary data.
         """
-        b = self.uint8()[0]
-        if (b & 0x80) == 0:
-            return (b & 0x7F, 1)
-        elif (b & 0xC0) == 0x80:
-            return ((b & 0x3F) << 8 | self.uint8()[0], 2)
-        elif (b & 0xE0) == 0xC0:
-            return ((b & 0x1F) << 16 | self.uint16()[0], 3)
-        elif (b & 0xF0) == 0xE0:
-            return ((b & 0x0F) << 24 | self.uint24()[0], 4)
-        elif (b & 0xF8) == 0xF0:
-            return ((b & 0x07) << 32 | self.uint32()[0], 5)
-        else:
-            raise ValidationException("Invalid gamma encoding.")
 
-    def gamma_str(self):
+        def gamma(self):
+            """
+            Read OTTD-savegame-style gamma value.
+            """
+            b = self.uint8()[0]
+            if (b & 0x80) == 0:
+                return (b & 0x7F, 1)
+            elif (b & 0xC0) == 0x80:
+                return ((b & 0x3F) << 8 | self.uint8()[0], 2)
+            elif (b & 0xE0) == 0xC0:
+                return ((b & 0x1F) << 16 | self.uint16()[0], 3)
+            elif (b & 0xF0) == 0xE0:
+                return ((b & 0x0F) << 24 | self.uint24()[0], 4)
+            elif (b & 0xF8) == 0xF0:
+                return ((b & 0x07) << 32 | self.uint32()[0], 5)
+            else:
+                raise ValidationException("Invalid gamma encoding.")
+
+        def gamma_str(self):
+            """
+            Read OTTD-savegame-style gamma string (SLE_STR).
+            """
+            size, _size = self.gamma()
+            string = self.read(size).decode()
+            return string, size + _size
+
+        def int8(self):
+            try:
+                return struct.unpack(">b", self.read(1))[0], 1
+            except struct.error:
+                raise ValidationException("Unexpected end-of-file.")
+
+        def uint8(self):
+            try:
+                return struct.unpack(">B", self.read(1))[0], 1
+            except struct.error:
+                raise ValidationException("Unexpected end-of-file.")
+
+        def int16(self):
+            try:
+                return struct.unpack(">h", self.read(2))[0], 2
+            except struct.error:
+                raise ValidationException("Unexpected end-of-file.")
+
+        def uint16(self):
+            try:
+                return struct.unpack(">H", self.read(2))[0], 2
+            except struct.error:
+                raise ValidationException("Unexpected end-of-file.")
+
+        def uint24(self):
+            return (self.uint16()[0] << 8) | self.uint8()[0], 3
+
+        def int32(self):
+            try:
+                return struct.unpack(">l", self.read(4))[0], 4
+            except struct.error:
+                raise ValidationException("Unexpected end-of-file.")
+
+        def uint32(self):
+            try:
+                return struct.unpack(">L", self.read(4))[0], 4
+            except struct.error:
+                raise ValidationException("Unexpected end-of-file.")
+
+        def int64(self):
+            try:
+                return struct.unpack(">q", self.read(8))[0], 8
+            except struct.error:
+                raise ValidationException("Unexpected end-of-file.")
+
+        def uint64(self):
+            try:
+                return struct.unpack(">Q", self.read(8))[0], 8
+            except struct.error:
+                raise ValidationException("Unexpected end-of-file.")
+
+        READERS = {
+            FieldType.I8: int8,
+            FieldType.U8: uint8,
+            FieldType.I16: int16,
+            FieldType.U16: uint16,
+            FieldType.I32: int32,
+            FieldType.U32: uint32,
+            FieldType.I64: int64,
+            FieldType.U64: uint64,
+            FieldType.STRINGID: uint16,
+            FieldType.STRING: gamma_str,
+        }
+
+    class BinaryReaderFile(BinaryReader):
         """
-        Read OTTD-savegame-style gamma string (SLE_STR).
+        Read binary data from file.
         """
-        size, _size = self.gamma()
-        string = self.read(size).decode()
-        return string, size + _size
 
-    def int8(self):
-        try:
-            return struct.unpack(">b", self.read(1))[0], 1
-        except struct.error:
-            raise ValidationException("Unexpected end-of-file.")
+        def __init__(self, file):
+            self._file = file
 
-    def uint8(self):
-        try:
-            return struct.unpack(">B", self.read(1))[0], 1
-        except struct.error:
-            raise ValidationException("Unexpected end-of-file.")
+        def read(self, amount):
+            return self._file.read(amount)
 
-    def int16(self):
-        try:
-            return struct.unpack(">h", self.read(2))[0], 2
-        except struct.error:
-            raise ValidationException("Unexpected end-of-file.")
+    class BinaryReaderFileBlockMode(BinaryReader):
+        """
+        Read binary data from file in blocks of at least 1024 bytes.
+        """
 
-    def uint16(self):
-        try:
-            return struct.unpack(">H", self.read(2))[0], 2
-        except struct.error:
-            raise ValidationException("Unexpected end-of-file.")
+        def __init__(self, file):
+            self._file = file
+            self._buffer = b""
 
-    def uint24(self):
-        return (self.uint16()[0] << 8) | self.uint8()[0], 3
+        def read(self, amount):
+            # Read in chunks, to improve performance.
+            if len(self._buffer) < amount:
+                self._buffer += self._file.read(1024 + amount)
 
-    def int32(self):
-        try:
-            return struct.unpack(">l", self.read(4))[0], 4
-        except struct.error:
-            raise ValidationException("Unexpected end-of-file.")
+            if len(self._buffer) < amount:
+                raise ValidationException("Unexpected end-of-file.")
 
-    def uint32(self):
-        try:
-            return struct.unpack(">L", self.read(4))[0], 4
-        except struct.error:
-            raise ValidationException("Unexpected end-of-file.")
+            data = self._buffer[:amount]
+            self._buffer = self._buffer[amount:]
+            return data
 
-    def int64(self):
-        try:
-            return struct.unpack(">q", self.read(8))[0], 8
-        except struct.error:
-            raise ValidationException("Unexpected end-of-file.")
+    class PlainFile:
+        @staticmethod
+        def open(f):
+            return f
 
-    def uint64(self):
-        try:
-            return struct.unpack(">Q", self.read(8))[0], 8
-        except struct.error:
-            raise ValidationException("Unexpected end-of-file.")
+    class ZLibFile:
+        @staticmethod
+        def open(f):
+            return ZLibFile(f)
 
-    READERS = {
-        FieldType.I8: int8,
-        FieldType.U8: uint8,
-        FieldType.I16: int16,
-        FieldType.U16: uint16,
-        FieldType.I32: int32,
-        FieldType.U32: uint32,
-        FieldType.I64: int64,
-        FieldType.U64: uint64,
-        FieldType.STRINGID: uint16,
-        FieldType.STRING: gamma_str,
+        def __init__(self, file):
+            self.file = file
+            self.decompressor = zlib.decompressobj()
+            self.uncompressed = bytearray()
+
+        def close(self):
+            pass
+
+        def read(self, amount):
+            while len(self.uncompressed) < amount:
+                new_data = self.file.read(8192)
+                if len(new_data) == 0:
+                    break
+                self.uncompressed += self.decompressor.decompress(new_data)
+
+            data = self.uncompressed[0:amount]
+            self.uncompressed = self.uncompressed[amount:]
+            return data
+
+    UNCOMPRESS = {
+        b"OTTN": PlainFile,
+        b"OTTZ": ZLibFile,
+        b"OTTX": lzma,
+        # Although OpenTTD supports lzo2, it is very difficult to load this in
+        # Python. Additionally, no savegame ever uses this format (OTTN is
+        # prefered over OTTD, which requires no additional libraries in the
+        # OpenTTD client), unless a user specificly switches to it. As such,
+        # it is reasonably enough to simply refuse this compression format.
+        # b"OTTD": lzo2,
     }
 
+    FIELD_TYPE_HAS_LENGTH_FIELD = 0x10
 
-class BinaryReaderFile(BinaryReader):
-    """
-    Read binary data from file.
-    """
+    class Savegame():
 
-    def __init__(self, file):
-        self._file = file
+        def __init__(self):
+            self.savegame_version = None
+            self.tables = {}
+            self.items = defaultdict(dict)
 
-    def read(self, amount):
-        return self._file.read(amount)
+        def read_all_tables(self, reader):
+            """Read all the tables from the header."""
 
+            def read_fields_sizes():
+                while True:
+                    type = struct.unpack(">b", reader.read(1))[0]
+                    yield None, 1
 
-class BinaryReaderFileBlockMode(BinaryReader):
-    """
-    Read binary data from file in blocks of at least 1024 bytes.
-    """
+                    if type == 0:
+                        break
 
-    def __init__(self, file):
-        self._file = file
-        self._buffer = b""
+                    key_length, index_size = reader.gamma()
+                    yield None, index_size
 
-    def read(self, amount):
-        # Read in chunks, to improve performance.
-        if len(self._buffer) < amount:
-            self._buffer += self._file.read(1024 + amount)
+                    key = reader.read(key_length)
+                    yield None, key_length
 
-        if len(self._buffer) < amount:
-            raise ValidationException("Unexpected end-of-file.")
+                    field_type = FieldType(type & 0xf)
+                    yield (
+                        field_type,
+                        True if type & FIELD_TYPE_HAS_LENGTH_FIELD else False,
+                        key.decode(),
+                    ), 0
 
-        data = self._buffer[:amount]
-        self._buffer = self._buffer[amount:]
-        return data
+            def read_table():
+                """Read a single table from the header."""
 
+                fields_sizes = list(read_fields_sizes())
 
+                return [field for field, _ in fields_sizes if field is not None], sum(size for _, size in fields_sizes)
 
-class PlainFile:
-    @staticmethod
-    def open(f):
-        return f
+            def read_substruct(table):
+                for field_type, is_list, sub_key in table:
+                    if field_type == FieldType.STRUCT:
+                        sub_table, sub_size = read_table()
+                        yield sub_key, sub_table, sub_size
+                        yield from read_substruct(sub_table)
 
+            root_table, root_size = read_table()
+            sub_key_tables_sizes = list(read_substruct(root_table))
 
-class ZLibFile:
-    @staticmethod
-    def open(f):
-        return ZLibFile(f)
+            tables = {
+                "root": root_table,
+                **({
+                    sub_key: sub_table
+                    for sub_key, sub_table, _ in sub_key_tables_sizes
+                }),
+            }
+            size = root_size + sum(sub_size for _, _, sub_size in sub_key_tables_sizes)
 
-    def __init__(self, file):
-        self.file = file
-        self.decompressor = zlib.decompressobj()
-        self.uncompressed = bytearray()
+            return tables, size
 
-    def close(self):
-        pass
+        def read_item(self, tag, tables, index, expected_size, reader):
+            def _read_item(key):
+                size = 0
+                result = {}
 
-    def read(self, amount):
-        while len(self.uncompressed) < amount:
-            new_data = self.file.read(8192)
-            if len(new_data) == 0:
-                break
-            self.uncompressed += self.decompressor.decompress(new_data)
+                for field in tables[key]:
+                    res, _size = read_field(field[0], field[1], field[2])
+                    size += _size
+                    result[field[2]] = res
 
-        data = self.uncompressed[0:amount]
-        self.uncompressed = self.uncompressed[amount:]
-        return data
+                return result, size
 
+            def read_field(field, is_list, field_name):
+                if is_list and field != FieldType.STRING:
+                    length, size = reader.gamma()
 
-UNCOMPRESS = {
-    b"OTTN": PlainFile,
-    b"OTTZ": ZLibFile,
-    b"OTTX": lzma,
-    # Although OpenTTD supports lzo2, it is very difficult to load this in
-    # Python. Additionally, no savegame ever uses this format (OTTN is
-    # prefered over OTTD, which requires no additional libraries in the
-    # OpenTTD client), unless a user specificly switches to it. As such,
-    # it is reasonably enough to simply refuse this compression format.
-    # b"OTTD": lzo2,
-}
+                    res = []
+                    for _ in range(length):
+                        item, _size = read_field(field, False, field_name)
+                        size += _size
+                        res.append(item)
+                    return res, size
 
+                if field == FieldType.STRUCT:
+                    return _read_item(field_name)
 
-FIELD_TYPE_HAS_LENGTH_FIELD = 0x10
+                return reader.READERS[field](reader)
+
+            table_index = "0" if index == -1 else str(index)
+            size = 0
+
+            if tables:
+                self.items[tag][table_index], size = _read_item("root")
+                if tag not in ("GSDT", "AIPL"):  # Known chunk with garbage at the end
+                    if size != expected_size:
+                        raise ValidationException(f"Junk at end of chunk {tag}")
+            else:
+                self.tables[tag] = {"unsupported": ""}
+
+            reader.read(expected_size - size)
+
+        def _check_tail(self, reader, item):
+            try:
+                reader.uint8()
+            except ValidationException:
+                pass
+            else:
+                raise ValidationException(f"Junk at the end of {item}.")
+
+        def read(self, fp):
+            """Read the savegame."""
+
+            reader = BinaryReaderFile(fp)
+
+            compression = reader.read(4)
+            self.savegame_version = reader.uint16()[0]
+            reader.uint16()
+
+            decompressor = UNCOMPRESS.get(compression)
+            if decompressor is None:
+                raise ValidationException(f"Unknown savegame compression {compression}.")
+
+            uncompressed = decompressor.open(fp)
+            reader = BinaryReaderFileBlockMode(uncompressed)
+
+            while True:
+                tag = reader.read(4)
+                if len(tag) == 0 or tag == b"\0\0\0\0":
+                    break
+                if len(tag) != 4:
+                    raise ValidationException("Invalid savegame.")
+
+                tag = tag.decode()
+
+                m = reader.uint8()[0]
+                type = m & 0xF
+                if type == 0:
+                    size = (m >> 4) << 24 | reader.uint24()[0]
+                    self.read_item(tag, {}, -1, size, reader)
+                elif 1 <= type <= 4:
+                    if type >= 3:  # CH_TABLE or CH_SPARSE_TABLE
+                        size = reader.gamma()[0] - 1
+
+                        tables, size_read = self.read_all_tables(reader)
+                        if size_read != size:
+                            raise ValidationException("Table header size mismatch.")
+
+                        self.tables[tag] = tables
+                    else:
+                        tables = {}
+
+                    index = -1
+                    while True:
+                        size = reader.gamma()[0] - 1
+                        if size < 0:
+                            break
+                        if type == 2 or type == 4:
+                            index, index_size = reader.gamma()
+                            size -= index_size
+                        else:
+                            index += 1
+                        if size != 0:
+                            self.read_item(tag, tables, index, size, reader)
+                else:
+                    raise ValidationException("Unknown chunk type.")
+
+            self._check_tail(reader, "file")
+
+    game = Savegame()
+    game.read(f)
+    return game
 
 
 class ValidationException(Exception):
     pass
-
-
-class Savegame():
-
-    def __init__(self):
-        self.savegame_version = None
-        self.tables = {}
-        self.items = defaultdict(dict)
-
-    def read_all_tables(self, reader):
-        """Read all the tables from the header."""
-
-        def read_fields_sizes():
-            while True:
-                type = struct.unpack(">b", reader.read(1))[0]
-                yield None, 1
-
-                if type == 0:
-                    break
-
-                key_length, index_size = reader.gamma()
-                yield None, index_size
-
-                key = reader.read(key_length)
-                yield None, key_length
-
-                field_type = FieldType(type & 0xf)
-                yield (
-                    field_type,
-                    True if type & FIELD_TYPE_HAS_LENGTH_FIELD else False,
-                    key.decode(),
-                ), 0
-
-        def read_table():
-            """Read a single table from the header."""
-
-            fields_sizes = list(read_fields_sizes())
-
-            return [field for field, _ in fields_sizes if field is not None], sum(size for _, size in fields_sizes)
-
-        def read_substruct(table):
-            for field_type, is_list, sub_key in table:
-                if field_type == FieldType.STRUCT:
-                    sub_table, sub_size = read_table()
-                    yield sub_key, sub_table, sub_size
-                    yield from read_substruct(sub_table)
-
-        root_table, root_size = read_table()
-        sub_key_tables_sizes = list(read_substruct(root_table))
-
-        tables = {
-            "root": root_table,
-            **({
-                sub_key: sub_table
-                for sub_key, sub_table, _ in sub_key_tables_sizes
-            }),
-        }
-        size = root_size + sum(sub_size for _, _, sub_size in sub_key_tables_sizes)
-
-        return tables, size
-
-    def read_item(self, tag, tables, index, expected_size, reader):
-        def _read_item(key):
-            size = 0
-            result = {}
-
-            for field in tables[key]:
-                res, _size = read_field(field[0], field[1], field[2])
-                size += _size
-                result[field[2]] = res
-
-            return result, size
-
-        def read_field(field, is_list, field_name):
-            if is_list and field != FieldType.STRING:
-                length, size = reader.gamma()
-
-                res = []
-                for _ in range(length):
-                    item, _size = read_field(field, False, field_name)
-                    size += _size
-                    res.append(item)
-                return res, size
-
-            if field == FieldType.STRUCT:
-                return _read_item(field_name)
-
-            return reader.READERS[field](reader)
-
-        table_index = "0" if index == -1 else str(index)
-        size = 0
-
-        if tables:
-            self.items[tag][table_index], size = _read_item("root")
-            if tag not in ("GSDT", "AIPL"):  # Known chunk with garbage at the end
-                if size != expected_size:
-                    raise ValidationException(f"Junk at end of chunk {tag}")
-        else:
-            self.tables[tag] = {"unsupported": ""}
-
-        reader.read(expected_size - size)
-
-    def _check_tail(self, reader, item):
-        try:
-            reader.uint8()
-        except ValidationException:
-            pass
-        else:
-            raise ValidationException(f"Junk at the end of {item}.")
-
-    def read(self, fp):
-        """Read the savegame."""
-
-        reader = BinaryReaderFile(fp)
-
-        compression = reader.read(4)
-        self.savegame_version = reader.uint16()[0]
-        reader.uint16()
-
-        decompressor = UNCOMPRESS.get(compression)
-        if decompressor is None:
-            raise ValidationException(f"Unknown savegame compression {compression}.")
-
-        uncompressed = decompressor.open(fp)
-        reader = BinaryReaderFileBlockMode(uncompressed)
-
-        while True:
-            tag = reader.read(4)
-            if len(tag) == 0 or tag == b"\0\0\0\0":
-                break
-            if len(tag) != 4:
-                raise ValidationException("Invalid savegame.")
-
-            tag = tag.decode()
-
-            m = reader.uint8()[0]
-            type = m & 0xF
-            if type == 0:
-                size = (m >> 4) << 24 | reader.uint24()[0]
-                self.read_item(tag, {}, -1, size, reader)
-            elif 1 <= type <= 4:
-                if type >= 3:  # CH_TABLE or CH_SPARSE_TABLE
-                    size = reader.gamma()[0] - 1
-
-                    tables, size_read = self.read_all_tables(reader)
-                    if size_read != size:
-                        raise ValidationException("Table header size mismatch.")
-
-                    self.tables[tag] = tables
-                else:
-                    tables = {}
-
-                index = -1
-                while True:
-                    size = reader.gamma()[0] - 1
-                    if size < 0:
-                        break
-                    if type == 2 or type == 4:
-                        index, index_size = reader.gamma()
-                        size -= index_size
-                    else:
-                        index += 1
-                    if size != 0:
-                        self.read_item(tag, tables, index, size, reader)
-            else:
-                raise ValidationException("Unknown chunk type.")
-
-        self._check_tail(reader, "file")
 
 
 """
