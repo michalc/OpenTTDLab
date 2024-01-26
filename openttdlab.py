@@ -450,7 +450,7 @@ def parse_savegame(chunks, chunk_size=65536):
         """Read all the tables from the header."""
 
         def read_fields():
-            while type := struct.unpack(">b", read(1))[0]:
+            while type := int8(read)[0]:
                 yield (
                     FieldType(type & 0xf),  # Field type
                     bool(type & 0x10),      # Has length
