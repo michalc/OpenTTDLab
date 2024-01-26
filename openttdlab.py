@@ -470,7 +470,7 @@ def parse_savegame(chunks, chunk_size=65536):
 
         return tables
 
-    def read_item(read, tag, tables, expected_size):
+    def read_item(read, tables):
         def _read_item(key):
             size = 0
             result = {}
@@ -557,7 +557,7 @@ def parse_savegame(chunks, chunk_size=65536):
                     index += 1
                 if size != 0:
                     start_offset = inner_offset()
-                    all_items[tag][str(index)] = read_item(inner_read, tag, tables, size)
+                    all_items[tag][str(index)] = read_item(inner_read, tables)
                     end_offset = inner_offset()
 
                     if tag not in ("GSDT", "AIPL"):  # Known chunk with garbage at the end
