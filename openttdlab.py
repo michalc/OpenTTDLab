@@ -359,15 +359,15 @@ def parse_savegame(chunks, chunk_size=65536):
         """
         b = uint8(read)
         if (b & 0x80) == 0:
-            return (b & 0x7F, 1)
+            return b & 0x7F
         elif (b & 0xC0) == 0x80:
-            return ((b & 0x3F) << 8 | uint8(read), 2)
+            return (b & 0x3F) << 8 | uint8(read)
         elif (b & 0xE0) == 0xC0:
-            return ((b & 0x1F) << 16 | uint16(read), 3)
+            return (b & 0x1F) << 16 | uint16(read)
         elif (b & 0xF0) == 0xE0:
-            return ((b & 0x0F) << 24 | uint24(read), 4)
+            return (b & 0x0F) << 24 | uint24(read)
         elif (b & 0xF8) == 0xF0:
-            return ((b & 0x07) << 32 | uint32(read), 5)
+            return (b & 0x07) << 32 | uint32(read)
         else:
             raise ValidationException("Invalid gamma encoding.")
 
@@ -375,7 +375,7 @@ def parse_savegame(chunks, chunk_size=65536):
         """
         Read OTTD-savegame-style gamma string (SLE_STR).
         """
-        return read(gamma(read)[0]).decode()
+        return read(gamma(read)).decode()
 
     def int8(read):
         return struct.unpack(">b", read(1))[0]
@@ -455,7 +455,7 @@ def parse_savegame(chunks, chunk_size=65536):
             }
 
         def read_list_of_fields(field_type, field_name):
-            length = gamma(read)[0]
+            length = gamma(read)
             return [
                 read_field(field_type, field_name)
                 for _ in range(length)
@@ -499,12 +499,12 @@ def parse_savegame(chunks, chunk_size=65536):
             all_tables[tag] = {"unsupported": ""}
 
         elif chunk_type in (1, 2):
-            while size_plus_one := gamma(inner_read)[0]:
+            while size_plus_one := gamma(inner_read):
                 inner_read(size_plus_one - 1)
             all_tables[tag] = {"unsupported": ""}
 
         elif chunk_type in (3, 4):  # CH_TABLE or CH_SPARSE_TABLE
-            size = gamma(inner_read)[0] - 1
+            size = gamma(inner_read) - 1
 
             start_offset = inner_offset()
             all_tables[tag] = read_all_tables(inner_read)
@@ -513,11 +513,11 @@ def parse_savegame(chunks, chunk_size=65536):
                 raise ValidationException("Table header size mismatch.")
 
             index = -1
-            while size_plus_one := gamma(inner_read)[0]:
+            while size_plus_one := gamma(inner_read):
 
                 start_offset = inner_offset()
                 if chunk_type == 4:
-                    index = gamma(inner_read)[0]
+                    index = gamma(inner_read)
                 else:
                     index += 1
                 end_offset = inner_offset()
