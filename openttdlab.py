@@ -470,7 +470,7 @@ def parse_savegame(chunks, chunk_size=65536):
 
         return tables
 
-    def read_item(read, tag, tables, index, expected_size):
+    def read_item(read, tag, tables, expected_size):
         def _read_item(key):
             size = 0
             result = {}
@@ -501,12 +501,13 @@ def parse_savegame(chunks, chunk_size=65536):
         table_index = str(index)
         size = 0
 
-        all_items[tag][table_index], size = _read_item("root")
+        item, size = _read_item("root")
         if tag not in ("GSDT", "AIPL"):  # Known chunk with garbage at the end
             if size != expected_size:
                 raise ValidationException(f"Junk at end of chunk {tag}")
 
         read(expected_size - size)
+        return item
 
     all_tables = {}
     all_items = defaultdict(dict)
@@ -563,7 +564,7 @@ def parse_savegame(chunks, chunk_size=65536):
                 else:
                     index += 1
                 if size != 0:
-                    read_item(inner_read, tag, tables, index, size)
+                    all_items[tag][str(index)] = read_item(inner_read, tag, tables, size)
         else:
             raise ValidationException("Unknown chunk type.")
 
