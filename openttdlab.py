@@ -550,14 +550,6 @@ def parse_savegame(f):
 
         reader.read(expected_size - size)
 
-    def _check_tail(reader, item):
-        try:
-            reader.uint8()
-        except ValidationException:
-            pass
-        else:
-            raise ValidationException(f"Junk at the end of {item}.")
-
     all_tables = {}
     all_items = defaultdict(dict)
     reader = BinaryReaderFile(f)
@@ -614,7 +606,13 @@ def parse_savegame(f):
         else:
             raise ValidationException("Unknown chunk type.")
 
-    _check_tail(reader, "file")
+    # Check tail
+    try:
+        reader.uint8()
+    except ValidationException:
+        pass
+    else:
+        raise ValidationException(f"Junk at the end of file.")
 
     return {
         'tables': all_tables,
