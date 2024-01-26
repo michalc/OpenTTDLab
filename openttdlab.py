@@ -555,10 +555,8 @@ def parse_savegame(chunks, chunk_size=65536):
             all_tables[tag] = tables
 
             index = -1
-            while True:
-                size = gamma(inner_read)[0] - 1
-                if size < 0:
-                    break
+            while size_plus_one := gamma(inner_read)[0]:
+                size = size_plus_one - 1
                 if chunk_type == 4:
                     index, index_size = gamma(inner_read)
                     size -= index_size
