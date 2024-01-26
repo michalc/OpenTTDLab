@@ -598,7 +598,7 @@ class Savegame():
 
         self._check_tail(reader, "file")
 
-    def _read_item(self, reader, tables, key="root"):
+    def _read_item(self, reader, tables, key):
         size = 0
         result = {}
 
@@ -630,7 +630,7 @@ class Savegame():
         size = 0
 
         if tables:
-            self.items[tag][table_index], size = self._read_item(reader, tables)
+            self.items[tag][table_index], size = self._read_item(reader, tables, "root")
             if tag not in ("GSDT", "AIPL"):  # Known chunk with garbage at the end
                 if size != expected_size:
                     raise ValidationException(f"Junk at end of chunk {tag}")
