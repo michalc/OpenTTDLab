@@ -531,6 +531,47 @@ class Savegame():
 
         return tables, size
 
+    def _read_item(self, reader, tables, key):
+        size = 0
+        result = {}
+
+        for field in tables[key]:
+            res, _size = self.read_field(reader, tables, field[0], field[1], field[2])
+            size += _size
+            result[field[2]] = res
+
+        return result, size
+
+    def read_field(self, reader, tables, field, is_list, field_name):
+        if is_list and field != FieldType.STRING:
+            length, size = reader.gamma()
+
+            res = []
+            for _ in range(length):
+                item, _size = self.read_field(reader, tables, field, False, field_name)
+                size += _size
+                res.append(item)
+            return res, size
+
+        if field == FieldType.STRUCT:
+            return self._read_item(reader, tables, field_name)
+
+        return reader.READERS[field](reader)
+
+    def read_item(self, tag, tables, index, expected_size, reader):
+        table_index = "0" if index == -1 else str(index)
+        size = 0
+
+        if tables:
+            self.items[tag][table_index], size = self._read_item(reader, tables, "root")
+            if tag not in ("GSDT", "AIPL"):  # Known chunk with garbage at the end
+                if size != expected_size:
+                    raise ValidationException(f"Junk at end of chunk {tag}")
+        else:
+            self.tables[tag] = {"unsupported": ""}
+
+        reader.read(expected_size - size)
+
     def _check_tail(self, reader, item):
         try:
             reader.uint8()
@@ -597,47 +638,6 @@ class Savegame():
                 raise ValidationException("Unknown chunk type.")
 
         self._check_tail(reader, "file")
-
-    def _read_item(self, reader, tables, key):
-        size = 0
-        result = {}
-
-        for field in tables[key]:
-            res, _size = self.read_field(reader, tables, field[0], field[1], field[2])
-            size += _size
-            result[field[2]] = res
-
-        return result, size
-
-    def read_field(self, reader, tables, field, is_list, field_name):
-        if is_list and field != FieldType.STRING:
-            length, size = reader.gamma()
-
-            res = []
-            for _ in range(length):
-                item, _size = self.read_field(reader, tables, field, False, field_name)
-                size += _size
-                res.append(item)
-            return res, size
-
-        if field == FieldType.STRUCT:
-            return self._read_item(reader, tables, field_name)
-
-        return reader.READERS[field](reader)
-
-    def read_item(self, tag, tables, index, expected_size, reader):
-        table_index = "0" if index == -1 else str(index)
-        size = 0
-
-        if tables:
-            self.items[tag][table_index], size = self._read_item(reader, tables, "root")
-            if tag not in ("GSDT", "AIPL"):  # Known chunk with garbage at the end
-                if size != expected_size:
-                    raise ValidationException(f"Junk at end of chunk {tag}")
-        else:
-            self.tables[tag] = {"unsupported": ""}
-
-        reader.read(expected_size - size)
 
 
 """
