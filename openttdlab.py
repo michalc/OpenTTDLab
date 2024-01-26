@@ -434,7 +434,7 @@ def parse_savegame(chunks, chunk_size=65536):
         FieldType.STRING: gamma_str,
     }
 
-    UNCOMPRESS = {
+    decompressors = {
         b"OTTN": decompress_none,
         b"OTTZ": decompress_zlib,
         b"OTTX": decompress_lzma,
@@ -522,8 +522,9 @@ def parse_savegame(chunks, chunk_size=65536):
     savegame_version = uint16(outer_read)[0]
     uint16(outer_read)
 
-    decompressor = UNCOMPRESS.get(compression)
-    if decompressor is None:
+    try:
+        decompressor = decompressors[compression]
+    except KeyError:
         raise ValidationException(f"Unknown savegame compression {compression}.")
 
     inner_read, _, inner_offset = get_readers(decompressor(outer_read_iter()))
