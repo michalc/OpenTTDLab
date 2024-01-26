@@ -514,12 +514,16 @@ def parse_savegame(chunks, chunk_size=65536):
 
             index = -1
             while size_plus_one := gamma(inner_read)[0]:
-                size = size_plus_one - 1
+
+                start_offset = inner_offset()
                 if chunk_type == 4:
-                    index, index_size = gamma(inner_read)
-                    size -= index_size
+                    index = gamma(inner_read)[0]
                 else:
                     index += 1
+                end_offset = inner_offset()
+
+                size = size_plus_one - 1 - (end_offset - start_offset)
+
                 if size != 0:
                     start_offset = inner_offset()
                     all_items[tag][str(index)] = read_item(inner_read, all_tables[tag])
