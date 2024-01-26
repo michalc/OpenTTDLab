@@ -457,178 +457,168 @@ def parse_savegame(f):
         # b"OTTD": lzo2,
     }
 
-    class Savegame():
+    def read_all_tables(reader):
+        """Read all the tables from the header."""
 
-        def __init__(self):
-            self.savegame_version = None
-            self.tables = {}
-            self.items = defaultdict(dict)
-
-        def read_all_tables(self, reader):
-            """Read all the tables from the header."""
-
-            def read_fields_sizes():
-                while True:
-                    type = struct.unpack(">b", reader.read(1))[0]
-                    yield None, 1
-
-                    if type == 0:
-                        break
-
-                    key_length, index_size = reader.gamma()
-                    yield None, index_size
-
-                    key = reader.read(key_length)
-                    yield None, key_length
-
-                    field_type = FieldType(type & 0xf)
-                    yield (
-                        field_type,
-                        True if type & FIELD_TYPE_HAS_LENGTH_FIELD else False,
-                        key.decode(),
-                    ), 0
-
-            def read_table():
-                """Read a single table from the header."""
-
-                fields_sizes = list(read_fields_sizes())
-
-                return [field for field, _ in fields_sizes if field is not None], sum(size for _, size in fields_sizes)
-
-            def read_substruct(table):
-                for field_type, is_list, sub_key in table:
-                    if field_type == FieldType.STRUCT:
-                        sub_table, sub_size = read_table()
-                        yield sub_key, sub_table, sub_size
-                        yield from read_substruct(sub_table)
-
-            root_table, root_size = read_table()
-            sub_key_tables_sizes = list(read_substruct(root_table))
-
-            tables = {
-                "root": root_table,
-                **({
-                    sub_key: sub_table
-                    for sub_key, sub_table, _ in sub_key_tables_sizes
-                }),
-            }
-            size = root_size + sum(sub_size for _, _, sub_size in sub_key_tables_sizes)
-
-            return tables, size
-
-        def read_item(self, tag, tables, index, expected_size, reader):
-            def _read_item(key):
-                size = 0
-                result = {}
-
-                for field in tables[key]:
-                    res, _size = read_field(field[0], field[1], field[2])
-                    size += _size
-                    result[field[2]] = res
-
-                return result, size
-
-            def read_field(field, is_list, field_name):
-                if is_list and field != FieldType.STRING:
-                    length, size = reader.gamma()
-
-                    res = []
-                    for _ in range(length):
-                        item, _size = read_field(field, False, field_name)
-                        size += _size
-                        res.append(item)
-                    return res, size
-
-                if field == FieldType.STRUCT:
-                    return _read_item(field_name)
-
-                return reader.READERS[field](reader)
-
-            table_index = "0" if index == -1 else str(index)
-            size = 0
-
-            if tables:
-                self.items[tag][table_index], size = _read_item("root")
-                if tag not in ("GSDT", "AIPL"):  # Known chunk with garbage at the end
-                    if size != expected_size:
-                        raise ValidationException(f"Junk at end of chunk {tag}")
-            else:
-                self.tables[tag] = {"unsupported": ""}
-
-            reader.read(expected_size - size)
-
-        def _check_tail(self, reader, item):
-            try:
-                reader.uint8()
-            except ValidationException:
-                pass
-            else:
-                raise ValidationException(f"Junk at the end of {item}.")
-
-        def read(self, fp):
-            """Read the savegame."""
-
-            reader = BinaryReaderFile(fp)
-
-            compression = reader.read(4)
-            self.savegame_version = reader.uint16()[0]
-            reader.uint16()
-
-            decompressor = UNCOMPRESS.get(compression)
-            if decompressor is None:
-                raise ValidationException(f"Unknown savegame compression {compression}.")
-
-            uncompressed = decompressor.open(fp)
-            reader = BinaryReaderFileBlockMode(uncompressed)
-
+        def read_fields_sizes():
             while True:
-                tag = reader.read(4)
-                if len(tag) == 0 or tag == b"\0\0\0\0":
-                    break
-                if len(tag) != 4:
-                    raise ValidationException("Invalid savegame.")
+                type = struct.unpack(">b", reader.read(1))[0]
+                yield None, 1
 
-                tag = tag.decode()
-
-                m = reader.uint8()[0]
-                type = m & 0xF
                 if type == 0:
-                    size = (m >> 4) << 24 | reader.uint24()[0]
-                    self.read_item(tag, {}, -1, size, reader)
-                elif 1 <= type <= 4:
-                    if type >= 3:  # CH_TABLE or CH_SPARSE_TABLE
-                        size = reader.gamma()[0] - 1
+                    break
 
-                        tables, size_read = self.read_all_tables(reader)
-                        if size_read != size:
-                            raise ValidationException("Table header size mismatch.")
+                key_length, index_size = reader.gamma()
+                yield None, index_size
 
-                        self.tables[tag] = tables
-                    else:
-                        tables = {}
+                key = reader.read(key_length)
+                yield None, key_length
 
-                    index = -1
-                    while True:
-                        size = reader.gamma()[0] - 1
-                        if size < 0:
-                            break
-                        if type == 2 or type == 4:
-                            index, index_size = reader.gamma()
-                            size -= index_size
-                        else:
-                            index += 1
-                        if size != 0:
-                            self.read_item(tag, tables, index, size, reader)
+                field_type = FieldType(type & 0xf)
+                yield (
+                    field_type,
+                    True if type & FIELD_TYPE_HAS_LENGTH_FIELD else False,
+                    key.decode(),
+                ), 0
+
+        def read_table():
+            """Read a single table from the header."""
+
+            fields_sizes = list(read_fields_sizes())
+
+            return [field for field, _ in fields_sizes if field is not None], sum(size for _, size in fields_sizes)
+
+        def read_substruct(table):
+            for field_type, is_list, sub_key in table:
+                if field_type == FieldType.STRUCT:
+                    sub_table, sub_size = read_table()
+                    yield sub_key, sub_table, sub_size
+                    yield from read_substruct(sub_table)
+
+        root_table, root_size = read_table()
+        sub_key_tables_sizes = list(read_substruct(root_table))
+
+        tables = {
+            "root": root_table,
+            **({
+                sub_key: sub_table
+                for sub_key, sub_table, _ in sub_key_tables_sizes
+            }),
+        }
+        size = root_size + sum(sub_size for _, _, sub_size in sub_key_tables_sizes)
+
+        return tables, size
+
+    def read_item(tag, tables, index, expected_size, reader):
+        def _read_item(key):
+            size = 0
+            result = {}
+
+            for field in tables[key]:
+                res, _size = read_field(field[0], field[1], field[2])
+                size += _size
+                result[field[2]] = res
+
+            return result, size
+
+        def read_field(field, is_list, field_name):
+            if is_list and field != FieldType.STRING:
+                length, size = reader.gamma()
+
+                res = []
+                for _ in range(length):
+                    item, _size = read_field(field, False, field_name)
+                    size += _size
+                    res.append(item)
+                return res, size
+
+            if field == FieldType.STRUCT:
+                return _read_item(field_name)
+
+            return reader.READERS[field](reader)
+
+        table_index = "0" if index == -1 else str(index)
+        size = 0
+
+        if tables:
+            all_items[tag][table_index], size = _read_item("root")
+            if tag not in ("GSDT", "AIPL"):  # Known chunk with garbage at the end
+                if size != expected_size:
+                    raise ValidationException(f"Junk at end of chunk {tag}")
+        else:
+            all_tables[tag] = {"unsupported": ""}
+
+        reader.read(expected_size - size)
+
+    def _check_tail(reader, item):
+        try:
+            reader.uint8()
+        except ValidationException:
+            pass
+        else:
+            raise ValidationException(f"Junk at the end of {item}.")
+
+    all_tables = {}
+    all_items = defaultdict(dict)
+    reader = BinaryReaderFile(f)
+
+    compression = reader.read(4)
+    savegame_version = reader.uint16()[0]
+    reader.uint16()
+
+    decompressor = UNCOMPRESS.get(compression)
+    if decompressor is None:
+        raise ValidationException(f"Unknown savegame compression {compression}.")
+
+    uncompressed = decompressor.open(f)
+    reader = BinaryReaderFileBlockMode(uncompressed)
+
+    while True:
+        tag = reader.read(4)
+        if len(tag) == 0 or tag == b"\0\0\0\0":
+            break
+        if len(tag) != 4:
+            raise ValidationException("Invalid savegame.")
+
+        tag = tag.decode()
+
+        m = reader.uint8()[0]
+        type = m & 0xF
+        if type == 0:
+            size = (m >> 4) << 24 | reader.uint24()[0]
+            read_item(tag, {}, -1, size, reader)
+        elif 1 <= type <= 4:
+            if type >= 3:  # CH_TABLE or CH_SPARSE_TABLE
+                size = reader.gamma()[0] - 1
+
+                tables, size_read = read_all_tables(reader)
+                if size_read != size:
+                    raise ValidationException("Table header size mismatch.")
+
+                all_tables[tag] = tables
+            else:
+                tables = {}
+
+            index = -1
+            while True:
+                size = reader.gamma()[0] - 1
+                if size < 0:
+                    break
+                if type == 2 or type == 4:
+                    index, index_size = reader.gamma()
+                    size -= index_size
                 else:
-                    raise ValidationException("Unknown chunk type.")
+                    index += 1
+                if size != 0:
+                    read_item(tag, tables, index, size, reader)
+        else:
+            raise ValidationException("Unknown chunk type.")
 
-            self._check_tail(reader, "file")
+    _check_tail(reader, "file")
 
-    game = Savegame()
-    game.read(f)
     return {
-        'tables': game.tables,
-        'items': game.items,
+        'tables': all_tables,
+        'items': all_items,
     }
 
 
