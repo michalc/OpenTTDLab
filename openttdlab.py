@@ -438,11 +438,8 @@ def parse_savegame(chunks, chunk_size=65536):
         b"OTTN": decompress_none,
         b"OTTZ": decompress_zlib,
         b"OTTX": decompress_lzma,
-        # Although OpenTTD supports lzo2, it is very difficult to load this in
-        # Python. Additionally, no savegame ever uses this format (OTTN is
-        # prefered over OTTD, which requires no additional libraries in the
-        # OpenTTD client), unless a user specificly switches to it. As such,
-        # it is reasonably enough to simply refuse this compression format.
+        # According to https://github.com/OpenTTD/OpenTTD/blob/master/docs/savegame_format.md
+        # only very old savegames will use this. Happy to not support that
         # b"OTTD": lzo2,
     }
 
