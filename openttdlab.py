@@ -357,17 +357,17 @@ def parse_savegame(chunks, chunk_size=65536):
         """
         Read OTTD-savegame-style gamma value.
         """
-        b = uint8(read)[0]
+        b = uint8(read)
         if (b & 0x80) == 0:
             return (b & 0x7F, 1)
         elif (b & 0xC0) == 0x80:
-            return ((b & 0x3F) << 8 | uint8(read)[0], 2)
+            return ((b & 0x3F) << 8 | uint8(read), 2)
         elif (b & 0xE0) == 0xC0:
-            return ((b & 0x1F) << 16 | uint16(read)[0], 3)
+            return ((b & 0x1F) << 16 | uint16(read), 3)
         elif (b & 0xF0) == 0xE0:
-            return ((b & 0x0F) << 24 | uint24(read)[0], 4)
+            return ((b & 0x0F) << 24 | uint24(read), 4)
         elif (b & 0xF8) == 0xF0:
-            return ((b & 0x07) << 32 | uint32(read)[0], 5)
+            return ((b & 0x07) << 32 | uint32(read), 5)
         else:
             raise ValidationException("Invalid gamma encoding.")
 
@@ -375,58 +375,56 @@ def parse_savegame(chunks, chunk_size=65536):
         """
         Read OTTD-savegame-style gamma string (SLE_STR).
         """
-        size, _size = gamma(read)
-        string = read(size).decode()
-        return string, size + _size
+        return read(gamma(read)[0]).decode()
 
     def int8(read):
         try:
-            return struct.unpack(">b", read(1))[0], 1
+            return struct.unpack(">b", read(1))[0]
         except struct.error:
             raise ValidationException("Unexpected end-of-file.")
 
     def uint8(read):
         try:
-            return struct.unpack(">B", read(1))[0], 1
+            return struct.unpack(">B", read(1))[0]
         except struct.error:
             raise ValidationException("Unexpected end-of-file.")
 
     def int16(read):
         try:
-            return struct.unpack(">h", read(2))[0], 2
+            return struct.unpack(">h", read(2))[0]
         except struct.error:
             raise ValidationException("Unexpected end-of-file.")
 
     def uint16(read):
         try:
-            return struct.unpack(">H", read(2))[0], 2
+            return struct.unpack(">H", read(2))[0]
         except struct.error:
             raise ValidationException("Unexpected end-of-file.")
 
     def uint24(read):
-        return (uint16(read)[0] << 8) | uint8(read)[0], 3
+        return (uint16(read) << 8) | uint8(read)
 
     def int32(read):
         try:
-            return struct.unpack(">l", read(4))[0], 4
+            return struct.unpack(">l", read(4))[0]
         except struct.error:
             raise ValidationException("Unexpected end-of-file.")
 
     def uint32(read):
         try:
-            return struct.unpack(">L", read(4))[0], 4
+            return struct.unpack(">L", read(4))[0]
         except struct.error:
             raise ValidationException("Unexpected end-of-file.")
 
     def int64(read):
         try:
-            return struct.unpack(">q", read(8))[0], 8
+            return struct.unpack(">q", read(8))[0]
         except struct.error:
             raise ValidationException("Unexpected end-of-file.")
 
     def uint64(read):
         try:
-            return struct.unpack(">Q", read(8))[0], 8
+            return struct.unpack(">Q", read(8))[0]
         except struct.error:
             raise ValidationException("Unexpected end-of-file.")
 
@@ -447,11 +445,11 @@ def parse_savegame(chunks, chunk_size=65536):
         """Read all the tables from the header."""
 
         def read_fields():
-            while type := int8(read)[0]:
+            while type := int8(read):
                 yield (
                     FieldType(type & 0xf),  # Field type
                     bool(type & 0x10),      # Has length
-                    gamma_str(read)[0],     # Key
+                    gamma_str(read),        # Key
                 )
 
         def read_substruct(table):
@@ -488,7 +486,7 @@ def parse_savegame(chunks, chunk_size=65536):
             if field == FieldType.STRUCT:
                 return _read_item(field_name)
 
-            return readers[field](read)[0]
+            return readers[field](read)
 
         return _read_item("root")
 
@@ -498,7 +496,7 @@ def parse_savegame(chunks, chunk_size=65536):
     outer_read, outer_read_iter, _ = get_readers(chunks)
 
     compression = outer_read(4)
-    savegame_version = uint16(outer_read)[0]
+    savegame_version = uint16(outer_read)
     uint16(outer_read)
 
     try:
@@ -514,11 +512,11 @@ def parse_savegame(chunks, chunk_size=65536):
             break
 
         tag = tag.decode()
-        m = uint8(inner_read)[0]
+        m = uint8(inner_read)
         chunk_type = m & 0xF
 
         if chunk_type == 0:
-            size = (m >> 4) << 24 | uint24(inner_read)[0]
+            size = (m >> 4) << 24 | uint24(inner_read)
             inner_read(size)
             all_tables[tag] = {"unsupported": ""}
 
