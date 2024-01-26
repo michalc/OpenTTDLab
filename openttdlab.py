@@ -558,9 +558,9 @@ def parse_savegame(chunks, chunk_size=65536):
                     all_items[tag][str(index)] = read_item(inner_read, all_tables[tag])
                     end_offset = inner_offset()
 
-                    if tag not in ("GSDT", "AIPL"):  # Known chunk with garbage at the end
-                        if size != (end_offset - start_offset):
-                            raise ValidationException(f"Junk at end of chunk {tag}")
+                    # GSDT and AIPL are known chunk with garbage at the end
+                    if tag not in ("GSDT", "AIPL") and size != (end_offset - start_offset):
+                        raise ValidationException(f"Junk at end of chunk {tag}")
 
                     inner_read(size - (end_offset - start_offset))
         else:
