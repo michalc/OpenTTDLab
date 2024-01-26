@@ -472,7 +472,7 @@ def parse_savegame(chunks, chunk_size=65536):
 
         return tables, end_offset - start_offset
 
-    def read_item(tag, tables, index, expected_size, read):
+    def read_item(read, tag, tables, index, expected_size):
         def _read_item(key):
             size = 0
             result = {}
@@ -540,7 +540,7 @@ def parse_savegame(chunks, chunk_size=65536):
         type = m & 0xF
         if type == 0:
             size = (m >> 4) << 24 | uint24(inner_read)[0]
-            read_item(tag, {}, -1, size, inner_read)
+            read_item(inner_read, tag, {}, -1, size)
         elif 1 <= type <= 4:
             if type >= 3:  # CH_TABLE or CH_SPARSE_TABLE
                 size = gamma(inner_read)[0] - 1
@@ -564,7 +564,7 @@ def parse_savegame(chunks, chunk_size=65536):
                 else:
                     index += 1
                 if size != 0:
-                    read_item(tag, tables, index, size, inner_read)
+                    read_item(inner_read, tag, tables, index, size)
         else:
             raise ValidationException("Unknown chunk type.")
 
