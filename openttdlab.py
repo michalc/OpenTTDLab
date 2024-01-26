@@ -480,12 +480,10 @@ def parse_savegame(chunks, chunk_size=65536):
         def read_field(field, has_length, field_name):
             if has_length and field != FieldType.STRING:
                 length = gamma(read)[0]
-
-                res = []
-                for _ in range(length):
-                    item = read_field(field, False, field_name)
-                    res.append(item)
-                return res
+                return [
+                    read_field(field, False, field_name)
+                    for _ in range(length)
+                ]
 
             if field == FieldType.STRUCT:
                 return _read_item(field_name)
