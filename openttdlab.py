@@ -532,16 +532,16 @@ def parse_savegame(chunks, chunk_size=65536):
             break
 
         tag = tag.decode()
-
         m = uint8(inner_read)[0]
-        type = m & 0xF
-        if type == 0:
+        chunk_type = m & 0xF
+
+        if chunk_type == 0:
             size = (m >> 4) << 24 | uint24(inner_read)[0]
             inner_read(size)
             all_tables[tag] = {"unsupported": ""}
 
-        elif 1 <= type <= 4:
-            if type >= 3:  # CH_TABLE or CH_SPARSE_TABLE
+        elif 1 <= chunk_type <= 4:
+            if chunk_type >= 3:  # CH_TABLE or CH_SPARSE_TABLE
                 size = gamma(inner_read)[0] - 1
 
                 tables, size_read = read_all_tables(inner_read, inner_offset)
@@ -557,7 +557,7 @@ def parse_savegame(chunks, chunk_size=65536):
                 size = gamma(inner_read)[0] - 1
                 if size < 0:
                     break
-                if type == 2 or type == 4:
+                if chunk_type == 2 or chunk_type == 4:
                     index, index_size = gamma(inner_read)
                     size -= index_size
                 else:
