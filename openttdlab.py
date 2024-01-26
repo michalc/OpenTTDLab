@@ -500,10 +500,10 @@ def parse_savegame(chunks, chunk_size=65536):
             size = 0
             result = {}
 
-            for field in tables[key]:
-                res, _size = read_field(field[0], field[1], field[2])
+            for field_type, is_list, sub_key in tables[key]:
+                res, _size = read_field(field_type, is_list, sub_key)
                 size += _size
-                result[field[2]] = res
+                result[sub_key] = res
 
             return result, size
 
