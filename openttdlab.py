@@ -105,18 +105,18 @@ def run_experiment(
         with open(filename, 'rb') as f:
             game = parse_savegame(f)
 
-            # Python (and indeed, the gregorian calendar) doesn't have a year zero,
-            # and according to the OpenTTD source, year 1 was a leap year
-            days_since_year_zero = game.items['DATE']['0']['date']
-            days_since_year_one = days_since_year_zero - 366
-            for index, player in game.items['PLYR'].items():
-                yield {
-                    'seed': seed,
-                    'date': date(1, 1 , 1) + timedelta(days_since_year_one),
-                    'player': player['name'],
-                    'money': player['money'],
-                    'loan': player['current_loan'],
-                }
+        # Python (and indeed, the gregorian calendar) doesn't have a year zero,
+        # and according to the OpenTTD source, year 1 was a leap year
+        days_since_year_zero = game.items['DATE']['0']['date']
+        days_since_year_one = days_since_year_zero - 366
+        for index, player in game.items['PLYR'].items():
+            yield {
+                'seed': seed,
+                'date': date(1, 1 , 1) + timedelta(days_since_year_one),
+                'player': player['name'],
+                'money': player['money'],
+                'loan': player['current_loan'],
+            }
 
     # Choose platform-specific details
     extractors = {
