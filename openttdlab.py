@@ -454,18 +454,15 @@ def parse_savegame(chunks, chunk_size=65536):
         def read_fields():
             while True:
                 type = struct.unpack(">b", read(1))[0]
-
                 if type == 0:
                     break
 
-                key_length = gamma(read)[0]
-                key = read(key_length)
-
+                key = gamma_str(read)[0]
                 field_type = FieldType(type & 0xf)
                 yield (
                     field_type,
                     True if type & FIELD_TYPE_HAS_LENGTH_FIELD else False,
-                    key.decode(),
+                    key,
                 )
 
         def read_substruct(table):
