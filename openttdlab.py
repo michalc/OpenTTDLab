@@ -289,89 +289,84 @@ def parse_savegame(f):
         STRING = 10
         STRUCT = 11
 
-    class BinaryReader:
+    def gamma(reader):
         """
-        Read binary data.
+        Read OTTD-savegame-style gamma value.
         """
+        b = uint8(reader)[0]
+        if (b & 0x80) == 0:
+            return (b & 0x7F, 1)
+        elif (b & 0xC0) == 0x80:
+            return ((b & 0x3F) << 8 | uint8(reader)[0], 2)
+        elif (b & 0xE0) == 0xC0:
+            return ((b & 0x1F) << 16 | uint16(reader)[0], 3)
+        elif (b & 0xF0) == 0xE0:
+            return ((b & 0x0F) << 24 | uint24(reader)[0], 4)
+        elif (b & 0xF8) == 0xF0:
+            return ((b & 0x07) << 32 | uint32(reader)[0], 5)
+        else:
+            raise ValidationException("Invalid gamma encoding.")
 
-        def gamma(self):
-            """
-            Read OTTD-savegame-style gamma value.
-            """
-            b = self.uint8()[0]
-            if (b & 0x80) == 0:
-                return (b & 0x7F, 1)
-            elif (b & 0xC0) == 0x80:
-                return ((b & 0x3F) << 8 | self.uint8()[0], 2)
-            elif (b & 0xE0) == 0xC0:
-                return ((b & 0x1F) << 16 | self.uint16()[0], 3)
-            elif (b & 0xF0) == 0xE0:
-                return ((b & 0x0F) << 24 | self.uint24()[0], 4)
-            elif (b & 0xF8) == 0xF0:
-                return ((b & 0x07) << 32 | self.uint32()[0], 5)
-            else:
-                raise ValidationException("Invalid gamma encoding.")
+    def gamma_str(reader):
+        """
+        Read OTTD-savegame-style gamma string (SLE_STR).
+        """
+        size, _size = gamma(reader)
+        string = reader.read(size).decode()
+        return string, size + _size
 
-        def gamma_str(self):
-            """
-            Read OTTD-savegame-style gamma string (SLE_STR).
-            """
-            size, _size = self.gamma()
-            string = self.read(size).decode()
-            return string, size + _size
+    def int8(reader):
+        try:
+            return struct.unpack(">b", reader.read(1))[0], 1
+        except struct.error:
+            raise ValidationException("Unexpected end-of-file.")
 
-        def int8(self):
-            try:
-                return struct.unpack(">b", self.read(1))[0], 1
-            except struct.error:
-                raise ValidationException("Unexpected end-of-file.")
+    def uint8(reader):
+        try:
+            return struct.unpack(">B", reader.read(1))[0], 1
+        except struct.error:
+            raise ValidationException("Unexpected end-of-file.")
 
-        def uint8(self):
-            try:
-                return struct.unpack(">B", self.read(1))[0], 1
-            except struct.error:
-                raise ValidationException("Unexpected end-of-file.")
+    def int16(reader):
+        try:
+            return struct.unpack(">h", reader.read(2))[0], 2
+        except struct.error:
+            raise ValidationException("Unexpected end-of-file.")
 
-        def int16(self):
-            try:
-                return struct.unpack(">h", self.read(2))[0], 2
-            except struct.error:
-                raise ValidationException("Unexpected end-of-file.")
+    def uint16(reader):
+        try:
+            return struct.unpack(">H", reader.read(2))[0], 2
+        except struct.error:
+            raise ValidationException("Unexpected end-of-file.")
 
-        def uint16(self):
-            try:
-                return struct.unpack(">H", self.read(2))[0], 2
-            except struct.error:
-                raise ValidationException("Unexpected end-of-file.")
+    def uint24(reader):
+        return (uint16(reader)[0] << 8) | uint8(reader)[0], 3
 
-        def uint24(self):
-            return (self.uint16()[0] << 8) | self.uint8()[0], 3
+    def int32(reader):
+        try:
+            return struct.unpack(">l", reader.read(4))[0], 4
+        except struct.error:
+            raise ValidationException("Unexpected end-of-file.")
 
-        def int32(self):
-            try:
-                return struct.unpack(">l", self.read(4))[0], 4
-            except struct.error:
-                raise ValidationException("Unexpected end-of-file.")
+    def uint32(reader):
+        try:
+            return struct.unpack(">L", reader.read(4))[0], 4
+        except struct.error:
+            raise ValidationException("Unexpected end-of-file.")
 
-        def uint32(self):
-            try:
-                return struct.unpack(">L", self.read(4))[0], 4
-            except struct.error:
-                raise ValidationException("Unexpected end-of-file.")
+    def int64(reader):
+        try:
+            return struct.unpack(">q", reader.read(8))[0], 8
+        except struct.error:
+            raise ValidationException("Unexpected end-of-file.")
 
-        def int64(self):
-            try:
-                return struct.unpack(">q", self.read(8))[0], 8
-            except struct.error:
-                raise ValidationException("Unexpected end-of-file.")
+    def uint64(reader):
+        try:
+            return struct.unpack(">Q", reader.read(8))[0], 8
+        except struct.error:
+            raise ValidationException("Unexpected end-of-file.")
 
-        def uint64(self):
-            try:
-                return struct.unpack(">Q", self.read(8))[0], 8
-            except struct.error:
-                raise ValidationException("Unexpected end-of-file.")
-
-    class BinaryReaderFile(BinaryReader):
+    class BinaryReaderFile():
         """
         Read binary data from file.
         """
@@ -382,7 +377,7 @@ def parse_savegame(f):
         def read(self, amount):
             return self._file.read(amount)
 
-    class BinaryReaderFileBlockMode(BinaryReader):
+    class BinaryReaderFileBlockMode():
         """
         Read binary data from file in blocks of at least 1024 bytes.
         """
@@ -455,7 +450,7 @@ def parse_savegame(f):
                 if type == 0:
                     break
 
-                key_length, index_size = reader.gamma()
+                key_length, index_size = gamma(reader)
                 yield None, index_size
 
                 key = reader.read(key_length)
@@ -510,7 +505,7 @@ def parse_savegame(f):
 
         def read_field(field, is_list, field_name):
             if is_list and field != FieldType.STRING:
-                length, size = reader.gamma()
+                length, size = gamma(reader)
 
                 res = []
                 for _ in range(length):
@@ -522,7 +517,7 @@ def parse_savegame(f):
             if field == FieldType.STRUCT:
                 return _read_item(field_name)
 
-            return readers[field]()
+            return readers[field](reader)
 
         table_index = "0" if index == -1 else str(index)
         size = 0
@@ -542,8 +537,8 @@ def parse_savegame(f):
     reader = BinaryReaderFile(f)
 
     compression = reader.read(4)
-    savegame_version = reader.uint16()[0]
-    reader.uint16()
+    savegame_version = uint16(reader)[0]
+    uint16(reader)
 
     decompressor = UNCOMPRESS.get(compression)
     if decompressor is None:
@@ -552,16 +547,16 @@ def parse_savegame(f):
     uncompressed = decompressor.open(f)
     reader = BinaryReaderFileBlockMode(uncompressed)
     readers = {
-        FieldType.I8: reader.int8,
-        FieldType.U8: reader.uint8,
-        FieldType.I16: reader.int16,
-        FieldType.U16: reader.uint16,
-        FieldType.I32: reader.int32,
-        FieldType.U32: reader.uint32,
-        FieldType.I64: reader.int64,
-        FieldType.U64: reader.uint64,
-        FieldType.STRINGID: reader.uint16,
-        FieldType.STRING: reader.gamma_str,
+        FieldType.I8: int8,
+        FieldType.U8: uint8,
+        FieldType.I16: int16,
+        FieldType.U16: uint16,
+        FieldType.I32: int32,
+        FieldType.U32: uint32,
+        FieldType.I64: int64,
+        FieldType.U64: uint64,
+        FieldType.STRINGID: uint16,
+        FieldType.STRING: gamma_str,
     }
 
     while True:
@@ -573,14 +568,14 @@ def parse_savegame(f):
 
         tag = tag.decode()
 
-        m = reader.uint8()[0]
+        m = uint8(reader)[0]
         type = m & 0xF
         if type == 0:
-            size = (m >> 4) << 24 | reader.uint24()[0]
+            size = (m >> 4) << 24 | uint24(reader)[0]
             read_item(tag, {}, -1, size, reader)
         elif 1 <= type <= 4:
             if type >= 3:  # CH_TABLE or CH_SPARSE_TABLE
-                size = reader.gamma()[0] - 1
+                size = gamma(reader)[0] - 1
 
                 tables, size_read = read_all_tables(reader)
                 if size_read != size:
@@ -592,11 +587,11 @@ def parse_savegame(f):
 
             index = -1
             while True:
-                size = reader.gamma()[0] - 1
+                size = gamma(reader)[0] - 1
                 if size < 0:
                     break
                 if type == 2 or type == 4:
-                    index, index_size = reader.gamma()
+                    index, index_size = gamma(reader)
                     size -= index_size
                 else:
                     index += 1
@@ -607,7 +602,7 @@ def parse_savegame(f):
 
     # Check tail
     try:
-        reader.uint8()
+        uint8(reader)
     except ValidationException:
         pass
     else:
