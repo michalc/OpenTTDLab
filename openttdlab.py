@@ -426,15 +426,16 @@ def parse_savegame(chunks, chunk_size=65536):
                     gamma_str(read),        # Key
                 )
 
-        def read_substruct(table):
+        def read_substruct(table, parent_key):
             for field_type, has_length, sub_key in table:
                 if field_type == FieldType.STRUCT:
                     sub_table = list(read_fields())
-                    yield sub_key, sub_table
-                    yield from read_substruct(sub_table)
+                    full_sub_key = f'{parent_key}.{sub_key}'
+                    yield full_sub_key, sub_table
+                    yield from read_substruct(sub_table, full_sub_key)
 
         root_table = list(read_fields())
-        sub_key_tables = list(read_substruct(root_table))
+        sub_key_tables = list(read_substruct(root_table, "root"))
         tables = {
             "root": root_table,
             **dict(sub_key_tables),
@@ -447,8 +448,8 @@ def parse_savegame(chunks, chunk_size=65536):
         def read_key(key):
             return {
                 sub_key: \
-                    read_list_of_fields(field_type, sub_key) if has_length and field_type != FieldType.STRING else \
-                    read_field(field_type, sub_key)
+                    read_list_of_fields(field_type, f'{key}.{sub_key}') if has_length and field_type != FieldType.STRING else \
+                    read_field(field_type, f'{key}.{sub_key}')
                 for field_type, has_length, sub_key in tables[key]
             }
 
