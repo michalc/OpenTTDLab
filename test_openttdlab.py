@@ -57,10 +57,10 @@ def test_savegame_parser():
     # get converted to lists. But I suspect it's acceptable to ignore.
     # (The dumping and loading here is to "normalise" into the post information loss form)
     with open('./fixtures/warbourne-cross-transport-2029-01-06-items.json','rb') as f:
-        assert json.loads(json.dumps(game.items)) == json.loads(f.read())
+        assert json.loads(json.dumps(game['items'])) == json.loads(f.read())
 
     with open('./fixtures/warbourne-cross-transport-2029-01-06-tables.json','rb') as f:
-        assert json.loads(json.dumps(game.tables)) == json.loads(f.read())
+        assert json.loads(json.dumps(game['tables'])) == json.loads(f.read())
 
 
 def test_save_config():

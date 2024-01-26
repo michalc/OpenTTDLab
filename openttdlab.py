@@ -107,9 +107,9 @@ def run_experiment(
 
         # Python (and indeed, the gregorian calendar) doesn't have a year zero,
         # and according to the OpenTTD source, year 1 was a leap year
-        days_since_year_zero = game.items['DATE']['0']['date']
+        days_since_year_zero = game['items']['DATE']['0']['date']
         days_since_year_one = days_since_year_zero - 366
-        for index, player in game.items['PLYR'].items():
+        for index, player in game['items']['PLYR'].items():
             yield {
                 'seed': seed,
                 'date': date(1, 1 , 1) + timedelta(days_since_year_one),
@@ -626,7 +626,10 @@ def parse_savegame(f):
 
     game = Savegame()
     game.read(f)
-    return game
+    return {
+        'tables': game.tables,
+        'items': game.items,
+    }
 
 
 class ValidationException(Exception):
