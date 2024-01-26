@@ -498,7 +498,7 @@ def parse_savegame(chunks, chunk_size=65536):
 
             return readers[field](read)
 
-        table_index = "0" if index == -1 else str(index)
+        table_index = str(index)
         size = 0
 
         all_items[tag][table_index], size = _read_item("root")
