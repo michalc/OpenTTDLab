@@ -533,8 +533,6 @@ def parse_savegame(chunks, chunk_size=65536):
         tag = inner_read(4)
         if len(tag) == 0 or tag == b"\0\0\0\0":
             break
-        if len(tag) != 4:
-            raise ValidationException("Invalid savegame.")
 
         tag = tag.decode()
 
