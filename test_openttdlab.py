@@ -51,7 +51,7 @@ def test_run_experiment_remote():
 
 def test_savegame_parser():
     with open('./fixtures/warbourne-cross-transport-2029-01-06.sav', 'rb') as f:
-        game = parse_savegame(f)
+        game = parse_savegame(iter(lambda: f.read(65536), b''))
 
     # There is a little bit of information loss in JSON encoding, e.g. lists and tuples both
     # get converted to lists. But I suspect it's acceptable to ignore.

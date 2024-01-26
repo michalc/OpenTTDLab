@@ -103,7 +103,7 @@ def run_experiment(
 
     def get_savegame_row(seed, filename):
         with open(filename, 'rb') as f:
-            game = parse_savegame(f)
+            game = parse_savegame(iter(lambda: f.read(65536), b''))
 
         # Python (and indeed, the gregorian calendar) doesn't have a year zero,
         # and according to the OpenTTD source, year 1 was a leap year
@@ -271,7 +271,59 @@ def load_config():
     pass
 
 
-def parse_savegame(f):
+def parse_savegame(chunks, chunk_size=65536):
+
+    def get_readers(iterable):
+        chunk = b''
+        offset = 0
+        it = iter(iterable)
+
+        def _num_iter(num):
+            nonlocal chunk, offset
+
+            while num:
+                if offset == len(chunk):
+                    try:
+                        chunk = next(it)
+                    except StopIteration:
+                        raise ValidationException("Unexpected end-of-file.")
+                    offset = 0
+                to_yield = min(num, len(chunk) - offset, chunk_size)
+                num -= to_yield
+                offset += to_yield
+                yield chunk[offset - to_yield:offset]
+
+        def _read_iter():
+            try:
+                yield from _num_iter(float('inf'))
+            except ValidationException:
+                pass
+
+        def _read(num):
+            return b''.join(_num_iter(num))
+
+        return _read, _read_iter
+
+    def decompress_zlib(compressed_chunks):
+        dobj = zlib.decompressobj()
+        for compressed_chunk in compressed_chunks:
+            if chunk := dobj.decompress(compressed_chunk, max_length=chunk_size):
+                yield chunk
+
+            while dobj.unconsumed_tail and not dobj.eof and (chunk := dobj.decompress(dobj.unconsumed_tail, max_length=chunk_size)):
+                yield chunk
+
+    def decompress_lzma(compressed_chunks):
+        dobj = lzma.LZMADecompressor()
+        for compressed_chunk in compressed_chunks:
+            if chunk := dobj.decompress(compressed_chunk, max_length=chunk_size):
+                yield chunk
+
+            while not dobj.eof and (chunk := dobj.decompress(b'', max_length=chunk_size)):
+                yield chunk
+
+    def decompress_none(compressed_chunks):
+        yield from compressed_chunks
 
     FIELD_TYPE_HAS_LENGTH_FIELD = 0x10
 
@@ -289,80 +341,80 @@ def parse_savegame(f):
         STRING = 10
         STRUCT = 11
 
-    def gamma(reader):
+    def gamma(read):
         """
         Read OTTD-savegame-style gamma value.
         """
-        b = uint8(reader)[0]
+        b = uint8(read)[0]
         if (b & 0x80) == 0:
             return (b & 0x7F, 1)
         elif (b & 0xC0) == 0x80:
-            return ((b & 0x3F) << 8 | uint8(reader)[0], 2)
+            return ((b & 0x3F) << 8 | uint8(read)[0], 2)
         elif (b & 0xE0) == 0xC0:
-            return ((b & 0x1F) << 16 | uint16(reader)[0], 3)
+            return ((b & 0x1F) << 16 | uint16(read)[0], 3)
         elif (b & 0xF0) == 0xE0:
-            return ((b & 0x0F) << 24 | uint24(reader)[0], 4)
+            return ((b & 0x0F) << 24 | uint24(read)[0], 4)
         elif (b & 0xF8) == 0xF0:
-            return ((b & 0x07) << 32 | uint32(reader)[0], 5)
+            return ((b & 0x07) << 32 | uint32(read)[0], 5)
         else:
             raise ValidationException("Invalid gamma encoding.")
 
-    def gamma_str(reader):
+    def gamma_str(read):
         """
         Read OTTD-savegame-style gamma string (SLE_STR).
         """
-        size, _size = gamma(reader)
-        string = reader.read(size).decode()
+        size, _size = gamma(read)
+        string = read(size).decode()
         return string, size + _size
 
-    def int8(reader):
+    def int8(read):
         try:
-            return struct.unpack(">b", reader.read(1))[0], 1
+            return struct.unpack(">b", read(1))[0], 1
         except struct.error:
             raise ValidationException("Unexpected end-of-file.")
 
-    def uint8(reader):
+    def uint8(read):
         try:
-            return struct.unpack(">B", reader.read(1))[0], 1
+            return struct.unpack(">B", read(1))[0], 1
         except struct.error:
             raise ValidationException("Unexpected end-of-file.")
 
-    def int16(reader):
+    def int16(read):
         try:
-            return struct.unpack(">h", reader.read(2))[0], 2
+            return struct.unpack(">h", read(2))[0], 2
         except struct.error:
             raise ValidationException("Unexpected end-of-file.")
 
-    def uint16(reader):
+    def uint16(read):
         try:
-            return struct.unpack(">H", reader.read(2))[0], 2
+            return struct.unpack(">H", read(2))[0], 2
         except struct.error:
             raise ValidationException("Unexpected end-of-file.")
 
-    def uint24(reader):
-        return (uint16(reader)[0] << 8) | uint8(reader)[0], 3
+    def uint24(read):
+        return (uint16(read)[0] << 8) | uint8(read)[0], 3
 
-    def int32(reader):
+    def int32(read):
         try:
-            return struct.unpack(">l", reader.read(4))[0], 4
+            return struct.unpack(">l", read(4))[0], 4
         except struct.error:
             raise ValidationException("Unexpected end-of-file.")
 
-    def uint32(reader):
+    def uint32(read):
         try:
-            return struct.unpack(">L", reader.read(4))[0], 4
+            return struct.unpack(">L", read(4))[0], 4
         except struct.error:
             raise ValidationException("Unexpected end-of-file.")
 
-    def int64(reader):
+    def int64(read):
         try:
-            return struct.unpack(">q", reader.read(8))[0], 8
+            return struct.unpack(">q", read(8))[0], 8
         except struct.error:
             raise ValidationException("Unexpected end-of-file.")
 
-    def uint64(reader):
+    def uint64(read):
         try:
-            return struct.unpack(">Q", reader.read(8))[0], 8
+            return struct.unpack(">Q", read(8))[0], 8
         except struct.error:
             raise ValidationException("Unexpected end-of-file.")
 
@@ -379,71 +431,10 @@ def parse_savegame(f):
         FieldType.STRING: gamma_str,
     }
 
-    class BinaryReaderFile():
-        """
-        Read binary data from file.
-        """
-
-        def __init__(self, file):
-            self._file = file
-
-        def read(self, amount):
-            return self._file.read(amount)
-
-    class BinaryReaderFileBlockMode():
-        """
-        Read binary data from file in blocks of at least 1024 bytes.
-        """
-
-        def __init__(self, file):
-            self._file = file
-            self._buffer = b""
-
-        def read(self, amount):
-            # Read in chunks, to improve performance.
-            if len(self._buffer) < amount:
-                self._buffer += self._file.read(1024 + amount)
-
-            if len(self._buffer) < amount:
-                raise ValidationException("Unexpected end-of-file.")
-
-            data = self._buffer[:amount]
-            self._buffer = self._buffer[amount:]
-            return data
-
-    class PlainFile:
-        @staticmethod
-        def open(f):
-            return f
-
-    class ZLibFile:
-        @staticmethod
-        def open(f):
-            return ZLibFile(f)
-
-        def __init__(self, file):
-            self.file = file
-            self.decompressor = zlib.decompressobj()
-            self.uncompressed = bytearray()
-
-        def close(self):
-            pass
-
-        def read(self, amount):
-            while len(self.uncompressed) < amount:
-                new_data = self.file.read(8192)
-                if len(new_data) == 0:
-                    break
-                self.uncompressed += self.decompressor.decompress(new_data)
-
-            data = self.uncompressed[0:amount]
-            self.uncompressed = self.uncompressed[amount:]
-            return data
-
     UNCOMPRESS = {
-        b"OTTN": PlainFile,
-        b"OTTZ": ZLibFile,
-        b"OTTX": lzma,
+        b"OTTN": decompress_none,
+        b"OTTZ": decompress_zlib,
+        b"OTTX": decompress_lzma,
         # Although OpenTTD supports lzo2, it is very difficult to load this in
         # Python. Additionally, no savegame ever uses this format (OTTN is
         # prefered over OTTD, which requires no additional libraries in the
@@ -452,21 +443,21 @@ def parse_savegame(f):
         # b"OTTD": lzo2,
     }
 
-    def read_all_tables(reader):
+    def read_all_tables(read):
         """Read all the tables from the header."""
 
         def read_fields_sizes():
             while True:
-                type = struct.unpack(">b", reader.read(1))[0]
+                type = struct.unpack(">b", read(1))[0]
                 yield None, 1
 
                 if type == 0:
                     break
 
-                key_length, index_size = gamma(reader)
+                key_length, index_size = gamma(read)
                 yield None, index_size
 
-                key = reader.read(key_length)
+                key = read(key_length)
                 yield None, key_length
 
                 field_type = FieldType(type & 0xf)
@@ -504,7 +495,7 @@ def parse_savegame(f):
 
         return tables, size
 
-    def read_item(tag, tables, index, expected_size, reader):
+    def read_item(tag, tables, index, expected_size, read):
         def _read_item(key):
             size = 0
             result = {}
@@ -518,7 +509,7 @@ def parse_savegame(f):
 
         def read_field(field, is_list, field_name):
             if is_list and field != FieldType.STRING:
-                length, size = gamma(reader)
+                length, size = gamma(read)
 
                 res = []
                 for _ in range(length):
@@ -530,7 +521,7 @@ def parse_savegame(f):
             if field == FieldType.STRUCT:
                 return _read_item(field_name)
 
-            return readers[field](reader)
+            return readers[field](read)
 
         table_index = "0" if index == -1 else str(index)
         size = 0
@@ -543,25 +534,25 @@ def parse_savegame(f):
         else:
             all_tables[tag] = {"unsupported": ""}
 
-        reader.read(expected_size - size)
+        read(expected_size - size)
 
     all_tables = {}
     all_items = defaultdict(dict)
-    outer_reader = BinaryReaderFile(f)
 
-    compression = outer_reader.read(4)
-    savegame_version = uint16(outer_reader)[0]
-    uint16(outer_reader)
+    outer_read, outer_read_iter = get_readers(chunks)
+
+    compression = outer_read(4)
+    savegame_version = uint16(outer_read)[0]
+    uint16(outer_read)
 
     decompressor = UNCOMPRESS.get(compression)
     if decompressor is None:
         raise ValidationException(f"Unknown savegame compression {compression}.")
 
-    uncompressed = decompressor.open(f)
-    reader = BinaryReaderFileBlockMode(uncompressed)
+    inner_read, _ = get_readers(decompressor(outer_read_iter()))
 
     while True:
-        tag = reader.read(4)
+        tag = inner_read(4)
         if len(tag) == 0 or tag == b"\0\0\0\0":
             break
         if len(tag) != 4:
@@ -569,16 +560,16 @@ def parse_savegame(f):
 
         tag = tag.decode()
 
-        m = uint8(reader)[0]
+        m = uint8(inner_read)[0]
         type = m & 0xF
         if type == 0:
-            size = (m >> 4) << 24 | uint24(reader)[0]
-            read_item(tag, {}, -1, size, reader)
+            size = (m >> 4) << 24 | uint24(inner_read)[0]
+            read_item(tag, {}, -1, size, inner_read)
         elif 1 <= type <= 4:
             if type >= 3:  # CH_TABLE or CH_SPARSE_TABLE
-                size = gamma(reader)[0] - 1
+                size = gamma(inner_read)[0] - 1
 
-                tables, size_read = read_all_tables(reader)
+                tables, size_read = read_all_tables(inner_read)
                 if size_read != size:
                     raise ValidationException("Table header size mismatch.")
 
@@ -588,22 +579,22 @@ def parse_savegame(f):
 
             index = -1
             while True:
-                size = gamma(reader)[0] - 1
+                size = gamma(inner_read)[0] - 1
                 if size < 0:
                     break
                 if type == 2 or type == 4:
-                    index, index_size = gamma(reader)
+                    index, index_size = gamma(inner_read)
                     size -= index_size
                 else:
                     index += 1
                 if size != 0:
-                    read_item(tag, tables, index, size, reader)
+                    read_item(tag, tables, index, size, inner_read)
         else:
             raise ValidationException("Unknown chunk type.")
 
     # Check tail
     try:
-        uint8(reader)
+        uint8(inner_read)
     except ValidationException:
         pass
     else:
