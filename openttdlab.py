@@ -378,55 +378,31 @@ def parse_savegame(chunks, chunk_size=65536):
         return read(gamma(read)[0]).decode()
 
     def int8(read):
-        try:
-            return struct.unpack(">b", read(1))[0]
-        except struct.error:
-            raise ValidationException("Unexpected end-of-file.")
+        return struct.unpack(">b", read(1))[0]
 
     def uint8(read):
-        try:
-            return struct.unpack(">B", read(1))[0]
-        except struct.error:
-            raise ValidationException("Unexpected end-of-file.")
+        return struct.unpack(">B", read(1))[0]
 
     def int16(read):
-        try:
-            return struct.unpack(">h", read(2))[0]
-        except struct.error:
-            raise ValidationException("Unexpected end-of-file.")
+        return struct.unpack(">h", read(2))[0]
 
     def uint16(read):
-        try:
-            return struct.unpack(">H", read(2))[0]
-        except struct.error:
-            raise ValidationException("Unexpected end-of-file.")
+        return struct.unpack(">H", read(2))[0]
 
     def uint24(read):
         return (uint16(read) << 8) | uint8(read)
 
     def int32(read):
-        try:
-            return struct.unpack(">l", read(4))[0]
-        except struct.error:
-            raise ValidationException("Unexpected end-of-file.")
+        return struct.unpack(">l", read(4))[0]
 
     def uint32(read):
-        try:
-            return struct.unpack(">L", read(4))[0]
-        except struct.error:
-            raise ValidationException("Unexpected end-of-file.")
+        return struct.unpack(">L", read(4))[0]
 
     def int64(read):
-        try:
-            return struct.unpack(">q", read(8))[0]
-        except struct.error:
-            raise ValidationException("Unexpected end-of-file.")
+        return struct.unpack(">q", read(8))[0]
 
     def uint64(read):
-        try:
-            return struct.unpack(">Q", read(8))[0]
-        except struct.error:
-            raise ValidationException("Unexpected end-of-file.")
+        return struct.unpack(">Q", read(8))[0]
 
     readers = {
         FieldType.I8: int8,
