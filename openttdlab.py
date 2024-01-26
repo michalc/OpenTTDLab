@@ -469,26 +469,28 @@ def parse_savegame(chunks, chunk_size=65536):
         return tables
 
     def read_item(read, tables):
-        def _read_item(key):
+
+        def read_key(key):
             return {
-                sub_key: read_field(field_type, has_length, sub_key)
+                sub_key: \
+                    read_list_of_fields(field_type, sub_key) if has_length and field_type != FieldType.STRING else \
+                    read_field(field_type, sub_key)
                 for field_type, has_length, sub_key in tables[key]
             }
 
-        def read_field(field, has_length, field_name):
-            if has_length and field != FieldType.STRING:
-                length = gamma(read)[0]
-                return [
-                    read_field(field, False, field_name)
-                    for _ in range(length)
-                ]
+        def read_list_of_fields(field_type, field_name):
+            length = gamma(read)[0]
+            return [
+                read_field(field_type, field_name)
+                for _ in range(length)
+            ]
 
-            if field == FieldType.STRUCT:
-                return _read_item(field_name)
+        def read_field(field_type, field_name):
+            return \
+                read_key(field_name) if field_type == FieldType.STRUCT else \
+                readers[field_type](read)
 
-            return readers[field](read)
-
-        return _read_item("root")
+        return read_key("root")
 
     all_tables = {}
     all_items = defaultdict(dict)
