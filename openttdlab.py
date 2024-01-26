@@ -353,23 +353,21 @@ def parse_savegame(chunks, chunk_size=65536):
         STRING = 10
         STRUCT = 11
 
+    def _raise(e):
+        raise e
+
     def gamma(read):
         """
         Read OTTD-savegame-style gamma value.
         """
         b = uint8(read)
-        if (b & 0x80) == 0:
-            return b & 0x7F
-        elif (b & 0xC0) == 0x80:
-            return (b & 0x3F) << 8 | uint8(read)
-        elif (b & 0xE0) == 0xC0:
-            return (b & 0x1F) << 16 | uint16(read)
-        elif (b & 0xF0) == 0xE0:
-            return (b & 0x0F) << 24 | uint24(read)
-        elif (b & 0xF8) == 0xF0:
-            return (b & 0x07) << 32 | uint32(read)
-        else:
-            raise ValidationException("Invalid gamma encoding.")
+        return \
+            (b & 0x7F) if (b & 0x80) == 0 else \
+            (b & 0x3F) << 8 | uint8(read) if (b & 0xC0) == 0x80 else \
+            (b & 0x1F) << 16 | uint16(read) if (b & 0xE0) == 0xC0 else \
+            (b & 0x0F) << 24 | uint24(read) if (b & 0xF0) == 0xE0 else \
+            (b & 0x07) << 32 | uint32(read) if (b & 0xF8) == 0xF0 else \
+            _raise(ValidationException("Invalid gamma encoding."))
 
     def gamma_str(read):
         """
