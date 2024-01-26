@@ -498,9 +498,6 @@ def parse_savegame(chunks, chunk_size=65536):
 
             return readers[field](read)
 
-        table_index = str(index)
-        size = 0
-
         item, size = _read_item("root")
         if tag not in ("GSDT", "AIPL"):  # Known chunk with garbage at the end
             if size != expected_size:
