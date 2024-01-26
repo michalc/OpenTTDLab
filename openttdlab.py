@@ -273,6 +273,8 @@ def load_config():
 
 def parse_savegame(f):
 
+    FIELD_TYPE_HAS_LENGTH_FIELD = 0x10
+
     class FieldType(enum.IntEnum):
         END = 0
         I8 = 1
@@ -454,8 +456,6 @@ def parse_savegame(f):
         # it is reasonably enough to simply refuse this compression format.
         # b"OTTD": lzo2,
     }
-
-    FIELD_TYPE_HAS_LENGTH_FIELD = 0x10
 
     class Savegame():
 
