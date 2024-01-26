@@ -475,18 +475,18 @@ def parse_savegame(chunks, chunk_size=65536):
                 for field_type, has_length, sub_key in tables[key]
             }
 
-        def read_field(field, has_length, field_name):
-            if has_length and field != FieldType.STRING:
+        def read_field(field_type, has_length, field_name):
+            if has_length and field_type != FieldType.STRING:
                 length = gamma(read)[0]
                 return [
-                    read_field(field, False, field_name)
+                    read_field(field_type, False, field_name)
                     for _ in range(length)
                 ]
 
-            if field == FieldType.STRUCT:
+            if field_type == FieldType.STRUCT:
                 return read_key(field_name)
 
-            return readers[field](read)
+            return readers[field_type](read)
 
         return read_key("root")
 
