@@ -330,6 +330,15 @@ def parse_savegame(chunks, chunk_size=65536):
     def decompress_none(compressed_chunks):
         yield from compressed_chunks
 
+    decompressors = {
+        b"OTTN": decompress_none,
+        b"OTTZ": decompress_zlib,
+        b"OTTX": decompress_lzma,
+        # According to https://github.com/OpenTTD/OpenTTD/blob/master/docs/savegame_format.md
+        # only very old savegames will use this. Happy to not support that
+        # b"OTTD": lzo2,
+    }
+
     class FieldType(enum.IntEnum):
         END = 0
         I8 = 1
@@ -432,15 +441,6 @@ def parse_savegame(chunks, chunk_size=65536):
         FieldType.U64: uint64,
         FieldType.STRINGID: uint16,
         FieldType.STRING: gamma_str,
-    }
-
-    decompressors = {
-        b"OTTN": decompress_none,
-        b"OTTZ": decompress_zlib,
-        b"OTTX": decompress_lzma,
-        # According to https://github.com/OpenTTD/OpenTTD/blob/master/docs/savegame_format.md
-        # only very old savegames will use this. Happy to not support that
-        # b"OTTD": lzo2,
     }
 
     def read_all_tables(read, offset):
