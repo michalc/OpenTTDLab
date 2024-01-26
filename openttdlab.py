@@ -540,24 +540,26 @@ def parse_savegame(chunks, chunk_size=65536):
             inner_read(size)
             all_tables[tag] = {"unsupported": ""}
 
-        elif 1 <= chunk_type <= 4:
-            if chunk_type >= 3:  # CH_TABLE or CH_SPARSE_TABLE
-                size = gamma(inner_read)[0] - 1
+        elif chunk_type in (1, 2):
+            while size_plus_one := gamma(inner_read)[0]:
+                inner_read(size_plus_one - 1)
+            all_tables[tag] = {"unsupported": ""}
 
-                tables, size_read = read_all_tables(inner_read, inner_offset)
-                if size_read != size:
-                    raise ValidationException("Table header size mismatch.")
+        elif chunk_type in (3, 4):  # CH_TABLE or CH_SPARSE_TABLE
+            size = gamma(inner_read)[0] - 1
 
-                all_tables[tag] = tables
-            else:
-                tables = {}
+            tables, size_read = read_all_tables(inner_read, inner_offset)
+            if size_read != size:
+                raise ValidationException("Table header size mismatch.")
+
+            all_tables[tag] = tables
 
             index = -1
             while True:
                 size = gamma(inner_read)[0] - 1
                 if size < 0:
                     break
-                if chunk_type == 2 or chunk_type == 4:
+                if chunk_type == 4:
                     index, index_size = gamma(inner_read)
                     size -= index_size
                 else:
