@@ -292,9 +292,6 @@ class BinaryReader:
     Read binary data.
     """
 
-    def read(self, amount):
-        raise NotImplementedError
-
     def gamma(self):
         """
         Read OTTD-savegame-style gamma value.
