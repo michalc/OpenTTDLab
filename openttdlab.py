@@ -415,8 +415,8 @@ def parse_savegame(chunks, chunk_size=65536):
         FieldType.STRING: gamma_str,
     }
 
-    def read_all_tables(read):
-        """Read all the tables from the header."""
+    def read_headers(read):
+        """Reads the headers for a chunk."""
 
         def read_fields():
             while type := int8(read):
@@ -426,31 +426,30 @@ def parse_savegame(chunks, chunk_size=65536):
                     gamma_str(read),        # Key
                 )
 
-        def read_substruct(table, parent_key):
-            for field_type, has_length, sub_key in table:
+        def read_substruct(header, parent_key):
+            for field_type, has_length, sub_key in header:
                 if field_type == FieldType.STRUCT:
-                    sub_table = list(read_fields())
+                    sub_header = list(read_fields())
                     full_sub_key = f'{parent_key}.{sub_key}'
-                    yield full_sub_key, sub_table
-                    yield from read_substruct(sub_table, full_sub_key)
+                    yield full_sub_key, sub_header
+                    yield from read_substruct(sub_header, full_sub_key)
 
-        root_table = list(read_fields())
-        sub_key_tables = list(read_substruct(root_table, "root"))
-        tables = {
-            "root": root_table,
-            **dict(sub_key_tables),
+        root_header = list(read_fields())
+        sub_headers = list(read_substruct(root_header, "root"))
+        return {
+            "root": root_header,
+            **dict(sub_headers),
         }
 
-        return tables
+    def read_record(read, headers):
+        """Reads a record for a chunk."""
 
-    def read_item(read, tables):
-
-        def read_key(key):
+        def read_using_header_key(key):
             return {
                 sub_key: \
                     read_list_of_fields(field_type, f'{key}.{sub_key}') if has_length and field_type != FieldType.STRING else \
                     read_field(field_type, f'{key}.{sub_key}')
-                for field_type, has_length, sub_key in tables[key]
+                for field_type, has_length, sub_key in headers[key]
             }
 
         def read_list_of_fields(field_type, field_name):
@@ -462,10 +461,10 @@ def parse_savegame(chunks, chunk_size=65536):
 
         def read_field(field_type, field_name):
             return \
-                read_key(field_name) if field_type == FieldType.STRUCT else \
+                read_using_header_key(field_name) if field_type == FieldType.STRUCT else \
                 readers[field_type](read)
 
-        return read_key("root")
+        return read_using_header_key("root")
 
     def read_records(read, offset, headers, tag, chunk_type):
         index = -1
@@ -482,7 +481,7 @@ def parse_savegame(chunks, chunk_size=65536):
 
             if size != 0:
                 start_offset = inner_offset()
-                item = read_item(read, headers)
+                record = read_record(read, headers)
                 end_offset = inner_offset()
 
                 # GSDT and AIPL are known chunk with garbage at the end
@@ -491,7 +490,7 @@ def parse_savegame(chunks, chunk_size=65536):
 
                 read(size - (end_offset - start_offset))
 
-                yield str(index), item
+                yield str(index), record
 
     def read_chunks(read, offset):
         while (tag_bytes := read(4)) != b"\0\0\0\0":
@@ -516,7 +515,7 @@ def parse_savegame(chunks, chunk_size=65536):
                 size = gamma(read) - 1
 
                 start_offset = inner_offset()
-                headers = read_all_tables(read)
+                headers = read_headers(read)
                 end_offset = inner_offset()
                 if size != (end_offset - start_offset):
                     raise ValidationException("Table header size mismatch.")
