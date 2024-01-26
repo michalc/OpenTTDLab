@@ -469,7 +469,7 @@ def parse_savegame(chunks, chunk_size=65536):
         return tables
 
     def read_item(read, tables):
-        def _read_item(key):
+        def read_key(key):
             return {
                 sub_key: read_field(field_type, has_length, sub_key)
                 for field_type, has_length, sub_key in tables[key]
@@ -484,11 +484,11 @@ def parse_savegame(chunks, chunk_size=65536):
                 ]
 
             if field == FieldType.STRUCT:
-                return _read_item(field_name)
+                return read_key(field_name)
 
             return readers[field](read)
 
-        return _read_item("root")
+        return read_key("root")
 
     all_tables = {}
     all_items = defaultdict(dict)
