@@ -503,13 +503,10 @@ def parse_savegame(chunks, chunk_size=65536):
         table_index = "0" if index == -1 else str(index)
         size = 0
 
-        if tables:
-            all_items[tag][table_index], size = _read_item("root")
-            if tag not in ("GSDT", "AIPL"):  # Known chunk with garbage at the end
-                if size != expected_size:
-                    raise ValidationException(f"Junk at end of chunk {tag}")
-        else:
-            all_tables[tag] = {"unsupported": ""}
+        all_items[tag][table_index], size = _read_item("root")
+        if tag not in ("GSDT", "AIPL"):  # Known chunk with garbage at the end
+            if size != expected_size:
+                raise ValidationException(f"Junk at end of chunk {tag}")
 
         read(expected_size - size)
 
@@ -540,7 +537,9 @@ def parse_savegame(chunks, chunk_size=65536):
         type = m & 0xF
         if type == 0:
             size = (m >> 4) << 24 | uint24(inner_read)[0]
-            read_item(inner_read, tag, {}, -1, size)
+            inner_read(size)
+            all_tables[tag] = {"unsupported": ""}
+
         elif 1 <= type <= 4:
             if type >= 3:  # CH_TABLE or CH_SPARSE_TABLE
                 size = gamma(inner_read)[0] - 1
