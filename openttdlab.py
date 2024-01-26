@@ -330,8 +330,6 @@ def parse_savegame(chunks, chunk_size=65536):
     def decompress_none(compressed_chunks):
         yield from compressed_chunks
 
-    FIELD_TYPE_HAS_LENGTH_FIELD = 0x10
-
     class FieldType(enum.IntEnum):
         END = 0
         I8 = 1
@@ -453,11 +451,12 @@ def parse_savegame(chunks, chunk_size=65536):
 
         def read_fields():
             while type := struct.unpack(">b", read(1))[0]:
-                key = gamma_str(read)[0]
                 field_type = FieldType(type & 0xf)
+                has_length = bool(type & 0x10)
+                key = gamma_str(read)[0]
                 yield (
                     field_type,
-                    True if type & FIELD_TYPE_HAS_LENGTH_FIELD else False,
+                    has_length,
                     key,
                 )
 
