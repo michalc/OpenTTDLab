@@ -443,7 +443,7 @@ def parse_savegame(chunks, chunk_size=65536):
         FieldType.STRING: gamma_str,
     }
 
-    def read_all_tables(read, offset):
+    def read_all_tables(read):
         """Read all the tables from the header."""
 
         def read_fields():
@@ -461,16 +461,14 @@ def parse_savegame(chunks, chunk_size=65536):
                     yield sub_key, sub_table
                     yield from read_substruct(sub_table)
 
-        start_offset = offset()
         root_table = list(read_fields())
         sub_key_tables = list(read_substruct(root_table))
         tables = {
             "root": root_table,
             **dict(sub_key_tables),
         }
-        end_offset = offset()
 
-        return tables, end_offset - start_offset
+        return tables
 
     def read_item(read, tag, tables, index, expected_size):
         def _read_item(key):
@@ -548,8 +546,10 @@ def parse_savegame(chunks, chunk_size=65536):
         elif chunk_type in (3, 4):  # CH_TABLE or CH_SPARSE_TABLE
             size = gamma(inner_read)[0] - 1
 
-            tables, size_read = read_all_tables(inner_read, inner_offset)
-            if size_read != size:
+            start_offset = inner_offset()
+            tables = read_all_tables(inner_read)
+            end_offset = inner_offset()
+            if size != (end_offset - start_offset):
                 raise ValidationException("Table header size mismatch.")
 
             all_tables[tag] = tables
