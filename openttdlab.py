@@ -485,7 +485,7 @@ def parse_savegame(chunks, chunk_size=65536):
 
     while True:
         tag_bytes = inner_read(4)
-        if len(tag_bytes) == 0 or tag_bytes == b"\0\0\0\0":
+        if tag_bytes == b"\0\0\0\0":
             break
 
         tag = tag_bytes.decode()
