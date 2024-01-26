@@ -484,11 +484,11 @@ def parse_savegame(chunks, chunk_size=65536):
     inner_read, _, inner_offset = get_readers(decompressor(outer_read_iter()))
 
     while True:
-        tag = inner_read(4)
-        if len(tag) == 0 or tag == b"\0\0\0\0":
+        tag_bytes = inner_read(4)
+        if len(tag_bytes) == 0 or tag_bytes == b"\0\0\0\0":
             break
 
-        tag = tag.decode()
+        tag = tag_bytes.decode()
         m = uint8(inner_read)
         chunk_type = m & 0xF
 
