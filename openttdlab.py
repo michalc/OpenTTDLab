@@ -371,19 +371,6 @@ def parse_savegame(f):
             except struct.error:
                 raise ValidationException("Unexpected end-of-file.")
 
-        READERS = {
-            FieldType.I8: int8,
-            FieldType.U8: uint8,
-            FieldType.I16: int16,
-            FieldType.U16: uint16,
-            FieldType.I32: int32,
-            FieldType.U32: uint32,
-            FieldType.I64: int64,
-            FieldType.U64: uint64,
-            FieldType.STRINGID: uint16,
-            FieldType.STRING: gamma_str,
-        }
-
     class BinaryReaderFile(BinaryReader):
         """
         Read binary data from file.
@@ -535,7 +522,7 @@ def parse_savegame(f):
             if field == FieldType.STRUCT:
                 return _read_item(field_name)
 
-            return reader.READERS[field](reader)
+            return readers[field]()
 
         table_index = "0" if index == -1 else str(index)
         size = 0
@@ -564,6 +551,18 @@ def parse_savegame(f):
 
     uncompressed = decompressor.open(f)
     reader = BinaryReaderFileBlockMode(uncompressed)
+    readers = {
+        FieldType.I8: reader.int8,
+        FieldType.U8: reader.uint8,
+        FieldType.I16: reader.int16,
+        FieldType.U16: reader.uint16,
+        FieldType.I32: reader.int32,
+        FieldType.U32: reader.uint32,
+        FieldType.I64: reader.int64,
+        FieldType.U64: reader.uint64,
+        FieldType.STRINGID: reader.uint16,
+        FieldType.STRING: reader.gamma_str,
+    }
 
     while True:
         tag = reader.read(4)
