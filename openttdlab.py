@@ -107,9 +107,9 @@ def run_experiment(
 
         # Python (and indeed, the gregorian calendar) doesn't have a year zero,
         # and according to the OpenTTD source, year 1 was a leap year
-        days_since_year_zero = game['items']['DATE']['0']['date']
+        days_since_year_zero = game['chunks']['DATE']['records']['0']['date']
         days_since_year_one = days_since_year_zero - 366
-        for index, player in game['items']['PLYR'].items():
+        for index, player in game['chunks']['PLYR']['records'].items():
             yield {
                 'seed': seed,
                 'date': date(1, 1 , 1) + timedelta(days_since_year_one),
@@ -467,11 +467,75 @@ def parse_savegame(chunks, chunk_size=65536):
 
         return read_key("root")
 
-    all_tables = {}
-    all_items = defaultdict(dict)
+    def read_records(read, offset, headers, tag, chunk_type):
+        index = -1
+        while size_plus_one := gamma(read):
+
+            start_offset = inner_offset()
+            if chunk_type == 4:
+                index = gamma(read)
+            else:
+                index += 1
+            end_offset = inner_offset()
+
+            size = size_plus_one - 1 - (end_offset - start_offset)
+
+            if size != 0:
+                start_offset = inner_offset()
+                item = read_item(read, headers)
+                end_offset = inner_offset()
+
+                # GSDT and AIPL are known chunk with garbage at the end
+                if tag not in ("GSDT", "AIPL") and size != (end_offset - start_offset):
+                    raise ValidationException(f"Junk at end of chunk {tag}")
+
+                read(size - (end_offset - start_offset))
+
+                yield str(index), item
+
+    def read_chunks(read, offset):
+        while (tag_bytes := read(4)) != b"\0\0\0\0":
+            tag = tag_bytes.decode()
+
+            m = uint8(read)
+            chunk_type = m & 0xF
+
+            if chunk_type == 0:
+                size = (m >> 4) << 24 | uint24(read)
+                read(size)
+                headers = {"unsupported": ""}
+                records = ()
+
+            elif chunk_type in (1, 2):
+                while size_plus_one := gamma(read):
+                    read(size_plus_one - 1)
+                headers = {"unsupported": ""}
+                records = ()
+
+            elif chunk_type in (3, 4):  # CH_TABLE or CH_SPARSE_TABLE
+                size = gamma(read) - 1
+
+                start_offset = inner_offset()
+                headers = read_all_tables(read)
+                end_offset = inner_offset()
+                if size != (end_offset - start_offset):
+                    raise ValidationException("Table header size mismatch.")
+
+                records = read_records(read, offset, headers, tag, chunk_type)
+            else:
+                raise ValidationException("Unknown chunk type.")
+
+            yield tag, headers, records
+
+        # Check tail
+        try:
+            uint8(inner_read)
+        except ValidationException:
+            pass
+        else:
+            raise ValidationException(f"Junk at the end of file.")
 
     outer_read, outer_read_iter, _ = get_readers(chunks)
-
     compression = outer_read(4)
     savegame_version = uint16(outer_read)
     uint16(outer_read)
@@ -483,67 +547,18 @@ def parse_savegame(chunks, chunk_size=65536):
 
     inner_read, _, inner_offset = get_readers(decompressor(outer_read_iter()))
 
-    while (tag_bytes := inner_read(4)) != b"\0\0\0\0":
-        tag = tag_bytes.decode()
-
-        m = uint8(inner_read)
-        chunk_type = m & 0xF
-
-        if chunk_type == 0:
-            size = (m >> 4) << 24 | uint24(inner_read)
-            inner_read(size)
-            all_tables[tag] = {"unsupported": ""}
-
-        elif chunk_type in (1, 2):
-            while size_plus_one := gamma(inner_read):
-                inner_read(size_plus_one - 1)
-            all_tables[tag] = {"unsupported": ""}
-
-        elif chunk_type in (3, 4):  # CH_TABLE or CH_SPARSE_TABLE
-            size = gamma(inner_read) - 1
-
-            start_offset = inner_offset()
-            all_tables[tag] = read_all_tables(inner_read)
-            end_offset = inner_offset()
-            if size != (end_offset - start_offset):
-                raise ValidationException("Table header size mismatch.")
-
-            index = -1
-            while size_plus_one := gamma(inner_read):
-
-                start_offset = inner_offset()
-                if chunk_type == 4:
-                    index = gamma(inner_read)
-                else:
-                    index += 1
-                end_offset = inner_offset()
-
-                size = size_plus_one - 1 - (end_offset - start_offset)
-
-                if size != 0:
-                    start_offset = inner_offset()
-                    all_items[tag][str(index)] = read_item(inner_read, all_tables[tag])
-                    end_offset = inner_offset()
-
-                    # GSDT and AIPL are known chunk with garbage at the end
-                    if tag not in ("GSDT", "AIPL") and size != (end_offset - start_offset):
-                        raise ValidationException(f"Junk at end of chunk {tag}")
-
-                    inner_read(size - (end_offset - start_offset))
-        else:
-            raise ValidationException("Unknown chunk type.")
-
-    # Check tail
-    try:
-        uint8(inner_read)
-    except ValidationException:
-        pass
-    else:
-        raise ValidationException(f"Junk at the end of file.")
-
     return {
-        'tables': all_tables,
-        'items': all_items,
+        'savegame_version': savegame_version,
+        'chunks': {
+            tag: {
+                'headers': headers,
+                'records': {
+                    record_index: record
+                    for record_index, record in records
+                }
+            }
+            for tag, headers, records in read_chunks(inner_read, inner_offset)
+        }
     }
 
 
