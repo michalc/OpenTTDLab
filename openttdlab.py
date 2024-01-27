@@ -479,18 +479,20 @@ def parse_savegame(chunks, chunk_size=65536):
 
             size = size_plus_one - 1 - (end_offset - start_offset)
 
-            if size != 0:
-                start_offset = inner_offset()
-                record = read_record(read, headers)
-                end_offset = inner_offset()
+            if size == 0:
+                continue
 
-                # GSDT and AIPL are known chunk with garbage at the end
-                if tag not in ("GSDT", "AIPL") and size != (end_offset - start_offset):
-                    raise ValidationException(f"Junk at end of chunk {tag}")
+            start_offset = inner_offset()
+            record = read_record(read, headers)
+            end_offset = inner_offset()
 
-                read(size - (end_offset - start_offset))
+            # GSDT and AIPL are known chunk with garbage at the end
+            if tag not in ("GSDT", "AIPL") and size != (end_offset - start_offset):
+                raise ValidationException(f"Junk at end of chunk {tag}")
 
-                yield str(index), record
+            read(size - (end_offset - start_offset))
+
+            yield str(index), record
 
     def read_chunks(read, offset):
         while (tag_bytes := read(4)) != b"\0\0\0\0":
