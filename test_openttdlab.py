@@ -5,7 +5,7 @@ from openttdlab import parse_savegame, run_experiment, local_file, remote_file, 
 
 
 def test_run_experiment_local():
-    results, config = run_experiment(
+    results, metadata, config = run_experiment(
         days=365 * 5 + 1,
         seeds=range(2, 4),
         ais=(
@@ -31,7 +31,7 @@ def test_run_experiment_local():
 
 
 def test_run_experiment_remote():
-    results, config = run_experiment(
+    results, metadata, config = run_experiment(
         days=365 + 1,
         seeds=range(2, 3),
         ais=(

@@ -232,7 +232,7 @@ def run_experiment(
             savegame_row
             for i, seed in enumerate(seeds)
             for savegame_row in run(experiment_dir, i, seed)
-        ], None
+        ], None, None
 
 
 def local_file(filename):
