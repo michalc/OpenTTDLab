@@ -10,15 +10,25 @@
     <a href="https://app.codecov.io/gh/michalc/OpenTTDLab"><img alt="Code coverage" height="20" src="https://img.shields.io/codecov/c/github/michalc/OpenTTDLab?label=Code%20coverage"></a>
 </p>
 
----
-
 OpenTTDLab is a Python framework for using [OpenTTD](https://github.com/OpenTTD/OpenTTD) to run reproducible experiments and extracting results from them, with as few manual steps as possible.
 
 OpenTTDLab is based on [Patric Stout's OpenTTD Savegame Reader](https://github.com/TrueBrain/OpenTTD-savegame-reader).
 
+---
+
+### Contents
+
+- [Installation](#installation)
+- [Running an experiment](#running-an-experiment)
+- [Plotting results](#plotting-results)
+- [Reproducing an experiment](#reproducing-an-experiment)
+- [Compatibility](#compatibility)
+- [Licenses and attributions](#licenses-and-attributions)
+
+---
+
 > [!NOTE]
 > Work in progress. Only some of the things in this README will work: it serves as a rough design spec.
-
 
 ## Installation
 
