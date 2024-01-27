@@ -28,7 +28,7 @@ OpenTTDLab is based on [Patric Stout's OpenTTD Savegame Reader](https://github.c
 ---
 
 > [!NOTE]
-> Work in progress. Only some of the things in this README will work: it serves as a rough design spec.
+> Work in progress: only some of the features described here will work.
 
 ## Installation
 
