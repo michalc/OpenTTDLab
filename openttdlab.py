@@ -472,10 +472,9 @@ def parse_savegame(chunks, chunk_size=65536):
         while size_plus_one := gamma(read):
 
             start_offset = inner_offset()
-            if chunk_type == 4:
-                index = gamma(read)
-            else:
-                index += 1
+            index = \
+                gamma(read) if chunk_type == 4 else \
+                index + 1
             end_offset = inner_offset()
 
             size = size_plus_one - 1 - (end_offset - start_offset)
