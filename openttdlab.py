@@ -7,6 +7,7 @@
 
 import enum
 import hashlib
+import itertools
 import io
 import json
 import lzma
@@ -470,13 +471,14 @@ def parse_savegame(chunks, chunk_size=65536):
         return read_using_header_key("root")
 
     def read_table_records(read, offset, headers, tag, chunk_type):
-        index = -1
+        counter = iter(itertools.count())
+
         while size_plus_one := gamma(read):
 
             start_offset = inner_offset()
             index = \
                 gamma(read) if chunk_type == 4 else \
-                index + 1
+                next(counter)
             end_offset = inner_offset()
 
             size = size_plus_one - 1 - (end_offset - start_offset)
