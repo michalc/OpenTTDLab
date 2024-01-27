@@ -475,20 +475,20 @@ def parse_savegame(chunks, chunk_size=65536):
 
         while size_plus_one := gamma(read):
 
-            start_offset = inner_offset()
+            start_offset = offset()
             index = \
                 gamma(read) if chunk_type == 4 else \
                 next(counter)
-            end_offset = inner_offset()
+            end_offset = offset()
 
             size = size_plus_one - 1 - (end_offset - start_offset)
 
             if size == 0:
                 continue
 
-            start_offset = inner_offset()
+            start_offset = offset()
             record = read_table_record(read, headers)
-            end_offset = inner_offset()
+            end_offset = offset()
 
             # GSDT and AIPL are known chunk with garbage at the end
             if tag not in ("GSDT", "AIPL") and size != (end_offset - start_offset):
@@ -517,9 +517,9 @@ def parse_savegame(chunks, chunk_size=65536):
         def read_table_chunk(tag, chunk_type):
             size = gamma(read) - 1
 
-            start_offset = inner_offset()
+            start_offset = offset()
             headers = read_table_headers(read)
-            end_offset = inner_offset()
+            end_offset = offset()
 
             if size != (end_offset - start_offset):
                 raise ValidationException("Table header size mismatch.")
