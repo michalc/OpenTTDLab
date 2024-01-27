@@ -45,7 +45,7 @@ The core function of OpenTTD is the `run_experiment` function.
 from openttdlab import run_experiment, remote_file, save_config
 
 # Run the experiment for a range of random seeds
-results, config = run_experiment(
+results, metadata, config = run_experiment(
     days=365 * 4 + 1,
     seeds=range(0, 10),
     ais=(
@@ -55,10 +55,13 @@ results, config = run_experiment(
     ),
 )
 
-# Print the results...
+# Print the results: in-game values that should be exactly reproducible...
 print(results)
 
-# ... and config
+# ... and metadata: such as number of processes, wallclock time and total CPU time
+print(metadata)
+
+# ... and config: to reproduce the results (but not metadata) exactly next time
 print(config)
 
 # ... which can be saved to a file and then shared (or archived)
@@ -96,7 +99,7 @@ from openttdlab import run_experiment, load_config
 config = load_config('my-config-a5e95018.yml')
 
 # ... and use it to run the same experiment
-results, config = run_experiment(config=config)
+results, metadata, config = run_experiment(config=config)
 
 print(results)
 ```
