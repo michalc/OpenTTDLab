@@ -418,7 +418,7 @@ def parse_savegame(chunks, chunk_size=65536):
         FieldType.STRING: gamma_str,
     }
 
-    def read_headers(read):
+    def read_table_headers(read):
         """Reads the headers for a chunk."""
 
         def read_fields():
@@ -444,7 +444,7 @@ def parse_savegame(chunks, chunk_size=65536):
             **dict(sub_headers),
         }
 
-    def read_record(read, headers):
+    def read_table_record(read, headers):
         """Reads a record for a chunk."""
 
         def read_using_header_key(key):
@@ -469,7 +469,7 @@ def parse_savegame(chunks, chunk_size=65536):
 
         return read_using_header_key("root")
 
-    def read_records(read, offset, headers, tag, chunk_type):
+    def read_table_records(read, offset, headers, tag, chunk_type):
         index = -1
         while size_plus_one := gamma(read):
 
@@ -485,7 +485,7 @@ def parse_savegame(chunks, chunk_size=65536):
                 continue
 
             start_offset = inner_offset()
-            record = read_record(read, headers)
+            record = read_table_record(read, headers)
             end_offset = inner_offset()
 
             # GSDT and AIPL are known chunk with garbage at the end
@@ -497,38 +497,47 @@ def parse_savegame(chunks, chunk_size=65536):
             yield str(index), record
 
     def read_chunks(read, offset):
+
+        def read_riff_chunk():
+            size = (m >> 4) << 24 | uint24(read)
+            read(size)
+            headers = {"unsupported": ""}
+            records = ()
+            return headers, records
+
+        def read_array_chunk():
+            while size_plus_one := gamma(read):
+                read(size_plus_one - 1)
+            headers = {"unsupported": ""}
+            records = ()
+            return headers, records
+
+        def read_table_chunk(tag, chunk_type):
+            size = gamma(read) - 1
+
+            start_offset = inner_offset()
+            headers = read_table_headers(read)
+            end_offset = inner_offset()
+
+            if size != (end_offset - start_offset):
+                raise ValidationException("Table header size mismatch.")
+
+            return headers, read_table_records(read, offset, headers, tag, chunk_type)
+
         while (tag_bytes := read(4)) != b"\0\0\0\0":
             tag = tag_bytes.decode()
 
             m = uint8(read)
             chunk_type = m & 0xF
 
-            if chunk_type == 0:
-                size = (m >> 4) << 24 | uint24(read)
-                read(size)
-                headers = {"unsupported": ""}
-                records = ()
-
-            elif chunk_type in (1, 2):
-                while size_plus_one := gamma(read):
-                    read(size_plus_one - 1)
-                headers = {"unsupported": ""}
-                records = ()
-
-            elif chunk_type in (3, 4):  # CH_TABLE or CH_SPARSE_TABLE
-                size = gamma(read) - 1
-
-                start_offset = inner_offset()
-                headers = read_headers(read)
-                end_offset = inner_offset()
-                if size != (end_offset - start_offset):
-                    raise ValidationException("Table header size mismatch.")
-
-                records = read_records(read, offset, headers, tag, chunk_type)
-            else:
+            if chunk_type not in (0, 1, 2, 3, 4):
                 raise ValidationException("Unknown chunk type.")
 
-            yield tag, headers, records
+            yield (tag,) + (
+                read_riff_chunk() if chunk_type == 0 else \
+                read_array_chunk() if chunk_type in (1, 2) else \
+                read_table_chunk(tag, chunk_type)
+            )
 
         # Check tail
         try:
