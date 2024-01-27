@@ -336,7 +336,9 @@ def parse_savegame(chunks, chunk_size=65536):
         b"OTTZ": decompress_zlib,
         b"OTTX": decompress_lzma,
         # According to https://github.com/OpenTTD/OpenTTD/blob/master/docs/savegame_format.md
-        # only very old savegames will use this. Happy to not support that
+        # only very old savegames will use OTTD by default. However from testing you _can_
+        # configure current OpenTTD by specifing savegame_format=lzo in config, but then it seems
+        # very tricky to decompress this from Python, especially in a streaming way. Maybe one day...
         # b"OTTD": lzo2,
     }
 
