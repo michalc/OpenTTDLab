@@ -41,6 +41,7 @@ def run_experiment(
     ais=(),
     days=365 * 4 + 1,
     seeds=(1,),
+    base_openttd_config='',
     openttd_base_url='https://cdn.openttd.org/openttd-releases/',
     opengfx_base_url='https://cdn.openttd.org/opengfx-releases/',
 ):
@@ -191,7 +192,7 @@ def run_experiment(
             f'{ai_name} = start_date=0\n' for ai_name, file in ais
         )
         with open(config_file, 'w') as f:
-            f.write(textwrap.dedent('''
+            f.write(base_openttd_config + textwrap.dedent('''
                 [gui]
                 autosave = monthly
                 keep_all_autosave = true

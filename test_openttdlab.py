@@ -1,6 +1,8 @@
 import json
 from datetime import date
 
+import pytest
+
 from openttdlab import parse_savegame, run_experiment, local_file, remote_file, save_config, load_config
 
 
@@ -46,6 +48,30 @@ def test_run_experiment_remote():
         'date': date(1950, 12, 1),
         'loan': 300000,
         'money': 280615,
+    }
+
+
+@pytest.mark.parametrize(
+    "savegame_format",
+    ("none", "zlib", "lzma"),
+)
+def test_savegame_formats(savegame_format):
+    results, metadata, config = run_experiment(
+        days=100,
+        seeds=range(2, 3),
+        base_openttd_config=f'[misc]\nsavegame_format={savegame_format}\n',
+        ais=(
+            ('trAIns', local_file('./fixtures/54524149-trAIns-2.1.tar')),
+        ),
+    )
+
+    assert len(results) == 3
+    assert results[2] == {
+        'seed': 2,
+        'player': 'trAIns AI',
+        'date': date(1950, 4, 1),
+        'loan': 300000,
+        'money': 284815,
     }
 
 
