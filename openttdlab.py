@@ -27,6 +27,7 @@ import textwrap
 import uuid
 import zipfile
 import zlib
+from concurrent.futures import FIRST_EXCEPTION, ThreadPoolExecutor, wait
 from collections import defaultdict
 from datetime import date, timedelta
 from pathlib import Path
@@ -45,6 +46,7 @@ def run_experiment(
     days=365 * 4 + 1,
     seeds=(1,),
     base_openttd_config='',
+    max_workers=None,
     openttd_base_url='https://cdn.openttd.org/openttd-releases/',
     opengfx_base_url='https://cdn.openttd.org/opengfx-releases/',
 ):
@@ -232,10 +234,23 @@ def run_experiment(
     with tempfile.TemporaryDirectory(prefix=f'OpenTTDLab-{experiment_id}-') as experiment_dir:
         for ai_name, ai_file in ais:
             ai_file(cache_dir, ai_name, experiment_dir)
+
+        max_workers = \
+            max_workers if max_workers is not None else \
+            (os.cpu_count() or 1)
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = [
+                executor.submit(run, experiment_dir, i, seed)
+                for i, seed in enumerate(seeds)
+            ]
+            done, _ = wait(futures, return_when=FIRST_EXCEPTION)
+            if e := next(iter(done)).exception():
+                raise e from None
+
         return [
             savegame_row
-            for i, seed in enumerate(seeds)
-            for savegame_row in run(experiment_dir, i, seed)
+            for future in futures
+            for savegame_row in future.result()
         ]
 
 
