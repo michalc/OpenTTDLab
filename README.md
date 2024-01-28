@@ -52,16 +52,18 @@ You do not need to separately download or install OpenTTD (or [OpenGFX](https://
 The core function of OpenTTD is the `run_experiment` function.
 
 ```python
-from openttdlab import run_experiment, remote_file, save_config
+from openttdlab import run_experiment, bananas_file, save_config
 
 # Run the experiment for a range of random seeds
 results, metadata, config = run_experiment(
     days=365 * 4 + 1,
     seeds=range(0, 10),
     ais=(
-        # remote_file: takes a url of a .tar.gz AI file
+        # 3 ways of using Ais
+        # remote_file: takes a url of a .tar.gz AI file, e.g. a GitHub tag
         # local_file: takes a path to a local .tar AI file
-        ('trAIns', remote_file('https://github.com/lhrios/trains/archive/refs/tags/2014_02_14.tar.gz')),
+        # bananas_file: takes the type, name, and id from https://bananas.openttd.org/package/ai
+        ('trAIns', bananas_file('trAIns', '54524149')),
     ),
 )
 

@@ -3,7 +3,7 @@ from datetime import date
 
 import pytest
 
-from openttdlab import parse_savegame, run_experiment, local_file, remote_file, save_config, load_config
+from openttdlab import parse_savegame, run_experiment, local_file, remote_file, bananas_file, save_config, load_config
 
 
 def test_run_experiment_local():
@@ -38,6 +38,25 @@ def test_run_experiment_remote():
         seeds=range(2, 3),
         ais=(
             ('trAIns', remote_file('https://github.com/lhrios/trains/archive/refs/tags/2014_02_14.tar.gz')),
+        ),
+    )
+
+    assert len(results) == 12
+    assert results[10] == {
+        'seed': 2,
+        'player': 'trAIns AI',
+        'date': date(1950, 12, 1),
+        'loan': 300000,
+        'money': 280615,
+    }
+
+
+def test_run_experiment_bananas():
+    results, metadata, config = run_experiment(
+        days=365 + 1,
+        seeds=range(2, 3),
+        ais=(
+            ('trAIns', bananas_file('trAIns', '54524149')),
         ),
     )
 

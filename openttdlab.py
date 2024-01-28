@@ -5,6 +5,7 @@
 # OpenTTDLab is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 # See the GNU General Public License for more details. You should have received a copy of the GNU General Public License along with OpenTTDLab. If not, see <http://www.gnu.org/licenses/>.
 
+import contextlib
 import enum
 import hashlib
 import itertools
@@ -18,6 +19,7 @@ import shutil
 import stat
 import struct
 import subprocess
+import socket
 import sys
 import tarfile
 import tempfile
@@ -237,6 +239,17 @@ def run_experiment(
         ], None, None
 
 
+def _gz_decompress(compressed_chunks):
+    dec = zlib.decompressobj(32 + zlib.MAX_WBITS)
+    for compressed_chunk in compressed_chunks:
+        chunk = dec.decompress(compressed_chunk)
+        if chunk:
+            yield chunk
+    chunk = dec.flush()
+    if chunk:
+        yield chunk
+
+
 def local_file(filename):
     def _copy(ai_name, target):
         shutil.copy(filename, os.path.join(target, ai_name + '.tar'))
@@ -245,25 +258,101 @@ def local_file(filename):
 
 
 def remote_file(url):
-    def gz_decompress(compressed_chunks):
-        dec = zlib.decompressobj(32 + zlib.MAX_WBITS)
-        for compressed_chunk in compressed_chunks:
-            chunk = dec.decompress(compressed_chunk)
-            if chunk:
-                yield chunk
-        chunk = dec.flush()
-        if chunk:
-            yield chunk
-
     def _download(ai_name, target):
         with httpx.stream("GET", url, follow_redirects=True) as r:
             r.raise_for_status()
             with open(os.path.join(target, ai_name + '.tar'), 'wb') as f:
-                for chunk in gz_decompress(r.iter_bytes()):
+                for chunk in _gz_decompress(r.iter_bytes()):
+                    f.write(chunk)
+    return _download
+
+
+def bananas_file(name, unique_id):
+
+    def _download(ai_name, target):
+        @contextlib.contextmanager
+        def tcp_connection(address):
+
+            def recv_iter(length):
+                while length:
+                    chunk = s.recv(length)
+                    if not chunk:
+                        raise Exception("Connection ended")
+                    length -= len(chunk)
+                    yield chunk
+
+            def recv_bytes(length):
+                return b''.join(recv_iter(length))
+
+            def send_bytes(bytes_to_send):
+                s.sendall(bytes_to_send)
+
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                try:
+                    s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+                    s.settimeout(10.0)
+                    s.connect(("content.openttd.org", 3978))
+                    yield recv_bytes, send_bytes
+                finally:
+                    try:
+                        s.shutdown(socket.SHUT_RDWR)
+                    except OSError:
+                        pass
+
+        # Confirm via HTTPs that this name/unique ID pair exists
+        ai_resp = httpx.get(f'https://bananas-api.openttd.org/package/ai/{unique_id}')
+        ai_resp.raise_for_status()
+        ai_dict = ai_resp.json()
+        ai_dict_latest_version = max(ai_dict['versions'], key=lambda version: version['version'].split('.'))
+
+        # Check name is what client code expected
+        if ai_dict['name'] != name:
+            raise Exception("Mismatched name")
+
+        # Convert unique ID to content ID from the Bananas TCP server, and get its expected filesize
+        with tcp_connection(("content.openttd.org", 3978)) as (recv_bytes, send_bytes):
+
+            PACKET_CONTENT_CLIENT_INFO_EXTID = 2
+            CONTENT_TYPE_AI = 3
+            packet_body = \
+                struct.pack("<B", PACKET_CONTENT_CLIENT_INFO_EXTID) + \
+                struct.pack("<B", 1) + \
+                struct.pack("<B", CONTENT_TYPE_AI) + \
+                struct.pack(">I", int(unique_id, 16))
+            send_bytes(struct.pack("<H", len(packet_body) + 2) + packet_body)
+
+            PACKET_CONTENT_SERVER_INFO = 4
+            packet_size = struct.unpack("<H", recv_bytes(2))[0]
+            if packet_size < 12:
+                raise Exception('Response is too small')
+            tcp_packet_type = struct.unpack("<B", recv_bytes(1))[0]
+            tcp_content_type = struct.unpack("<B", recv_bytes(1))[0]
+            tcp_content_id = struct.unpack("<I", recv_bytes(4))[0]
+
+        # Fetch CDN URL to download from binaries server
+        response = httpx.post('https://binaries.openttd.org/bananas', content=str(tcp_content_id).encode() + b'\n')
+        response.raise_for_status()
+        binaries_content_id, binaries_content_type, binaries_filesize, binaries_link = response.text.strip().split(',')
+
+        # Try to verify that the unencrypted connection to content.openttd.org didn't lie to us
+        if f'/{unique_id}/' not in binaries_link:
+            raise Exception('Mismatched content ID')
+        if f'/{ai_dict_latest_version["md5sum-partial"]}' not in binaries_link:
+            raise Exception('Mismatched md5sum-partial')
+        if ai_dict_latest_version['filesize'] != int(binaries_filesize):
+            raise Exception('Mismatched filesize')
+
+        # Download from CDN URL
+        with httpx.stream("GET", binaries_link) as response:
+            response.raise_for_status()
+            if response.headers['content-length'] != binaries_filesize:
+                raise Exception('Mismatched filesize')
+
+            with open(os.path.join(target, ai_name + '.tar'), 'wb') as f:
+                for chunk in _gz_decompress(response.iter_bytes()):
                     f.write(chunk)
 
     return _download
-
 
 def save_config():
     pass
