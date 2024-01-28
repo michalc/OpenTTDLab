@@ -231,7 +231,7 @@ def run_experiment(
     experiment_id = str(uuid.uuid4())
     with tempfile.TemporaryDirectory(prefix=f'OpenTTDLab-{experiment_id}-') as experiment_dir:
         for ai_name, ai_file in ais:
-            ai_file(ai_name, experiment_dir)
+            ai_file(cache_dir, ai_name, experiment_dir)
         return [
             savegame_row
             for i, seed in enumerate(seeds)
@@ -251,14 +251,14 @@ def _gz_decompress(compressed_chunks):
 
 
 def local_file(filename):
-    def _copy(ai_name, target):
+    def _copy(cache_dir, ai_name, target):
         shutil.copy(filename, os.path.join(target, ai_name + '.tar'))
 
     return _copy
 
 
 def remote_file(url):
-    def _download(ai_name, target):
+    def _download(cache_dir, ai_name, target):
         with httpx.stream("GET", url, follow_redirects=True) as r:
             r.raise_for_status()
             with open(os.path.join(target, ai_name + '.tar'), 'wb') as f:
@@ -269,7 +269,7 @@ def remote_file(url):
 
 def bananas_file(name, unique_id):
 
-    def _download(ai_name, target):
+    def _download(cache_dir, ai_name, target):
         @contextlib.contextmanager
         def tcp_connection(address):
 
@@ -304,6 +304,14 @@ def bananas_file(name, unique_id):
         ai_resp.raise_for_status()
         ai_dict = ai_resp.json()
         ai_dict_latest_version = max(ai_dict['versions'], key=lambda version: version['version'].split('.'))
+
+        # Check if we already have this version cached
+        ai_cache_dir = os.path.join(cache_dir, 'bananas', 'ai')
+        Path(ai_cache_dir).mkdir(parents=True, exist_ok=True)
+        cached_file = os.path.join(ai_cache_dir, f'{unique_id}-{ai_dict["name"]}-{ai_dict_latest_version["version"]}.tar')
+        if os.path.exists(cached_file):
+            shutil.copy(cached_file, os.path.join(target, ai_name + '.tar'))
+            return
 
         # Check name is what client code expected
         if ai_dict['name'] != name:
@@ -351,6 +359,7 @@ def bananas_file(name, unique_id):
             with open(os.path.join(target, ai_name + '.tar'), 'wb') as f:
                 for chunk in _gz_decompress(response.iter_bytes()):
                     f.write(chunk)
+            shutil.copy(os.path.join(target, ai_name + '.tar'), cached_file)
 
     return _download
 
