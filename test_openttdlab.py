@@ -3,11 +3,11 @@ from datetime import date
 
 import pytest
 
-from openttdlab import parse_savegame, run_experiment, local_file, remote_file, bananas_file, save_config, load_config
+from openttdlab import parse_savegame, run_experiment, local_file, remote_file, bananas_file
 
 
 def test_run_experiment_local():
-    results, metadata, config = run_experiment(
+    results = run_experiment(
         days=365 * 5 + 1,
         seeds=range(2, 4),
         ais=(
@@ -33,7 +33,7 @@ def test_run_experiment_local():
 
 
 def test_run_experiment_remote():
-    results, metadata, config = run_experiment(
+    results = run_experiment(
         days=365 + 1,
         seeds=range(2, 3),
         ais=(
@@ -52,7 +52,7 @@ def test_run_experiment_remote():
 
 
 def test_run_experiment_bananas():
-    results, metadata, config = run_experiment(
+    results = run_experiment(
         days=365 + 1,
         seeds=range(2, 3),
         ais=(
@@ -75,7 +75,7 @@ def test_run_experiment_bananas():
     ("none", "zlib", "lzma"),
 )
 def test_savegame_formats(savegame_format):
-    results, metadata, config = run_experiment(
+    results = run_experiment(
         days=100,
         seeds=range(2, 3),
         base_openttd_config=f'[misc]\nsavegame_format={savegame_format}\n',
@@ -103,11 +103,3 @@ def test_savegame_parser():
     # (The dumping and loading here is to "normalise" into the post information loss form)
     with open('./fixtures/warbourne-cross-transport-2029-01-06.json','rb') as f:
         assert json.loads(json.dumps(game))['chunks'] == json.loads(f.read())['chunks']
-
-
-def test_save_config():
-    save_config()
-
-
-def test_load_config():
-    load_config()

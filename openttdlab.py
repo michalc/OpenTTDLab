@@ -236,7 +236,7 @@ def run_experiment(
             savegame_row
             for i, seed in enumerate(seeds)
             for savegame_row in run(experiment_dir, i, seed)
-        ], None, None
+        ]
 
 
 def _gz_decompress(compressed_chunks):
@@ -362,13 +362,6 @@ def bananas_file(name, unique_id):
             shutil.copy(os.path.join(target, ai_name + '.tar'), cached_file)
 
     return _download
-
-def save_config():
-    pass
-
-
-def load_config():
-    pass
 
 
 def parse_savegame(chunks, chunk_size=65536):
