@@ -62,7 +62,7 @@ results, metadata, config = run_experiment(
         # 3 ways of using Ais
         # remote_file: takes a url of a .tar.gz AI file, e.g. a GitHub tag
         # local_file: takes a path to a local .tar AI file
-        # bananas_file: takes the type, name, and id from https://bananas.openttd.org/package/ai
+        # bananas_file: takes the name and ID from https://bananas.openttd.org/package/ai
         ('trAIns', bananas_file('trAIns', '54524149')),
     ),
 )
