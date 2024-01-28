@@ -21,14 +21,10 @@ OpenTTDLab is based on [Patric Stout's OpenTTD Savegame Reader](https://github.c
 - [Installation](#installation)
 - [Running an experiment](#running-an-experiment)
 - [Plotting results](#plotting-results)
-- [Reproducing an experiment](#reproducing-an-experiment)
 - [Compatibility](#compatibility)
 - [Licenses and attributions](#licenses-and-attributions)
 
 ---
-
-> [!NOTE]
-> Work in progress: only some of the features described here will work.
 
 ## Installation
 
@@ -52,10 +48,10 @@ You do not need to separately download or install OpenTTD (or [OpenGFX](https://
 The core function of OpenTTD is the `run_experiment` function.
 
 ```python
-from openttdlab import run_experiment, bananas_file, save_config
+from openttdlab import run_experiment, bananas_file
 
 # Run the experiment for a range of random seeds
-results, metadata, config = run_experiment(
+results = run_experiment(
     days=365 * 4 + 1,
     seeds=range(0, 10),
     ais=(
@@ -67,17 +63,8 @@ results, metadata, config = run_experiment(
     ),
 )
 
-# Print the results: in-game values that should be exactly reproducible...
+# Print the results
 print(results)
-
-# ... and metadata: such as number of processes, wallclock time and total CPU time
-print(metadata)
-
-# ... and config: to reproduce the results (but not metadata) exactly next time
-print(config)
-
-# ... which can be saved to a file and then shared (or archived)
-save_config('my-experiment-{experiment_id}.yml', config)
 ```
 
 
@@ -99,22 +86,6 @@ should output a plot much like this one.
 
 ![A plot of money against time for 10 random seeds](https://raw.githubusercontent.com/michalc/OpenTTDLab/main/docs/assets/example-results.svg)
 
-
-## Reproducing an experiment
-
-If you have the config from a previous experiment, you can pass it into `run_experiment` to exactly reproduce. If for some reason it cannot be reproduced, it will error.
-
-```python
-from openttdlab import run_experiment, load_config
-
-# Load the config from a file...
-config = load_config('my-config-a5e95018.yml')
-
-# ... and use it to run the same experiment
-results, metadata, config = run_experiment(config=config)
-
-print(results)
-```
 
 
 ## Compatibility
