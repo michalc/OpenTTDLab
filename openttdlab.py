@@ -115,14 +115,14 @@ def run_experiment(
         # and according to the OpenTTD source, year 1 was a leap year
         days_since_year_zero = game['chunks']['DATE']['records']['0']['date']
         days_since_year_one = days_since_year_zero - 366
-        for index, player in game['chunks']['PLYR']['records'].items():
-            yield {
-                'seed': seed,
-                'date': date(1, 1 , 1) + timedelta(days_since_year_one),
-                'player': player['name'],
-                'money': player['money'],
-                'loan': player['current_loan'],
-            }
+        return {
+            'savegame_version': game['savegame_version'],
+            'seed': seed,
+            'date': date(1, 1 , 1) + timedelta(days_since_year_one),
+            'chunks': {
+                tag: chunk['records'] for tag, chunk in game['chunks'].items()
+            },
+        }
 
     # Choose platform-specific details
     extractors = {
@@ -225,9 +225,8 @@ def run_experiment(
         autosave_dir = os.path.join(run_dir, 'save', 'autosave')
         autosave_filenames = sorted(list(os.listdir(autosave_dir)))
         return [
-            savegame_row
+            get_savegame_row(seed, os.path.join(autosave_dir, filename))
             for filename in autosave_filenames
-            for savegame_row in get_savegame_row(seed, os.path.join(autosave_dir, filename))
         ]
 
     experiment_id = str(uuid.uuid4())

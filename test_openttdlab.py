@@ -6,6 +6,16 @@ import pytest
 from openttdlab import parse_savegame, run_experiment, local_file, remote_file, bananas_file
 
 
+def _basic_data(result_row):
+    return {
+        'seed': result_row['seed'],
+        'date': result_row['date'],
+        'name': result_row['chunks']['PLYR']['0']['name'],
+        'money': result_row['chunks']['PLYR']['0']['money'],
+        'current_loan': result_row['chunks']['PLYR']['0']['current_loan'],
+    }
+
+
 def test_run_experiment_local():
     results = run_experiment(
         days=365 * 5 + 1,
@@ -16,18 +26,18 @@ def test_run_experiment_local():
     )
 
     assert len(results) == 118
-    assert results[58] == {
+    assert _basic_data(results[58]) == {
         'seed': 2,
-        'player': 'trAIns AI',
+        'name': 'trAIns AI',
         'date': date(1954, 12, 1),
-        'loan': 110000,
+        'current_loan': 110000,
         'money': 6546,
     }
-    assert results[117] == {
+    assert _basic_data(results[117]) == {
         'seed': 3,
-        'player': 'trAIns AI',
+        'name': 'trAIns AI',
         'date': date(1954, 12, 1),
-        'loan': 300000,
+        'current_loan': 300000,
         'money': 672573,
     }
 
@@ -42,11 +52,11 @@ def test_run_experiment_remote():
     )
 
     assert len(results) == 12
-    assert results[10] == {
+    assert _basic_data(results[10]) == {
         'seed': 2,
-        'player': 'trAIns AI',
+        'name': 'trAIns AI',
         'date': date(1950, 12, 1),
-        'loan': 300000,
+        'current_loan': 300000,
         'money': 280615,
     }
 
@@ -61,11 +71,11 @@ def test_run_experiment_bananas():
     )
 
     assert len(results) == 12
-    assert results[10] == {
+    assert _basic_data(results[10]) == {
         'seed': 2,
-        'player': 'trAIns AI',
+        'name': 'trAIns AI',
         'date': date(1950, 12, 1),
-        'loan': 300000,
+        'current_loan': 300000,
         'money': 280615,
     }
 
@@ -85,11 +95,11 @@ def test_savegame_formats(savegame_format):
     )
 
     assert len(results) == 3
-    assert results[2] == {
+    assert _basic_data(results[2]) == {
         'seed': 2,
-        'player': 'trAIns AI',
+        'name': 'trAIns AI',
         'date': date(1950, 4, 1),
-        'loan': 300000,
+        'current_loan': 300000,
         'money': 284815,
     }
 
