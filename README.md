@@ -34,7 +34,7 @@ OpenTTDLab is based on [Patric Stout's OpenTTD Savegame Reader](https://github.c
 - As is typical from Python code, it is cross platform - allowing to share code snippets between macOS, Windows, and Linux, even though details like how to install and start OpenTTD are different on each platform.
 - Downloads (and caches) OpenTTD, OpenGFX, and AIs - no need to download these separately or through OpenTTD's built-in content browser.
 - Transparently parallelises runs of OpenTTD, by default up to the number of CPUs.
-- Outputs results extracted from savegames, and in a format convenient to import into tools such as pandas for analysis or visualisation.
+- Results are extracted from OpenTTD savegames as plain Python dictionaries and lists - reasonably convenient for importing into tools such as pandas for analysis or visualisation.
 
 
 ## Installation
@@ -87,7 +87,14 @@ OpenTTD does not require any particular library for plotting results. However, [
 import pandas as pd
 import plotly.express as px
 
-df = pd.DataFrame(results)
+df = pd.DataFrame(
+    {
+        'seed': row['seed'],
+        'date': row['date'],
+        'money': row['chunks']['PLYR']['0']['money'],
+    }
+    for row in results
+)
 df = df.pivot(index='date', columns='seed', values='money')
 fig = px.line(df)
 fig.show()
@@ -96,7 +103,6 @@ fig.show()
 should output a plot much like this one.
 
 ![A plot of money against time for 10 random seeds](https://raw.githubusercontent.com/michalc/OpenTTDLab/main/docs/assets/example-results.svg)
-
 
 
 ## Compatibility
