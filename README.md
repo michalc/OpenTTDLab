@@ -31,7 +31,7 @@ OpenTTDLab is based on [Patric Stout's OpenTTD Savegame Reader](https://github.c
 
 - Allows you to easily run OpenTTD in a headless mode (i.e. without a graphical interface) over a variety of configurations.
 - And allows you to do this from Python code - for example from a Jupyter Notebook.
-- As is typical from Python code, it is cross platform - allowing to share code snippets between macOS, Windows, and Linux, even though details like how to install and start OpenTTD is different on each platform.
+- As is typical from Python code, it is cross platform - allowing to share code snippets between macOS, Windows, and Linux, even though details like how to install and start OpenTTD are different on each platform.
 - Downloads (and caches) OpenTTD, OpenGFX, and AIs - no need to download these separately or through OpenTTD's built-in content browser.
 - Transparently parallelises runs of OpenTTD, by default up to the number of CPUs.
 - Outputs results extracted from savegames, and in a format convenient to import into tools such as pandas for analysis or visualisation.
