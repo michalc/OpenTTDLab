@@ -22,6 +22,7 @@ OpenTTDLab is based on [Patric Stout's OpenTTD Savegame Reader](https://github.c
 - [Installation](#installation)
 - [Running an experiment](#running-an-experiment)
 - [Plotting results](#plotting-results)
+- [API](#API)
 - [Compatibility](#compatibility)
 - [Licenses and attributions](#licenses-and-attributions)
 
@@ -63,19 +64,13 @@ from openttdlab import run_experiment, bananas_file
 
 # Run experiments...
 results = run_experiment(
-    # ... for specific versions of OpenTTD and OpenGFX
-    openttd_version='13.4',
-    opengfx_version='7.1',
-    # ... for a range of random seeds
-    seeds=range(0, 10),
-    # ... each for a number of (in game) days
-    days=365 * 4 + 1,
-    # ... with a set of AIs.
+    openttd_version='13.4',  # ... for a specific versions of OpenTTD
+    opengfx_version='7.1',   # ... and a specific versions of OpenGFX
+    seeds=range(0, 10),      # ... for a range of random seeds
+    days=365 * 4 + 1,        # ... each for a number of (in game) days
     ais=(
-        # There are 3 ways of fetching AI code
-        # remote_file: takes a url of a .tar.gz AI file, e.g. a GitHub tag
-        # local_file: takes a path to a local .tar AI file
-        # bananas_file: takes the name and ID from https://bananas.openttd.org/package/ai
+        # ... running specific AIs. In this case, fetching AI code from
+        #     https://bananas.openttd.org/package/ai
         ('trAIns', bananas_file('trAIns', '54524149')),
     ),
 )
@@ -109,6 +104,27 @@ fig.show()
 should output a plot much like this one.
 
 ![A plot of money against time for 10 random seeds](https://raw.githubusercontent.com/michalc/OpenTTDLab/main/docs/assets/example-results.svg)
+
+
+## API
+
+### Fetching AIs
+
+The `ais` parameter of `run_experiment` configures which AIs will run, and how their code will be located. Specifically, the `ais`  parameter must be an iterable of `(name, ai)` pairs, where `name` is the name of the AI, and `ai` must be the return value of any of the following 3 functions.
+
+- `bananas_file(name, id)`
+
+   Defines an AI by the `name` and `id` of an AI published through OpenTTD's content service at https://bananas.openttd.org/package/ai. This allows you to quickly run OpenTTD with a published AI.
+
+- `local_file(path)`
+
+  Defines an AI by the local path to a .tar AI file that contains the AI code.
+
+- `remote_file(url)`
+
+  Fetches the AI by the URL of a tar.gz file that contains the AI code. For example, a specific GitHub tag of a repository that contains its code.
+
+The return value of each is opaque: it should not be used in client code, other than by passing into `run_experiment` as its `ais` parameter.
 
 
 ## Compatibility
