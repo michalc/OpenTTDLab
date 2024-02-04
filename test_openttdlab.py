@@ -10,6 +10,8 @@ def _basic_data(result_row):
     return {
         'seed': result_row['seed'],
         'date': result_row['date'],
+        'openttd_version': result_row['openttd_version'],
+        'opengfx_version': result_row['opengfx_version'],
         'name': result_row['chunks']['PLYR']['0']['name'],
         'money': result_row['chunks']['PLYR']['0']['money'],
         'current_loan': result_row['chunks']['PLYR']['0']['current_loan'],
@@ -26,20 +28,33 @@ def test_run_experiment_local_ai_default_version():
     )
 
     assert len(results) == 118
-    assert _basic_data(results[58]) == {
+    assert {
+        key: value
+        for key, value in _basic_data(results[58]).items()
+        if key not in ('openttd_version', 'opengfx_version')
+    } == {
         'seed': 2,
         'name': 'trAIns AI',
         'date': date(1954, 12, 1),
         'current_loan': 110000,
         'money': 6546,
     }
-    assert _basic_data(results[117]) == {
+    assert tuple(int(v) for v in results[58]['openttd_version'].split('.')) >= (13, 4)
+    assert tuple(int(v) for v in results[58]['opengfx_version'].split('.')) >= (7, 1)
+
+    assert {
+        key: value
+        for key, value in _basic_data(results[117]).items()
+        if key not in ('openttd_version', 'opengfx_version')
+    } == {
         'seed': 3,
         'name': 'trAIns AI',
         'date': date(1954, 12, 1),
         'current_loan': 300000,
         'money': 672573,
     }
+    assert tuple(int(v) for v in results[117]['openttd_version'].split('.')) >= (13, 4)
+    assert tuple(int(v) for v in results[117]['opengfx_version'].split('.')) >= (7, 1)
 
 
 def test_run_experiment_local():
@@ -55,6 +70,8 @@ def test_run_experiment_local():
 
     assert len(results) == 118
     assert _basic_data(results[58]) == {
+        'openttd_version': '13.4',
+        'opengfx_version': '7.1',
         'seed': 2,
         'name': 'trAIns AI',
         'date': date(1954, 12, 1),
@@ -62,6 +79,8 @@ def test_run_experiment_local():
         'money': 6546,
     }
     assert _basic_data(results[117]) == {
+        'openttd_version': '13.4',
+        'opengfx_version': '7.1',
         'seed': 3,
         'name': 'trAIns AI',
         'date': date(1954, 12, 1),
@@ -83,6 +102,8 @@ def test_run_experiment_remote():
 
     assert len(results) == 12
     assert _basic_data(results[10]) == {
+        'openttd_version': '13.4',
+        'opengfx_version': '7.1',
         'seed': 2,
         'name': 'trAIns AI',
         'date': date(1950, 12, 1),
@@ -104,6 +125,8 @@ def test_run_experiment_bananas():
 
     assert len(results) == 12
     assert _basic_data(results[10]) == {
+        'openttd_version': '13.4',
+        'opengfx_version': '7.1',
         'seed': 2,
         'name': 'trAIns AI',
         'date': date(1950, 12, 1),
@@ -130,6 +153,8 @@ def test_savegame_formats(savegame_format):
 
     assert len(results) == 3
     assert _basic_data(results[2]) == {
+        'openttd_version': '13.4',
+        'opengfx_version': '7.1',
         'seed': 2,
         'name': 'trAIns AI',
         'date': date(1950, 4, 1),

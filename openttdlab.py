@@ -109,7 +109,7 @@ def run_experiment(
                     raise Exception('Unsafe', archive_location)
             f_zip.extractall(output_dir)
 
-    def get_savegame_row(seed, filename):
+    def get_savegame_row(openttd_version, opengfx_version, seed, filename):
         with open(filename, 'rb') as f:
             game = parse_savegame(iter(lambda: f.read(65536), b''))
 
@@ -118,6 +118,8 @@ def run_experiment(
         days_since_year_zero = game['chunks']['DATE']['records']['0']['date']
         days_since_year_one = days_since_year_zero - 366
         return {
+            'openttd_version': openttd_version,
+            'opengfx_version': opengfx_version,
             'savegame_version': game['savegame_version'],
             'seed': seed,
             'date': date(1, 1 , 1) + timedelta(days_since_year_one),
@@ -229,7 +231,7 @@ def run_experiment(
         autosave_dir = os.path.join(run_dir, 'save', 'autosave')
         autosave_filenames = sorted(list(os.listdir(autosave_dir)))
         return [
-            get_savegame_row(seed, os.path.join(autosave_dir, filename))
+            get_savegame_row(openttd_version, opengfx_version, seed, os.path.join(autosave_dir, filename))
             for filename in autosave_filenames
         ]
 
