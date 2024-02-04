@@ -114,7 +114,7 @@ The `ais` parameter of `run_experiment` configures which AIs will run, and how t
 
 - `bananas_file(name, id)`
 
-   Defines an AI by the `name` and `id` of an AI published through OpenTTD's content service at https://bananas.openttd.org/package/ai. This allows you to quickly run OpenTTD with a published AI.
+   Defines an AI by the `name` and `id` of an AI published through OpenTTD's content service at https://bananas.openttd.org/package/ai. This allows you to quickly run OpenTTDLab with a published AI.
 
 - `local_file(path)`
 
