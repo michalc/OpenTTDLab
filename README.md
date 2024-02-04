@@ -106,7 +106,7 @@ should output a plot much like this one.
 
 ## Examples
 
-There is an example notebook using OpenTTDLab in the [examples](https://github.com/michalc/OpenTTDLab/tree/main/examples) folder.
+There are example notebooks using and measuring the performance of OpenTTDLab in the [examples](https://github.com/michalc/OpenTTDLab/tree/main/examples) folder.
 
 
 ## API
