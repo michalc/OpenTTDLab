@@ -74,9 +74,6 @@ results = run_experiment(
         ('trAIns', bananas_file('trAIns', '54524149')),
     ),
 )
-
-# Print the results
-print(results)
 ```
 
 
