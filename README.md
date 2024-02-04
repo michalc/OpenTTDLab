@@ -35,7 +35,7 @@ OpenTTDLab is based on [Patric Stout's OpenTTD Savegame Reader](https://github.c
 - And allows you to do this from Python code - for example from a Jupyter Notebook.
 - As is typical from Python code, it is cross platform - allowing to share code snippets between macOS, Windows, and Linux, even though details like how to install and start OpenTTD are different on each platform.
 - Downloads (and caches) OpenTTD, OpenGFX, and AIs - no need to download these separately or through OpenTTD's built-in content browser.
-- Transparently parallelises runs of OpenTTD, by default up to the number of CPUs.
+- Transparently parallelises runs of OpenTTD, by default up to the number of CPUs. (Although with [fairly poor scaling properties](https://github.com/michalc/OpenTTDLab/blob/main/examples/02-openttdlab-scaling.ipynb).)
 - Results are extracted from OpenTTD savegames as plain Python dictionaries and lists - reasonably convenient for importing into tools such as pandas for analysis or visualisation.
 
 
