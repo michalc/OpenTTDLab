@@ -22,6 +22,7 @@ OpenTTDLab is based on [Patric Stout's OpenTTD Savegame Reader](https://github.c
 - [Installation](#installation)
 - [Running an experiment](#running-an-experiment)
 - [Plotting results](#plotting-results)
+- [Examples](#examples)
 - [API](#API)
 - [Compatibility](#compatibility)
 - [Licenses and attributions](#licenses-and-attributions)
@@ -101,6 +102,11 @@ fig.show()
 should output a plot much like this one.
 
 ![A plot of money against time for 10 random seeds](https://raw.githubusercontent.com/michalc/OpenTTDLab/main/docs/assets/example-results.svg)
+
+
+## Examples
+
+There is an example notebook using OpenTTDLab in the [examples](https://github.com/michalc/OpenTTDLab/tree/main/examples) folder.
 
 
 ## API
