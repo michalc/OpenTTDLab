@@ -51,22 +51,23 @@ def run_experiment(
     opengfx_version=None,
     openttd_base_url='https://cdn.openttd.org/openttd-releases/',
     opengfx_base_url='https://cdn.openttd.org/opengfx-releases/',
+    get_http_client=lambda: httpx.Client(transport=httpx.HTTPTransport(retries=3)),
 ):
-    def get(url):
-        response = httpx.get(url)
+    def get(client, url):
+        response = client.get(url)
         response.raise_for_status()
         return response.content
 
-    def get_yaml(url):
-        return yaml.safe_load(get(url))
+    def get_yaml(client, url):
+        return yaml.safe_load(get(client, url))
 
-    def stream_to_file_if_necessary(source_url, target_location):
+    def stream_to_file_if_necessary(client, source_url, target_location):
         file_exists = os.path.exists(target_location)
 
         if os.path.exists(target_location):
             return
 
-        with httpx.stream("GET", source_url) as r:
+        with client.stream("GET", source_url) as r:
             r.raise_for_status()
             with open(target_location, 'wb') as f:
                 for chunk in r.iter_bytes():
@@ -128,135 +129,137 @@ def run_experiment(
             },
         }
 
-    # Choose platform-specific details
-    extractors = {
-        'dmg': extract_7z,
-        'tar.xz': extract_tar_xz,
-        'zip': extract_zip,
-    }
-    system_machine_to_release_params = {
-        ('Darwin', 'arm64'): ('macos', 'universal', 'dmg', '{binary_dir}/openttd-{version}-macos-universal/OpenTTD.app/Contents/MacOS/openttd'),
-        ('Darwin', 'x86_64'): ('macos', 'universal', 'dmg', '{binary_dir}/openttd-{version}-macos-universal/OpenTTD.app/Contents/MacOS/openttd'),
-        ('Linux', 'x86_64'): ('linux-generic', 'amd64', 'tar.xz', '{binary_dir}/openttd-{version}-linux-generic-amd64/openttd'),
-        ('Windows', 'AMD64'): ('windows', 'win64', 'zip', '{binary_dir}/openttd-{version}-windows-win64/openttd.exe'),
-    }
-    uname = platform.uname()
-    try:
-        operating_system, architecture, openttd_extension, openttd_binary_template = system_machine_to_release_params[(uname.system, uname.machine)]
-    except KeyError:
-        raise Exception("Unable to map platform to OpenTTD release", uname.system, uname.machine)
+    with get_http_client() as client:
 
-    # Find version and coresponding manifest
-    if openttd_version is None:
-        openttd_version = str(get_yaml(openttd_base_url + 'latest.yaml')['latest'][0]['version'])
-    if opengfx_version is None:
-        opengfx_version = str(get_yaml(opengfx_base_url + 'latest.yaml')['latest'][0]['version'])
-    openttd_manifest = get_yaml(openttd_base_url + openttd_version + '/manifest.yaml')
-    opengfx_manifest = get_yaml(opengfx_base_url + opengfx_version + '/manifest.yaml')
+        # Choose platform-specific details
+        extractors = {
+            'dmg': extract_7z,
+            'tar.xz': extract_tar_xz,
+            'zip': extract_zip,
+        }
+        system_machine_to_release_params = {
+            ('Darwin', 'arm64'): ('macos', 'universal', 'dmg', '{binary_dir}/openttd-{version}-macos-universal/OpenTTD.app/Contents/MacOS/openttd'),
+            ('Darwin', 'x86_64'): ('macos', 'universal', 'dmg', '{binary_dir}/openttd-{version}-macos-universal/OpenTTD.app/Contents/MacOS/openttd'),
+            ('Linux', 'x86_64'): ('linux-generic', 'amd64', 'tar.xz', '{binary_dir}/openttd-{version}-linux-generic-amd64/openttd'),
+            ('Windows', 'AMD64'): ('windows', 'win64', 'zip', '{binary_dir}/openttd-{version}-windows-win64/openttd.exe'),
+        }
+        uname = platform.uname()
+        try:
+            operating_system, architecture, openttd_extension, openttd_binary_template = system_machine_to_release_params[(uname.system, uname.machine)]
+        except KeyError:
+            raise Exception("Unable to map platform to OpenTTD release", uname.system, uname.machine)
 
-    # Find file details in manifest
-    openttd_filename = f"{openttd_manifest['base']}{operating_system}-{architecture}.{openttd_extension}"
-    opengfx_filename = f"{opengfx_manifest['base']}all.zip"
-    openttd_file_details = find_details(openttd_manifest, openttd_filename)
-    opengfx_file_details = find_details(opengfx_manifest, opengfx_filename)
+        # Find version and coresponding manifest
+        if openttd_version is None:
+            openttd_version = str(get_yaml(client, openttd_base_url + 'latest.yaml')['latest'][0]['version'])
+        if opengfx_version is None:
+            opengfx_version = str(get_yaml(client, opengfx_base_url + 'latest.yaml')['latest'][0]['version'])
+        openttd_manifest = get_yaml(client, openttd_base_url + openttd_version + '/manifest.yaml')
+        opengfx_manifest = get_yaml(client, opengfx_base_url + opengfx_version + '/manifest.yaml')
 
-    # Download archives if necessary
-    cache_dir = user_cache_dir(appname='OpenTTDLab', ensure_exists=True)
-    openttd_archive_location = os.path.join(cache_dir, openttd_filename)
-    opengfx_archive_location = os.path.join(cache_dir, opengfx_filename)
-    stream_to_file_if_necessary(openttd_base_url + openttd_version + '/' + openttd_filename, openttd_archive_location)
-    stream_to_file_if_necessary(opengfx_base_url + opengfx_version + '/' + opengfx_filename, opengfx_archive_location)
-    check_sha_256(openttd_archive_location, openttd_file_details['sha256sum'])
-    check_sha_256(opengfx_archive_location, opengfx_file_details['sha256sum'])
+        # Find file details in manifest
+        openttd_filename = f"{openttd_manifest['base']}{operating_system}-{architecture}.{openttd_extension}"
+        opengfx_filename = f"{opengfx_manifest['base']}all.zip"
+        openttd_file_details = find_details(openttd_manifest, openttd_filename)
+        opengfx_file_details = find_details(opengfx_manifest, opengfx_filename)
 
-    # Extract the binaries
-    openttd_binary_dir = f'{openttd_archive_location}-{openttd_file_details["sha256sum"]}'
-    opengfx_binary_dir = f'{opengfx_archive_location}-{opengfx_file_details["sha256sum"]}'
-    Path(openttd_binary_dir).mkdir(parents=True, exist_ok=True)
-    Path(opengfx_binary_dir).mkdir(parents=True, exist_ok=True)
-    extractors[openttd_extension](openttd_archive_location, openttd_binary_dir)
-    extractors['zip'](opengfx_archive_location, opengfx_binary_dir)
+        # Download archives if necessary
+        cache_dir = user_cache_dir(appname='OpenTTDLab', ensure_exists=True)
+        openttd_archive_location = os.path.join(cache_dir, openttd_filename)
+        opengfx_archive_location = os.path.join(cache_dir, opengfx_filename)
+        stream_to_file_if_necessary(client, openttd_base_url + openttd_version + '/' + openttd_filename, openttd_archive_location)
+        stream_to_file_if_necessary(client, opengfx_base_url + opengfx_version + '/' + opengfx_filename, opengfx_archive_location)
+        check_sha_256(openttd_archive_location, openttd_file_details['sha256sum'])
+        check_sha_256(opengfx_archive_location, opengfx_file_details['sha256sum'])
 
-    # Construct the location of the binaries
-    openttd_binary = os.path.join(openttd_binary_dir, openttd_binary_template.format_map({
-        'binary_dir': openttd_binary_dir,
-        'version': openttd_version,
-    }))
-    opengfx_binary = os.path.join(opengfx_binary_dir, f'opengfx-{opengfx_version}.tar')
+        # Extract the binaries
+        openttd_binary_dir = f'{openttd_archive_location}-{openttd_file_details["sha256sum"]}'
+        opengfx_binary_dir = f'{opengfx_archive_location}-{opengfx_file_details["sha256sum"]}'
+        Path(openttd_binary_dir).mkdir(parents=True, exist_ok=True)
+        Path(opengfx_binary_dir).mkdir(parents=True, exist_ok=True)
+        extractors[openttd_extension](openttd_archive_location, openttd_binary_dir)
+        extractors['zip'](opengfx_archive_location, opengfx_binary_dir)
 
-    # Ensure the OpenTTD binary is executable
-    os.chmod(openttd_binary, os.stat(openttd_binary).st_mode | stat.S_IEXEC)
+        # Construct the location of the binaries
+        openttd_binary = os.path.join(openttd_binary_dir, openttd_binary_template.format_map({
+            'binary_dir': openttd_binary_dir,
+            'version': openttd_version,
+        }))
+        opengfx_binary = os.path.join(opengfx_binary_dir, f'opengfx-{opengfx_version}.tar')
 
-    def run(experiment_dir, i, seed):
-        run_dir = os.path.join(experiment_dir, str(i))
-        experiment_baseset_dir = os.path.join(run_dir, 'baseset')
-        Path(experiment_baseset_dir).mkdir(parents=True)
-        experiment_ai_dir = os.path.join(run_dir, 'ai')
-        Path(experiment_ai_dir).mkdir(parents=True)
+        # Ensure the OpenTTD binary is executable
+        os.chmod(openttd_binary, os.stat(openttd_binary).st_mode | stat.S_IEXEC)
 
-        # Populate run directory
-        shutil.copy(opengfx_binary, experiment_baseset_dir)
-        for ai_name, ai_file in ais:
-            shutil.copy(os.path.join(experiment_dir, ai_name + '.tar'), experiment_ai_dir)
-        config_file = os.path.join(run_dir, 'openttdlab.cfg')
-        ai_players_config = '[ai_players]\n' + ''.join(
-            f'{ai_name} = start_date=0\n' for ai_name, file in ais
-        )
-        with open(config_file, 'w') as f:
-            f.write(base_openttd_config + textwrap.dedent('''
-                [gui]
-                autosave = monthly
-                keep_all_autosave = true
-                threaded_saves = false
-                [difficulty]
-                max_no_competitors = 1
-            ''' + ai_players_config)
-        )
+        def run(experiment_dir, i, seed):
+            run_dir = os.path.join(experiment_dir, str(i))
+            experiment_baseset_dir = os.path.join(run_dir, 'baseset')
+            Path(experiment_baseset_dir).mkdir(parents=True)
+            experiment_ai_dir = os.path.join(run_dir, 'ai')
+            Path(experiment_ai_dir).mkdir(parents=True)
 
-        # Run the experiment
-        ticks_per_day = 74
-        ticks = str(ticks_per_day * days)
-        subprocess.check_output(
-            (openttd_binary,) + (
-                '-g',                     # Start game immediately
-                '-G', str(seed),          # Seed for random number generator
-                '-snull',                 # No sound
-                '-mnull',                 # No music
-                '-vnull:ticks=' + ticks,  # No video, with fixed number of "ticks" and then exit
-                 '-c', config_file,       # Config file
-            ),
-            cwd=run_dir,                  # OpenTTD looks in the current working directory for files
-        )
+            # Populate run directory
+            shutil.copy(opengfx_binary, experiment_baseset_dir)
+            for ai_name, ai_file in ais:
+                shutil.copy(os.path.join(experiment_dir, ai_name + '.tar'), experiment_ai_dir)
+            config_file = os.path.join(run_dir, 'openttdlab.cfg')
+            ai_players_config = '[ai_players]\n' + ''.join(
+                f'{ai_name} = start_date=0\n' for ai_name, file in ais
+            )
+            with open(config_file, 'w') as f:
+                f.write(base_openttd_config + textwrap.dedent('''
+                    [gui]
+                    autosave = monthly
+                    keep_all_autosave = true
+                    threaded_saves = false
+                    [difficulty]
+                    max_no_competitors = 1
+                ''' + ai_players_config)
+            )
 
-        autosave_dir = os.path.join(run_dir, 'save', 'autosave')
-        autosave_filenames = sorted(list(os.listdir(autosave_dir)))
-        return [
-            get_savegame_row(openttd_version, opengfx_version, seed, os.path.join(autosave_dir, filename))
-            for filename in autosave_filenames
-        ]
+            # Run the experiment
+            ticks_per_day = 74
+            ticks = str(ticks_per_day * days)
+            subprocess.check_output(
+                (openttd_binary,) + (
+                    '-g',                     # Start game immediately
+                    '-G', str(seed),          # Seed for random number generator
+                    '-snull',                 # No sound
+                    '-mnull',                 # No music
+                    '-vnull:ticks=' + ticks,  # No video, with fixed number of "ticks" and then exit
+                     '-c', config_file,       # Config file
+                ),
+                cwd=run_dir,                  # OpenTTD looks in the current working directory for files
+            )
 
-    experiment_id = str(uuid.uuid4())
-    with tempfile.TemporaryDirectory(prefix=f'OpenTTDLab-{experiment_id}-') as experiment_dir:
-        for ai_name, ai_file in ais:
-            ai_file(cache_dir, ai_name, experiment_dir)
-
-        max_workers = \
-            max_workers if max_workers is not None else \
-            (os.cpu_count() or 1)
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            futures = [
-                executor.submit(run, experiment_dir, i, seed)
-                for i, seed in enumerate(seeds)
+            autosave_dir = os.path.join(run_dir, 'save', 'autosave')
+            autosave_filenames = sorted(list(os.listdir(autosave_dir)))
+            return [
+                get_savegame_row(openttd_version, opengfx_version, seed, os.path.join(autosave_dir, filename))
+                for filename in autosave_filenames
             ]
-            done, _ = wait(futures, return_when=FIRST_EXCEPTION)
-            if e := next(iter(done)).exception():
-                raise e from None
 
-        return [
-            savegame_row
-            for future in futures
-            for savegame_row in future.result()
-        ]
+        experiment_id = str(uuid.uuid4())
+        with tempfile.TemporaryDirectory(prefix=f'OpenTTDLab-{experiment_id}-') as experiment_dir:
+            for ai_name, ai_file in ais:
+                ai_file(client, cache_dir, ai_name, experiment_dir)
+
+            max_workers = \
+                max_workers if max_workers is not None else \
+                (os.cpu_count() or 1)
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                futures = [
+                    executor.submit(run, experiment_dir, i, seed)
+                    for i, seed in enumerate(seeds)
+                ]
+                done, _ = wait(futures, return_when=FIRST_EXCEPTION)
+                if e := next(iter(done)).exception():
+                    raise e from None
+
+            return [
+                savegame_row
+                for future in futures
+                for savegame_row in future.result()
+            ]
 
 
 def _gz_decompress(compressed_chunks):
@@ -271,15 +274,15 @@ def _gz_decompress(compressed_chunks):
 
 
 def local_file(filename):
-    def _copy(cache_dir, ai_name, target):
+    def _copy(client, cache_dir, ai_name, target):
         shutil.copy(filename, os.path.join(target, ai_name + '.tar'))
 
     return _copy
 
 
 def remote_file(url):
-    def _download(cache_dir, ai_name, target):
-        with httpx.stream("GET", url, follow_redirects=True) as r:
+    def _download(client, ache_dir, ai_name, target):
+        with client.stream("GET", url, follow_redirects=True) as r:
             r.raise_for_status()
             with open(os.path.join(target, ai_name + '.tar'), 'wb') as f:
                 for chunk in _gz_decompress(r.iter_bytes()):
@@ -289,7 +292,7 @@ def remote_file(url):
 
 def bananas_file(name, unique_id):
 
-    def _download(cache_dir, ai_name, target):
+    def _download(client, cache_dir, ai_name, target):
         @contextlib.contextmanager
         def tcp_connection(address):
 
@@ -320,7 +323,7 @@ def bananas_file(name, unique_id):
                         pass
 
         # Confirm via HTTPs that this name/unique ID pair exists
-        ai_resp = httpx.get(f'https://bananas-api.openttd.org/package/ai/{unique_id}')
+        ai_resp = client.get(f'https://bananas-api.openttd.org/package/ai/{unique_id}')
         ai_resp.raise_for_status()
         ai_dict = ai_resp.json()
         ai_dict_latest_version = max(ai_dict['versions'], key=lambda version: version['version'].split('.'))
@@ -358,7 +361,7 @@ def bananas_file(name, unique_id):
             tcp_content_id = struct.unpack("<I", recv_bytes(4))[0]
 
         # Fetch CDN URL to download from binaries server
-        response = httpx.post('https://binaries.openttd.org/bananas', content=str(tcp_content_id).encode() + b'\n')
+        response = client.post('https://binaries.openttd.org/bananas', content=str(tcp_content_id).encode() + b'\n')
         response.raise_for_status()
         binaries_content_id, binaries_content_type, binaries_filesize, binaries_link = response.text.strip().split(',')
 
@@ -371,7 +374,7 @@ def bananas_file(name, unique_id):
             raise Exception('Mismatched filesize')
 
         # Download from CDN URL
-        with httpx.stream("GET", binaries_link) as response:
+        with client.stream("GET", binaries_link) as response:
             response.raise_for_status()
             if response.headers['content-length'] != binaries_filesize:
                 raise Exception('Mismatched filesize')
