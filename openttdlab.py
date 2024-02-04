@@ -47,6 +47,8 @@ def run_experiment(
     seeds=(1,),
     base_openttd_config='',
     max_workers=None,
+    openttd_version=None,
+    opengfx_version=None,
     openttd_base_url='https://cdn.openttd.org/openttd-releases/',
     opengfx_base_url='https://cdn.openttd.org/opengfx-releases/',
 ):
@@ -143,8 +145,10 @@ def run_experiment(
         raise Exception("Unable to map platform to OpenTTD release", uname.system, uname.machine)
 
     # Find version and coresponding manifest
-    openttd_version = str(get_yaml(openttd_base_url + 'latest.yaml')['latest'][0]['version'])
-    opengfx_version = str(get_yaml(opengfx_base_url + 'latest.yaml')['latest'][0]['version'])
+    if openttd_version is None:
+        openttd_version = str(get_yaml(openttd_base_url + 'latest.yaml')['latest'][0]['version'])
+    if opengfx_version is None:
+        opengfx_version = str(get_yaml(opengfx_base_url + 'latest.yaml')['latest'][0]['version'])
     openttd_manifest = get_yaml(openttd_base_url + openttd_version + '/manifest.yaml')
     opengfx_manifest = get_yaml(opengfx_base_url + opengfx_version + '/manifest.yaml')
 

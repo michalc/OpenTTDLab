@@ -16,6 +16,32 @@ def _basic_data(result_row):
     }
 
 
+def test_run_experiment_local_ai_default_version():
+    results = run_experiment(
+        days=365 * 5 + 1,
+        seeds=range(2, 4),
+        ais=(
+            ('trAIns', local_file('./fixtures/54524149-trAIns-2.1.tar')),
+        ),
+    )
+
+    assert len(results) == 118
+    assert _basic_data(results[58]) == {
+        'seed': 2,
+        'name': 'trAIns AI',
+        'date': date(1954, 12, 1),
+        'current_loan': 110000,
+        'money': 6546,
+    }
+    assert _basic_data(results[117]) == {
+        'seed': 3,
+        'name': 'trAIns AI',
+        'date': date(1954, 12, 1),
+        'current_loan': 300000,
+        'money': 672573,
+    }
+
+
 def test_run_experiment_local():
     results = run_experiment(
         days=365 * 5 + 1,
@@ -23,6 +49,8 @@ def test_run_experiment_local():
         ais=(
             ('trAIns', local_file('./fixtures/54524149-trAIns-2.1.tar')),
         ),
+        openttd_version='13.4',
+        opengfx_version='7.1',
     )
 
     assert len(results) == 118
@@ -49,6 +77,8 @@ def test_run_experiment_remote():
         ais=(
             ('trAIns', remote_file('https://github.com/lhrios/trains/archive/refs/tags/2014_02_14.tar.gz')),
         ),
+        openttd_version='13.4',
+        opengfx_version='7.1',
     )
 
     assert len(results) == 12
@@ -68,6 +98,8 @@ def test_run_experiment_bananas():
         ais=(
             ('trAIns', bananas_file('trAIns', '54524149')),
         ),
+        openttd_version='13.4',
+        opengfx_version='7.1',
     )
 
     assert len(results) == 12
@@ -92,6 +124,8 @@ def test_savegame_formats(savegame_format):
         ais=(
             ('trAIns', local_file('./fixtures/54524149-trAIns-2.1.tar')),
         ),
+        openttd_version='13.4',
+        opengfx_version='7.1',
     )
 
     assert len(results) == 3

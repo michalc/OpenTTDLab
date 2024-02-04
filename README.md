@@ -61,7 +61,7 @@ The core function of OpenTTD is the `run_experiment` function.
 ```python
 from openttdlab import run_experiment, bananas_file
 
-# Run the experiment for a range of random seeds
+# Run the experiment for a range of random seeds...
 results = run_experiment(
     days=365 * 4 + 1,
     seeds=range(0, 10),
@@ -72,6 +72,9 @@ results = run_experiment(
         # bananas_file: takes the name and ID from https://bananas.openttd.org/package/ai
         ('trAIns', bananas_file('trAIns', '54524149')),
     ),
+    # ... and specific versions of OpenTTD and OpenGFX
+    openttd_version='13.4',
+    opengfx_version='7.1',
 )
 
 # Print the results
