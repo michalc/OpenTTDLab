@@ -61,20 +61,23 @@ The core function of OpenTTD is the `run_experiment` function.
 ```python
 from openttdlab import run_experiment, bananas_file
 
-# Run the experiment for a range of random seeds...
+# Run experiments...
 results = run_experiment(
-    days=365 * 4 + 1,
+    # ... for specific versions of OpenTTD and OpenGFX
+    openttd_version='13.4',
+    opengfx_version='7.1',
+    # ... for a range of random seeds
     seeds=range(0, 10),
+    # ... each for a number of (in game) days
+    days=365 * 4 + 1,
+    # ... with a set of AIs.
     ais=(
-        # 3 ways of using Ais
+        # There are 3 ways of fetching AI code
         # remote_file: takes a url of a .tar.gz AI file, e.g. a GitHub tag
         # local_file: takes a path to a local .tar AI file
         # bananas_file: takes the name and ID from https://bananas.openttd.org/package/ai
         ('trAIns', bananas_file('trAIns', '54524149')),
     ),
-    # ... and specific versions of OpenTTD and OpenGFX
-    openttd_version='13.4',
-    opengfx_version='7.1',
 )
 
 # Print the results
