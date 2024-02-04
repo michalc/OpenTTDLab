@@ -111,23 +111,71 @@ There are example notebooks using and measuring the performance of OpenTTDLab in
 
 ## API
 
+### Running experiments
+
+#### `run_experiment(...)`
+
+The core function of OpenTTDLab is the `run_experiment` function, used to run an experiment and return results extracted from the savegame files that OpenTTD produces. It has the following parameters and defaults.
+
+- `ais=()`
+
+   The list of AIs to run. See the [Fetching AIs](#fetching-ais) section for details on this parameter.
+
+- `seeds=(1,)`
+
+   An iterable of integers, where each is used to seed the random number generator in a run of OpenTTD.
+
+- `days=365 * 4 + 1`
+
+   The number of in-game days that each run of OpenTTD should last.
+
+- `base_openttd_config=''`
+
+   OpenTTD config to run each experiment under. This must be in the [openttd.cfg format](https://wiki.openttd.org/en/Archive/Manual/Settings/Openttd.cfg). This is added to by OpenTTDLab before being passed to OpenTTD.
+
+- `max_workers=None`
+ 
+   The maximum number of workers to use to run OpenTTD in parallel. If`None`, then `os.cpu_count()` defined how many workers run.
+
+- `openttd_version=None`
+
+   The version of OpenTTD to use. If `None`, the latest version available at `openttd_base_url` is used.
+
+- `opengfx_version=None`
+
+   The version of OpenGFX to use. If `None`, the latest version available at `opengfx_base_url` is used.
+
+- `openttd_base_url='https://cdn.openttd.org/openttd-releases/`
+
+   The base URL used to fetch the list of OpenTTD versions, and OpenTTD binaries.
+
+- `opengfx_base_url='https://cdn.openttd.org/opengfx-releases/`
+
+   The URL used to fetch the list of OpenGFX versions, and OpenGFX binaries.
+
+- `get_http_client=lambda: httpx.Client(transport=httpx.HTTPTransport(retries=3)`
+
+   The HTTP client used to make HTTP requests when fetching OpenTTD, OpenGFX, or AIs. Note that the `bananas_file` function uses a raw TCP connection in addition to HTTP requests, and so not all outgoing connections use the client specified by this.
+
+
 ### Fetching AIs
 
 The `ais` parameter of `run_experiment` configures which AIs will run, and how their code will be located. Specifically, the `ais`  parameter must be an iterable of `(name, ai)` pairs, where `name` is the name of the AI, and `ai` must be the return value of any of the following 3 functions.
 
-- `bananas_file(name, id)`
+#### `bananas_file(name, id)`
 
-   Defines an AI by the `name` and `id` of an AI published through OpenTTD's content service at https://bananas.openttd.org/package/ai. This allows you to quickly run OpenTTDLab with a published AI.
+Defines an AI by the `name` and `id` of an AI published through OpenTTD's content service at https://bananas.openttd.org/package/ai. This allows you to quickly run OpenTTDLab with a published AI.
 
-- `local_file(path)`
+#### `local_file(path)`
 
-  Defines an AI by the local path to a .tar AI file that contains the AI code.
+Defines an AI by the local path to a .tar AI file that contains the AI code.
 
-- `remote_file(url)`
+#### `remote_file(url)`
 
-  Fetches the AI by the URL of a tar.gz file that contains the AI code. For example, a specific GitHub tag of a repository that contains its code.
+Fetches the AI by the URL of a tar.gz file that contains the AI code. For example, a specific GitHub tag of a repository that contains its code.
 
-The return value of each is opaque: it should not be used in client code, other than by passing into `run_experiment` as its `ais` parameter.
+> [!NOTE]
+> The return value of each of the above is opaque: it should not be used in client code, other than by passing into `run_experiment` as its `ais` parameter.
 
 
 ## Compatibility
