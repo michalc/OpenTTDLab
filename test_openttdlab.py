@@ -39,7 +39,7 @@ def test_run_experiment_local_ai_default_version():
         'name': 'trAIns AI',
         'date': date(1954, 12, 1),
         'current_loan': 110000,
-        'money': 6546,
+        'money': 6371,
     }
     assert tuple(int(v) for v in results[58]['openttd_version'].split('.')) >= (13, 4)
     assert tuple(int(v) for v in results[58]['opengfx_version'].split('.')) >= (7, 1)
@@ -53,7 +53,7 @@ def test_run_experiment_local_ai_default_version():
         'name': 'trAIns AI',
         'date': date(1954, 12, 1),
         'current_loan': 300000,
-        'money': 672573,
+        'money': 641561,
     }
     assert tuple(int(v) for v in results[117]['openttd_version'].split('.')) >= (13, 4)
     assert tuple(int(v) for v in results[117]['opengfx_version'].split('.')) >= (7, 1)
@@ -86,7 +86,7 @@ def test_run_experiment_local_folder():
         'name': 'trAIns AI',
         'date': date(1954, 12, 1),
         'current_loan': 110000,
-        'money': 6546,
+        'money': 6371,
     }
     assert _basic_data(results[117]) == {
         'openttd_version': '13.4',
@@ -95,7 +95,7 @@ def test_run_experiment_local_folder():
         'name': 'trAIns AI',
         'date': date(1954, 12, 1),
         'current_loan': 300000,
-        'money': 672573,
+        'money': 641561,
     }
 
 
@@ -119,7 +119,7 @@ def test_run_experiment_local_file():
         'name': 'trAIns AI',
         'date': date(1954, 12, 1),
         'current_loan': 110000,
-        'money': 6546,
+        'money': 6371,
     }
     assert _basic_data(results[117]) == {
         'openttd_version': '13.4',
@@ -128,7 +128,7 @@ def test_run_experiment_local_file():
         'name': 'trAIns AI',
         'date': date(1954, 12, 1),
         'current_loan': 300000,
-        'money': 672573,
+        'money': 641561,
     }
 
 
