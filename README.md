@@ -70,9 +70,9 @@ results = run_experiment(
     seeds=range(0, 10),      # ... for a range of random seeds
     days=365 * 4 + 1,        # ... each for a number of (in game) days
     ais=(
-        # ... running specific AIs. In this case, fetching AI code from
-        #     https://bananas.openttd.org/package/ai
-        ('trAIns', bananas_file('trAIns', '54524149')),
+        # ... running specific AIs. In this case a single AI, with no
+        # parameters, fetching it from https://bananas.openttd.org/package/ai
+        ('trAIns', (), bananas_file('trAIns', '54524149')),
     ),
 )
 ```
@@ -160,7 +160,7 @@ The core function of OpenTTDLab is the `run_experiment` function, used to run an
 
 ### Fetching AIs
 
-The `ais` parameter of `run_experiment` configures which AIs will run, and how their code will be located. Specifically, the `ais`  parameter must be an iterable of `(name, ai)` pairs, where `name` is the name of the AI, and `ai` must be the return value of any of the following 3 functions.
+The `ais` parameter of `run_experiment` configures which AIs will run, and how their code will be located. Specifically, the `ais`  parameter must be an iterable of `(name, params, ai)` tuples, where `name` is the name of the AI, `params` is an iterable of `(key, value)` parameters for the AI, and `ai` must be the return value of any of the following 3 functions.
 
 #### `bananas_file(name, id)`
 
