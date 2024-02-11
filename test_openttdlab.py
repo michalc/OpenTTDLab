@@ -25,7 +25,7 @@ def test_run_experiment_local_ai_default_version():
         days=365 * 5 + 1,
         seeds=range(2, 4),
         ais=(
-            ('trAIns', local_file('./fixtures/54524149-trAIns-2.1.tar')),
+            ('trAIns', (), local_file('./fixtures/54524149-trAIns-2.1.tar')),
         ),
     )
 
@@ -72,7 +72,7 @@ def test_run_experiment_local_folder():
             days=365 * 5 + 1,
             seeds=range(2, 4),
             ais=(
-                ('trAIns', local_folder(d)),
+                ('trAIns', (), local_folder(d)),
             ),
             openttd_version='13.4',
             opengfx_version='7.1',
@@ -105,7 +105,7 @@ def test_run_experiment_local_file():
         days=365 * 5 + 1,
         seeds=range(2, 4),
         ais=(
-            ('trAIns', local_file('./fixtures/54524149-trAIns-2.1.tar')),
+            ('trAIns', (), local_file('./fixtures/54524149-trAIns-2.1.tar')),
         ),
         openttd_version='13.4',
         opengfx_version='7.1',
@@ -137,7 +137,7 @@ def test_run_experiment_remote():
         days=365 + 1,
         seeds=range(2, 3),
         ais=(
-            ('trAIns', remote_file('https://github.com/lhrios/trains/archive/refs/tags/2014_02_14.tar.gz')),
+            ('trAIns', (), remote_file('https://github.com/lhrios/trains/archive/refs/tags/2014_02_14.tar.gz')),
         ),
         openttd_version='13.4',
         opengfx_version='7.1',
@@ -160,7 +160,7 @@ def test_run_experiment_bananas():
         days=365 + 1,
         seeds=range(2, 3),
         ais=(
-            ('trAIns', bananas_file('trAIns', '54524149')),
+            ('trAIns', (), bananas_file('trAIns', '54524149')),
         ),
         openttd_version='13.4',
         opengfx_version='7.1',
@@ -188,7 +188,7 @@ def test_savegame_formats(savegame_format):
         seeds=range(2, 3),
         base_openttd_config=f'[misc]\nsavegame_format={savegame_format}\n',
         ais=(
-            ('trAIns', local_file('./fixtures/54524149-trAIns-2.1.tar')),
+            ('trAIns', (), local_file('./fixtures/54524149-trAIns-2.1.tar')),
         ),
         openttd_version='13.4',
         opengfx_version='7.1',

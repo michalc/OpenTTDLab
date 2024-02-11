@@ -201,13 +201,14 @@ def run_experiment(
 
             # Populate run directory
             shutil.copy(opengfx_binary, experiment_baseset_dir)
-            for ai_name, ai_file in ais:
+            for ai_name, _, ai_file in ais:
                 shutil.copy(os.path.join(experiment_dir, ai_name + '.tar'), experiment_ai_dir)
             config_file = os.path.join(run_dir, 'openttdlab.cfg')
 
             with open(os.path.join(experiment_script_dir, 'game_start.scr'), 'w') as f:
                 f.write(''.join(
-                    f'start_ai {ai_name}\n' for ai_name, file in ais
+                    f'start_ai {ai_name}' + (' ' + ','.join(f'{key}={value}' for key, value in params) if params else '') + '\n'
+                    for ai_name, params, _ in ais
                 ))
             with open(config_file, 'w') as f:
                 f.write(base_openttd_config + textwrap.dedent('''
@@ -242,7 +243,7 @@ def run_experiment(
 
         experiment_id = str(uuid.uuid4())
         with tempfile.TemporaryDirectory(prefix=f'OpenTTDLab-{experiment_id}-') as experiment_dir:
-            for ai_name, ai_file in ais:
+            for ai_name, _, ai_file in ais:
                 ai_file(client, cache_dir, ai_name, experiment_dir)
 
             max_workers = \
