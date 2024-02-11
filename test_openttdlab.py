@@ -1,9 +1,12 @@
 import json
+import os
+import tarfile
+import tempfile
 from datetime import date
 
 import pytest
 
-from openttdlab import parse_savegame, run_experiment, local_file, remote_file, bananas_file
+from openttdlab import parse_savegame, run_experiment, local_folder, local_file, remote_file, bananas_file
 
 
 def _basic_data(result_row):
@@ -57,7 +60,48 @@ def test_run_experiment_local_ai_default_version():
     assert tuple(int(v) for v in results[117]['opengfx_version'].split('.')) >= (7, 1)
 
 
-def test_run_experiment_local():
+def test_run_experiment_local_folder():
+
+    with tempfile.TemporaryDirectory() as d:
+        with tarfile.open('./fixtures/54524149-trAIns-2.1.tar', 'r') as f_tar:
+            for name in f_tar.getnames():
+                if '..' in name or name.strip().startswith('/'):
+                    raise Exception('Unsafe', archive_location)
+            f_tar.extractall(d)
+
+        results = run_experiment(
+            days=365 * 5 + 1,
+            seeds=range(2, 4),
+            ais=(
+                ('trAIns', local_folder(os.path.join(d))),
+            ),
+            openttd_version='13.4',
+            opengfx_version='7.1',
+        )
+
+    assert len(results) == 118
+    assert _basic_data(results[58]) == {
+        'openttd_version': '13.4',
+        'opengfx_version': '7.1',
+        'seed': 2,
+        'name': 'trAIns AI',
+        'date': date(1954, 12, 1),
+        'current_loan': 110000,
+        'money': 6546,
+    }
+    assert _basic_data(results[117]) == {
+        'openttd_version': '13.4',
+        'opengfx_version': '7.1',
+        'seed': 3,
+        'name': 'trAIns AI',
+        'date': date(1954, 12, 1),
+        'current_loan': 300000,
+        'money': 672573,
+    }
+
+
+def test_run_experiment_local_file():
+
     results = run_experiment(
         days=365 * 5 + 1,
         seeds=range(2, 4),
