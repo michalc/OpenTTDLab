@@ -280,6 +280,14 @@ def local_file(filename):
     return _copy
 
 
+def local_folder(foldername):
+    def _copy(client, cache_dir, ai_name, target):
+        with tarfile.open(os.path.join(target, ai_name + '.tar'), 'w') as tar:
+            tar.add(foldername, arcname='')
+
+    return _copy
+
+
 def remote_file(url):
     def _download(client, ache_dir, ai_name, target):
         with client.stream("GET", url, follow_redirects=True) as r:
