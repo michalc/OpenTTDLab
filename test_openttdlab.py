@@ -1,5 +1,4 @@
 import json
-import os
 import tarfile
 import tempfile
 from datetime import date
@@ -73,7 +72,7 @@ def test_run_experiment_local_folder():
             days=365 * 5 + 1,
             seeds=range(2, 4),
             ais=(
-                ('trAIns', local_folder(os.path.join(d))),
+                ('trAIns', local_folder(d)),
             ),
             openttd_version='13.4',
             opengfx_version='7.1',
