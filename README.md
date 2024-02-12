@@ -72,7 +72,7 @@ results = run_experiment(
     ais=(
         # ... running specific AIs. In this case a single AI, with no
         # parameters, fetching it from https://bananas.openttd.org/package/ai
-        ('trAIns', (), bananas_file('trAIns', '54524149')),
+        bananas_file('trAIns', '54524149', ai_params=()),
     ),
 )
 ```
@@ -160,26 +160,31 @@ The core function of OpenTTDLab is the `run_experiment` function, used to run an
 
 ### Fetching AIs
 
-The `ais` parameter of `run_experiment` configures which AIs will run, and how their code will be located. Specifically, the `ais`  parameter must be an iterable of `(name, params, ai)` tuples, where `name` is the name of the AI, `params` is an iterable of `(key, value)` parameters for the AI, and `ai` must be the return value of any of the following 3 functions.
+The `ais` parameter of `run_experiment` configures which AIs will run, how their code will be located, their names, and what parameters will be passed to each of them when they start. In more detail, the `ais`  parameter must be an iterable of the return value of any of the the following 4 functions.
 
-#### `bananas_file(name, id)`
+> [!IMPORTANT]
+> The `ai_name` argument passed to each of the following functions must exactly match the name of the corresponding AI as published. If it does not match, the AI will not be started.
 
-Defines an AI by the `name` and `id` of an AI published through OpenTTD's content service at https://bananas.openttd.org/package/ai. This allows you to quickly run OpenTTDLab with a published AI.
+> [!IMPORTANT]
+> The return value of each of the following is opaque: it should not be used in client code, other than by passing into `run_experiment` as part of the `ais` parameter.
 
-#### `local_folder(path)`
+#### `bananas_file(unique_id, ai_name, ai_params=())`
 
-Defines an AI by the path to a local folder that contains the AI code.
+Defines an AI by the `unique_id` and `ai_name` of an AI published through OpenTTD's content service at https://bananas.openttd.org/package/ai. This allows you to quickly run OpenTTDLab with a published AI. The `ai_params` parameter is an optional parameter of an iterable of `(key, value)` parameters passed to the AI on startup.
 
-#### `local_file(path)`
+The `unique_id` is sometimes surfaced as the "Content Id", but it should not include its `ai/` prefix.
 
-Defines an AI by the local path to a .tar AI file that contains the AI code.
+#### `local_folder(folder_path, ai_name, ai_params=()))`
 
-#### `remote_file(url)`
+Defines an AI by the `folder_path` to a local folder that contains the AI code of an AI with name `ai_name`. The `ai_params` parameter is an optional parameter of an iterable of `(key, value)` parameters passed to the AI on startup.
 
-Fetches the AI by the URL of a tar.gz file that contains the AI code. For example, a specific GitHub tag of a repository that contains its code.
+#### `local_file(path, ai_name, ai_params=())`
 
-> [!NOTE]
-> The return value of each of the above is opaque: it should not be used in client code, other than by passing into `run_experiment` as its `ais` parameter.
+Defines an AI by the local path to a .tar AI file that contains the AI code. The `ai_params` parameter is an optional parameter of an iterable of `(key, value)` parameters passed to the AI on startup.
+
+#### `remote_file(url, ai_name, ai_params=())`
+
+Fetches the AI by the URL of a tar.gz file that contains the AI code. For example, a specific GitHub tag of a repository that contains its code. The `ai_params` parameter is an optional parameter of an iterable of `(key, value)` parameters passed to the AI on startup.
 
 
 ## Compatibility

@@ -201,14 +201,14 @@ def run_experiment(
 
             # Populate run directory
             shutil.copy(opengfx_binary, experiment_baseset_dir)
-            for ai_name, _, ai_file in ais:
+            for ai_name, _, _ in ais:
                 shutil.copy(os.path.join(experiment_dir, ai_name + '.tar'), experiment_ai_dir)
             config_file = os.path.join(run_dir, 'openttdlab.cfg')
 
             with open(os.path.join(experiment_script_dir, 'game_start.scr'), 'w') as f:
                 f.write(''.join(
-                    f'start_ai {ai_name}' + (' ' + ','.join(f'{key}={value}' for key, value in params) if params else '') + '\n'
-                    for ai_name, params, _ in ais
+                    f'start_ai {ai_name}' + (' ' + ','.join(f'{key}={value}' for key, value in ai_params) if ai_params else '') + '\n'
+                    for ai_name, ai_params, _ in ais
                 ))
             with open(config_file, 'w') as f:
                 f.write(base_openttd_config + textwrap.dedent('''
@@ -243,8 +243,8 @@ def run_experiment(
 
         experiment_id = str(uuid.uuid4())
         with tempfile.TemporaryDirectory(prefix=f'OpenTTDLab-{experiment_id}-') as experiment_dir:
-            for ai_name, _, ai_file in ais:
-                ai_file(client, cache_dir, ai_name, experiment_dir)
+            for _, _, ai_copy in ais:
+                ai_copy(client, cache_dir, experiment_dir)
 
             max_workers = \
                 max_workers if max_workers is not None else \
@@ -276,34 +276,34 @@ def _gz_decompress(compressed_chunks):
         yield chunk
 
 
-def local_file(filename):
-    def _copy(client, cache_dir, ai_name, target):
-        shutil.copy(filename, os.path.join(target, ai_name + '.tar'))
+def local_file(file_path, ai_name, ai_params=()):
+    def _copy(client, cache_dir, target):
+        shutil.copy(file_path, os.path.join(target, ai_name + '.tar'))
 
-    return _copy
+    return ai_name, ai_params, _copy
 
 
-def local_folder(foldername):
-    def _copy(client, cache_dir, ai_name, target):
+def local_folder(folder_path, ai_name, ai_params=()):
+    def _copy(client, cache_dir, target):
         with tarfile.open(os.path.join(target, ai_name + '.tar'), 'w') as tar:
-            tar.add(foldername, arcname='')
+            tar.add(folder_path, arcname='')
 
-    return _copy
+    return ai_name, ai_params, _copy
 
 
-def remote_file(url):
-    def _download(client, ache_dir, ai_name, target):
+def remote_file(url, ai_name, ai_params=()):
+    def _download(client, cache_dir, target):
         with client.stream("GET", url, follow_redirects=True) as r:
             r.raise_for_status()
             with open(os.path.join(target, ai_name + '.tar'), 'wb') as f:
                 for chunk in _gz_decompress(r.iter_bytes()):
                     f.write(chunk)
-    return _download
+    return ai_name, ai_params, _download
 
 
-def bananas_file(name, unique_id):
+def bananas_file(unique_id, ai_name, ai_params=()):
 
-    def _download(client, cache_dir, ai_name, target):
+    def _download(client, cache_dir, target):
         @contextlib.contextmanager
         def tcp_connection(address):
 
@@ -348,7 +348,7 @@ def bananas_file(name, unique_id):
             return
 
         # Check name is what client code expected
-        if ai_dict['name'] != name:
+        if ai_dict['name'] != ai_name:
             raise Exception("Mismatched name")
 
         # Convert unique ID to content ID from the Bananas TCP server, and get its expected filesize
@@ -395,7 +395,7 @@ def bananas_file(name, unique_id):
                     f.write(chunk)
             shutil.copy(os.path.join(target, ai_name + '.tar'), cached_file)
 
-    return _download
+    return ai_name, ai_params, _download
 
 
 def parse_savegame(chunks, chunk_size=65536):
