@@ -72,7 +72,7 @@ results = run_experiment(
     ais=(
         # ... running specific AIs. In this case a single AI, with no
         # parameters, fetching it from https://bananas.openttd.org/package/ai
-        bananas_file('trAIns', '54524149', ai_params=()),
+        bananas_file('54524149', 'trAIns', ai_params=()),
     ),
 )
 ```
