@@ -5,7 +5,7 @@ from datetime import date
 
 import pytest
 
-from openttdlab import parse_savegame, run_experiment, local_folder, local_file, remote_file, bananas_file
+from openttdlab import parse_savegame, run_experiment, local_folder, local_file, remote_file, bananas_ai
 
 
 def _basic_data(result_row):
@@ -160,7 +160,7 @@ def test_run_experiment_bananas():
         days=365 + 1,
         seeds=range(2, 3),
         ais=(
-            bananas_file('54524149', 'trAIns'),
+            bananas_ai('54524149', 'trAIns'),
         ),
         openttd_version='13.4',
         opengfx_version='7.1',
