@@ -61,7 +61,7 @@ You do not need to separately download or install OpenTTD (or [OpenGFX](https://
 The core function of OpenTTD is the `run_experiment` function.
 
 ```python
-from openttdlab import run_experiment, bananas_file
+from openttdlab import run_experiment, bananas_ai
 
 # Run experiments...
 results = run_experiment(
@@ -72,7 +72,7 @@ results = run_experiment(
     ais=(
         # ... running specific AIs. In this case a single AI, with no
         # parameters, fetching it from https://bananas.openttd.org/package/ai
-        bananas_file('54524149', 'trAIns', ai_params=()),
+        bananas_ai('54524149', 'trAIns', ai_params=()),
     ),
 )
 ```
@@ -155,7 +155,7 @@ The core function of OpenTTDLab is the `run_experiment` function, used to run an
 
 - `get_http_client=lambda: httpx.Client(transport=httpx.HTTPTransport(retries=3)`
 
-   The HTTP client used to make HTTP requests when fetching OpenTTD, OpenGFX, or AIs. Note that the `bananas_file` function uses a raw TCP connection in addition to HTTP requests, and so not all outgoing connections use the client specified by this.
+   The HTTP client used to make HTTP requests when fetching OpenTTD, OpenGFX, or AIs. Note that the `bananas_ai` function uses a raw TCP connection in addition to HTTP requests, and so not all outgoing connections use the client specified by this.
 
 
 ### Fetching AIs
@@ -168,7 +168,7 @@ The `ais` parameter of `run_experiment` configures which AIs will run, how their
 > [!IMPORTANT]
 > The return value of each of the following is opaque: it should not be used in client code, other than by passing into `run_experiment` as part of the `ais` parameter.
 
-#### `bananas_file(unique_id, ai_name, ai_params=())`
+#### `bananas_ai(unique_id, ai_name, ai_params=())`
 
 Defines an AI by the `unique_id` and `ai_name` of an AI published through OpenTTD's content service at https://bananas.openttd.org/package/ai. This allows you to quickly run OpenTTDLab with a published AI. The `ai_params` parameter is an optional parameter of an iterable of `(key, value)` parameters passed to the AI on startup.
 

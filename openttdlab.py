@@ -301,7 +301,7 @@ def remote_file(url, ai_name, ai_params=()):
     return ai_name, ai_params, _download
 
 
-def bananas_file(unique_id, ai_name, ai_params=()):
+def bananas_ai(unique_id, ai_name, ai_params=()):
 
     def _download(client, cache_dir, target):
         @contextlib.contextmanager
