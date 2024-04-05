@@ -43,6 +43,7 @@ __version__ = '0.0.0.dev0'
 
 def run_experiment(
     ais=(),
+    ai_libraries=(),
     days=365 * 4 + 1,
     seeds=(1,),
     base_openttd_config='',
@@ -196,6 +197,8 @@ def run_experiment(
             Path(experiment_baseset_dir).mkdir(parents=True)
             experiment_ai_dir = os.path.join(run_dir, 'ai')
             Path(experiment_ai_dir).mkdir(parents=True)
+            experiment_ai_library_dir = os.path.join(run_dir, 'ai/library')
+            Path(experiment_ai_library_dir).mkdir(parents=True)
             experiment_script_dir = os.path.join(run_dir, 'scripts')
             Path(experiment_script_dir).mkdir(parents=True)
 
@@ -203,6 +206,8 @@ def run_experiment(
             shutil.copy(opengfx_binary, experiment_baseset_dir)
             for ai_name, _, _ in ais:
                 shutil.copy(os.path.join(experiment_dir, ai_name + '.tar'), experiment_ai_dir)
+            for ai_library_name, _ in ai_libraries:
+                shutil.copy(os.path.join(experiment_dir, ai_library_name + '.tar'), experiment_ai_library_dir)
             config_file = os.path.join(run_dir, 'openttdlab.cfg')
 
             with open(os.path.join(experiment_script_dir, 'game_start.scr'), 'w') as f:
@@ -245,6 +250,9 @@ def run_experiment(
         with tempfile.TemporaryDirectory(prefix=f'OpenTTDLab-{experiment_id}-') as experiment_dir:
             for _, _, ai_copy in ais:
                 ai_copy(client, cache_dir, experiment_dir)
+
+            for _, ai_library_copy in ai_libraries:
+                ai_library_copy(client, cache_dir, experiment_dir)
 
             max_workers = \
                 max_workers if max_workers is not None else \
@@ -301,7 +309,7 @@ def remote_file(url, ai_name, ai_params=()):
     return ai_name, ai_params, _download
 
 
-def bananas_ai(unique_id, ai_name, ai_params=()):
+def _bananas_download(bananas_type_id, bananas_type_str, unique_id, content_name):
 
     def _download(client, cache_dir, target):
         @contextlib.contextmanager
@@ -334,32 +342,31 @@ def bananas_ai(unique_id, ai_name, ai_params=()):
                         pass
 
         # Confirm via HTTPs that this name/unique ID pair exists
-        ai_resp = client.get(f'https://bananas-api.openttd.org/package/ai/{unique_id}')
-        ai_resp.raise_for_status()
-        ai_dict = ai_resp.json()
-        ai_dict_latest_version = max(ai_dict['versions'], key=lambda version: version['version'].split('.'))
+        api_resp = client.get(f'https://bananas-api.openttd.org/package/{bananas_type_str}/{unique_id}')
+        api_resp.raise_for_status()
+        api_dict = api_resp.json()
+        api_dict_latest_version = max(api_dict['versions'], key=lambda version: version['version'].split('.'))
 
         # Check if we already have this version cached
-        ai_cache_dir = os.path.join(cache_dir, 'bananas', 'ai')
-        Path(ai_cache_dir).mkdir(parents=True, exist_ok=True)
-        cached_file = os.path.join(ai_cache_dir, f'{unique_id}-{ai_dict["name"]}-{ai_dict_latest_version["version"]}.tar')
+        content_cache_dir = os.path.join(cache_dir, 'bananas', bananas_type_str)
+        Path(content_cache_dir).mkdir(parents=True, exist_ok=True)
+        cached_file = os.path.join(content_cache_dir, f'{unique_id}-{api_dict["name"]}-{api_dict_latest_version["version"]}.tar')
         if os.path.exists(cached_file):
-            shutil.copy(cached_file, os.path.join(target, ai_name + '.tar'))
+            shutil.copy(cached_file, os.path.join(target, content_name + '.tar'))
             return
 
         # Check name is what client code expected
-        if ai_dict['name'] != ai_name:
+        if api_dict['name'] != content_name:
             raise Exception("Mismatched name")
 
         # Convert unique ID to content ID from the Bananas TCP server, and get its expected filesize
         with tcp_connection(("content.openttd.org", 3978)) as (recv_bytes, send_bytes):
 
             PACKET_CONTENT_CLIENT_INFO_EXTID = 2
-            CONTENT_TYPE_AI = 3
             packet_body = \
                 struct.pack("<B", PACKET_CONTENT_CLIENT_INFO_EXTID) + \
                 struct.pack("<B", 1) + \
-                struct.pack("<B", CONTENT_TYPE_AI) + \
+                struct.pack("<B", bananas_type_id) + \
                 struct.pack(">I", int(unique_id, 16))
             send_bytes(struct.pack("<H", len(packet_body) + 2) + packet_body)
 
@@ -379,9 +386,9 @@ def bananas_ai(unique_id, ai_name, ai_params=()):
         # Try to verify that the unencrypted connection to content.openttd.org didn't lie to us
         if f'/{unique_id}/' not in binaries_link:
             raise Exception('Mismatched content ID')
-        if f'/{ai_dict_latest_version["md5sum-partial"]}' not in binaries_link:
+        if f'/{api_dict_latest_version["md5sum-partial"]}' not in binaries_link:
             raise Exception('Mismatched md5sum-partial')
-        if ai_dict_latest_version['filesize'] != int(binaries_filesize):
+        if api_dict_latest_version['filesize'] != int(binaries_filesize):
             raise Exception('Mismatched filesize')
 
         # Download from CDN URL
@@ -390,12 +397,24 @@ def bananas_ai(unique_id, ai_name, ai_params=()):
             if response.headers['content-length'] != binaries_filesize:
                 raise Exception('Mismatched filesize')
 
-            with open(os.path.join(target, ai_name + '.tar'), 'wb') as f:
+            with open(os.path.join(target, content_name + '.tar'), 'wb') as f:
                 for chunk in _gz_decompress(response.iter_bytes()):
                     f.write(chunk)
-            shutil.copy(os.path.join(target, ai_name + '.tar'), cached_file)
+            shutil.copy(os.path.join(target, content_name + '.tar'), cached_file)
 
-    return ai_name, ai_params, _download
+    return _download
+
+
+def bananas_ai(unique_id, ai_name, ai_params=()):
+    CONTENT_TYPE_AI = 3
+
+    return ai_name, ai_params, _bananas_download(CONTENT_TYPE_AI, 'ai', unique_id, ai_name)
+
+
+def bananas_ai_library(unique_id, ai_library_name):
+    CONTENT_TYPE_AI_LIBRARY = 4
+
+    return ai_library_name, _bananas_download(CONTENT_TYPE_AI_LIBRARY, 'ai-library', unique_id, ai_library_name)
 
 
 def parse_savegame(chunks, chunk_size=65536):
