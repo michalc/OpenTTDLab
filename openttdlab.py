@@ -43,6 +43,7 @@ __version__ = '0.0.0.dev0'
 
 def run_experiment(
     ais=(),
+    ai_libraries=(),
     days=365 * 4 + 1,
     seeds=(1,),
     base_openttd_config='',
@@ -196,6 +197,8 @@ def run_experiment(
             Path(experiment_baseset_dir).mkdir(parents=True)
             experiment_ai_dir = os.path.join(run_dir, 'ai')
             Path(experiment_ai_dir).mkdir(parents=True)
+            experiment_ai_library_dir = os.path.join(run_dir, 'ai/library')
+            Path(experiment_ai_library_dir).mkdir(parents=True)
             experiment_script_dir = os.path.join(run_dir, 'scripts')
             Path(experiment_script_dir).mkdir(parents=True)
 
@@ -203,6 +206,8 @@ def run_experiment(
             shutil.copy(opengfx_binary, experiment_baseset_dir)
             for ai_name, _, _ in ais:
                 shutil.copy(os.path.join(experiment_dir, ai_name + '.tar'), experiment_ai_dir)
+            for ai_library_name, _ in ai_libraries:
+                shutil.copy(os.path.join(experiment_dir, ai_library_name + '.tar'), experiment_ai_library_dir)
             config_file = os.path.join(run_dir, 'openttdlab.cfg')
 
             with open(os.path.join(experiment_script_dir, 'game_start.scr'), 'w') as f:
@@ -245,6 +250,9 @@ def run_experiment(
         with tempfile.TemporaryDirectory(prefix=f'OpenTTDLab-{experiment_id}-') as experiment_dir:
             for _, _, ai_copy in ais:
                 ai_copy(client, cache_dir, experiment_dir)
+
+            for _, ai_library_copy in ai_libraries:
+                ai_library_copy(client, cache_dir, experiment_dir)
 
             max_workers = \
                 max_workers if max_workers is not None else \
@@ -401,6 +409,12 @@ def bananas_ai(unique_id, ai_name, ai_params=()):
     CONTENT_TYPE_AI = 3
 
     return ai_name, ai_params, _bananas_download(CONTENT_TYPE_AI, 'ai', unique_id, ai_name)
+
+
+def bananas_ai_library(unique_id, ai_library_name):
+    CONTENT_TYPE_AI_LIBRARY = 4
+
+    return ai_library_name, _bananas_download(CONTENT_TYPE_AI_LIBRARY, 'ai-library', unique_id, ai_library_name)
 
 
 def parse_savegame(chunks, chunk_size=65536):

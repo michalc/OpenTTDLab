@@ -121,6 +121,10 @@ The core function of OpenTTDLab is the `run_experiment` function, used to run an
 
    The list of AIs to run. See the [Fetching AIs](#fetching-ais) section for details on this parameter.
 
+- `ais_libraries=()`
+
+   The list of AI libraries to have available to AI code. See the [Fetching AI libraries](#fetching-ai-libraries) section for details on this parameter.
+
 - `seeds=(1,)`
 
    An iterable of integers, where each is used to seed the random number generator in a run of OpenTTD.
@@ -185,6 +189,17 @@ Defines an AI by the local path to a .tar AI file that contains the AI code. The
 #### `remote_file(url, ai_name, ai_params=())`
 
 Fetches the AI by the URL of a tar.gz file that contains the AI code. For example, a specific GitHub tag of a repository that contains its code. The `ai_params` parameter is an optional parameter of an iterable of `(key, value)` parameters passed to the AI on startup.
+
+
+### Fetching AI libraries
+
+The `ai_libraries` parameter of `run_experiment` ensures that AI libraries are available to the AIs running. In more detail, the `ais_libraries`  parameter must be an iterable, where each item the the return value of the following function.
+
+#### `bananas_ai_library(unique_id, ai_library_name)`
+
+Fetches the AI library defined by `unique_id` and `ai_name` of a library published through OpenTTD's content service at https://bananas.openttd.org/package/ai-library.
+
+The `unique_id` is sometimes surfaced as the "Content Id", but it should not include its `ai-library/` prefix.
 
 
 ## Compatibility

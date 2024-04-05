@@ -5,7 +5,15 @@ from datetime import date
 
 import pytest
 
-from openttdlab import parse_savegame, run_experiment, local_folder, local_file, remote_file, bananas_ai
+from openttdlab import (
+    parse_savegame,
+    run_experiment,
+    local_folder,
+    local_file,
+    remote_file,
+    bananas_ai,
+    bananas_ai_library,
+)
 
 
 def _basic_data(result_row):
@@ -175,6 +183,34 @@ def test_run_experiment_bananas():
         'date': date(1950, 12, 1),
         'current_loan': 300000,
         'money': 280615,
+    }
+
+
+def test_run_experiment_bananas_as_library():
+    results = run_experiment(
+        days=365 + 1,
+        seeds=range(2, 3),
+        ais=(
+            local_file('./fixtures/NoOpAIImportingPathfinder-1.tar', 'NoOpAIImportingPathfinder'),
+        ),
+        ai_libraries=(
+            bananas_ai_library('5046524f', 'Pathfinder.Road'),
+            bananas_ai_library('4752412a', 'Graph.AyStar'),
+            bananas_ai_library('51554248', 'Queue.BinaryHeap'),
+        ),
+        openttd_version='13.4',
+        opengfx_version='7.1',
+    )
+
+    assert len(results) == 12
+    assert _basic_data(results[10]) == {
+        'openttd_version': '13.4',
+        'opengfx_version': '7.1',
+        'seed': 2,
+        'name': 'NoOpAIImportingPathfinder',
+        'date': date(1950, 12, 1),
+        'current_loan': 100000,
+        'money': 97891,
     }
 
 
