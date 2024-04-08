@@ -47,6 +47,7 @@ def run_experiment(
     days=365 * 4 + 1,
     seeds=(1,),
     base_openttd_config='',
+    final_screenshot_directory=None,
     max_workers=None,
     openttd_version=None,
     opengfx_version=None,
@@ -241,6 +242,28 @@ def run_experiment(
 
             autosave_dir = os.path.join(run_dir, 'save', 'autosave')
             autosave_filenames = sorted(list(os.listdir(autosave_dir)))
+
+            if final_screenshot_directory is not None:
+                with open(os.path.join(experiment_script_dir, 'game_start.scr'), 'w') as f:
+                    f.write('screenshot giant\n')
+                    f.write('quit\n')
+
+                subprocess.check_output(
+                    (openttd_binary,) + (
+                        '-g', os.path.join(autosave_dir, autosave_filenames[-1]),
+                        '-G', str(seed),          # Seed for random number generator
+                        '-snull',                 # No sound
+                        '-mnull',                 # No music
+                         '-c', config_file,       # Config file
+                    ),
+                    cwd=run_dir,                  # OpenTTD looks in the current working directory for files
+                )
+                screenshot_file = os.listdir(os.path.join(run_dir, 'screenshot'))[0]
+                shutil.copyfile(
+                    os.path.join(run_dir, 'screenshot', screenshot_file),
+                    os.path.join(final_screenshot_directory, str(seed) + '.png'),
+                )
+
             return [
                 get_savegame_row(openttd_version, opengfx_version, seed, os.path.join(autosave_dir, filename))
                 for filename in autosave_filenames
