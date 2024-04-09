@@ -141,7 +141,7 @@ The core function of OpenTTDLab is the `run_experiment` function, used to run an
 
    The directory to save a PNG screenshot of the entire map at the end of each run. Each is named in the format `<seed>.png`, where `<seed>` is the run's seed of the random number generator. If `None`, then no screenshots are saved.
 
-   For technical reasons, a window will briefly appear while each screenshot is being saved.
+   For technical reasons, a window will briefly appear while each screenshot is being saved. This can be avoided when running on Linux if `xvfb-run` is installed and available in the path.
 
 - `max_workers=None`
  
