@@ -137,6 +137,12 @@ The core function of OpenTTDLab is the `run_experiment` function, used to run an
 
    OpenTTD config to run each experiment under. This must be in the [openttd.cfg format](https://wiki.openttd.org/en/Archive/Manual/Settings/Openttd.cfg). This is added to by OpenTTDLab before being passed to OpenTTD.
 
+- `final_screenshot_directory=None`
+
+   The directory to save a PNG screenshot of the entire map at the end of each run. Each is named in the format `<seed>.png`, where `<seed>` is the run's seed of the random number generator. If `None`, then no screenshots are saved.
+
+   For technical reasons, a window will briefly appear while each screenshot is being saved.
+
 - `max_workers=None`
  
    The maximum number of workers to use to run OpenTTD in parallel. If`None`, then `os.cpu_count()` defined how many workers run.
