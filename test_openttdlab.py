@@ -1,4 +1,5 @@
 import json
+import os
 import tarfile
 import tempfile
 from datetime import date
@@ -212,6 +213,47 @@ def test_run_experiment_bananas_as_library():
         'current_loan': 100000,
         'money': 97891,
     }
+
+
+def test_run_experiment_screenshots():
+    def read_header(file):
+        with open(file, 'rb') as f:
+            return f.read(32)
+
+    with tempfile.TemporaryDirectory(prefix=f'OpenTTD-screenshots-') as screenshot_dir:
+        results = run_experiment(
+            days=365 + 1,
+            seeds=range(2, 4),
+            ais=(
+                bananas_ai('54524149', 'trAIns'),
+            ),
+            final_screenshot_directory=screenshot_dir,
+            openttd_version='13.4',
+            opengfx_version='7.1',
+        )
+        screenshots = list(sorted(os.listdir(screenshot_dir)))
+        screenshots_are_pngs = all(
+            read_header(os.path.join(screenshot_dir, screenshot)).startswith(b'\x89PNG\r\n\x1A\n')
+            for screenshot in screenshots
+        )
+        screenshot_sizes_big = [
+            os.path.getsize(os.path.join(screenshot_dir, screenshot)) > 10000000
+            for screenshot in screenshots
+        ]
+
+    assert len(results) == 24
+    assert _basic_data(results[10]) == {
+        'openttd_version': '13.4',
+        'opengfx_version': '7.1',
+        'seed': 2,
+        'name': 'trAIns AI',
+        'date': date(1950, 12, 1),
+        'current_loan': 300000,
+        'money': 280615,
+    }
+    assert screenshots == ['2.png', '3.png']
+    assert screenshots_are_pngs
+    assert screenshot_sizes_big
 
 
 @pytest.mark.parametrize(

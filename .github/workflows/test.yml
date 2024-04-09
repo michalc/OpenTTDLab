@@ -38,7 +38,12 @@ jobs:
       - name: "Install python dependencies"
         run: |
           pip install ".[ci]"
-      - name: "Run tests"
+      - name: "Run tests (non linux)"
+        if: matrix.os != 'ubuntu-20.04'
         run: |
           pytest --cov
+      - name: "Run tests (linux)"
+        if: matrix.os == 'ubuntu-20.04'
+        run: |
+          xvfb-run pytest --cov
       - uses: codecov/codecov-action@v3
