@@ -192,6 +192,9 @@ def run_experiment(
         # Ensure the OpenTTD binary is executable
         os.chmod(openttd_binary, os.stat(openttd_binary).st_mode | stat.S_IEXEC)
 
+        # Check if we can use xvfb_run to avoid windows popping up when taking a screenshot
+        xvfb_run_available = subprocess.call("type xvfb-run", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE) == 0
+
         def run(experiment_dir, i, seed):
             run_dir = os.path.join(experiment_dir, str(i))
             experiment_baseset_dir = os.path.join(run_dir, 'baseset')
@@ -249,7 +252,7 @@ def run_experiment(
                     f.write('quit\n')
 
                 subprocess.check_output(
-                    (openttd_binary,) + (
+                    (('xvfb-run', '-a',) if xvfb_run_available else ()) + (openttd_binary,) + (
                         '-g', os.path.join(autosave_dir, autosave_filenames[-1]),
                         '-G', str(seed),          # Seed for random number generator
                         '-snull',                 # No sound
