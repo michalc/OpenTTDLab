@@ -22,6 +22,7 @@ dependencies = [
     "httpx>=0.26.0",
     "platformdirs>=4.1.0",
     "PyYAML>=6.0.1",
+    "rich>=13.7.1",
 ]
 
 [project.urls]
@@ -42,6 +43,7 @@ ci = [
   "httpx==0.26.0",
   "platformdirs==4.1.0",
   "PyYAML==6.0.1",
+  "rich==13.7.1",
 ]
 
 [tool.hatch.build]
