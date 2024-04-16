@@ -28,7 +28,10 @@ def _basic_data(result_row):
         'current_loan': result_row['chunks']['PLYR']['0']['current_loan'],
     }
 
-
+# OpenTTD 14.0 changed the way autosave works which OpenTTDLab depended on
+# It changes saving per X game time to per X real time. While this is being
+# worked on/figured out, disabling the test
+@pytest.mark.skip(reason='OpenTTDLab no longer works on OpenTTD 14.0')
 def test_run_experiment_local_ai_default_version():
     results = run_experiment(
         days=365 * 5 + 1,
