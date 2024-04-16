@@ -30,7 +30,9 @@ import zlib
 from concurrent.futures import FIRST_EXCEPTION, ThreadPoolExecutor, wait
 from collections import defaultdict
 from datetime import date, timedelta
+from functools import partial
 from pathlib import Path
+from rich.progress import MofNCompleteColumn, BarColumn, SpinnerColumn, TextColumn, Progress
 
 import httpx
 import yaml
@@ -272,6 +274,10 @@ def run_experiment(
                 for filename in autosave_filenames
             ]
 
+        def run_done(progress, task, _):
+            progress.update(task, advance=1)
+            progress.refresh()
+
         experiment_id = str(uuid.uuid4())
         with tempfile.TemporaryDirectory(prefix=f'OpenTTDLab-{experiment_id}-') as experiment_dir:
             for _, _, ai_copy in ais:
@@ -283,11 +289,21 @@ def run_experiment(
             max_workers = \
                 max_workers if max_workers is not None else \
                 (os.cpu_count() or 1)
-            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            with \
+                    Progress(
+                        SpinnerColumn(finished_text='[green]✔'),
+                        TextColumn("[progress.description]{task.description}"),
+                        BarColumn(),
+                        MofNCompleteColumn(),
+                    ) as progress, \
+                    ThreadPoolExecutor(max_workers=max_workers) as executor:
                 futures = [
                     executor.submit(run, experiment_dir, i, seed)
                     for i, seed in enumerate(seeds)
                 ]
+                task = progress.add_task("Running experiments...", total=len(futures))
+                for future in futures:
+                    future.add_done_callback(partial(run_done, progress, task))
                 done, _ = wait(futures, return_when=FIRST_EXCEPTION)
                 if e := next(iter(done)).exception():
                     raise e from None
