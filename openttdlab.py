@@ -43,7 +43,7 @@ from platformdirs import user_cache_dir
 __version__ = '0.0.0.dev0'
 
 
-def run_experiment(
+def run_experiments(
     ais=(),
     ai_libraries=(),
     days=365 * 4 + 1,

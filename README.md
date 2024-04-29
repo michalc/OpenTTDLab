@@ -61,13 +61,13 @@ You do not need to separately download or install OpenTTD (or [OpenGFX](https://
 
 ## Running an experiment
 
-The core function of OpenTTD is the `run_experiment` function.
+The core function of OpenTTD is the `run_experiments` function.
 
 ```python
-from openttdlab import run_experiment, bananas_ai
+from openttdlab import run_experiments, bananas_ai
 
 # Run experiments...
-results = run_experiment(
+results = run_experiments(
     openttd_version='13.4',  # ... for a specific versions of OpenTTD
     opengfx_version='7.1',   # ... and a specific versions of OpenGFX
     seeds=range(0, 10),      # ... for a range of random seeds
@@ -83,7 +83,7 @@ results = run_experiment(
 
 ## Plotting results
 
-OpenTTD does not require any particular library for plotting results. However, [pandas](https://pandas.pydata.org/) and [Plotly Express](https://plotly.com/python/plotly-express/) are common options for plotting from Python. For example if you have a `results` object from `run_experiment` as in the above example, the following code
+OpenTTD does not require any particular library for plotting results. However, [pandas](https://pandas.pydata.org/) and [Plotly Express](https://plotly.com/python/plotly-express/) are common options for plotting from Python. For example if you have a `results` object from `run_experiments` as in the above example, the following code
 
 ```python
 import pandas as pd
@@ -116,9 +116,9 @@ A notebook of the above example and an example measuring the performance of Open
 
 ### Running experiments
 
-#### `run_experiment(...)`
+#### `run_experiments(...)`
 
-The core function of OpenTTDLab is the `run_experiment` function, used to run an experiment and return results extracted from the savegame files that OpenTTD produces. It has the following parameters and defaults.
+The core function of OpenTTDLab is the `run_experiments` function, used to run an experiment and return results extracted from the savegame files that OpenTTD produces. It has the following parameters and defaults.
 
 - `ais=()`
 
@@ -176,13 +176,13 @@ The core function of OpenTTDLab is the `run_experiment` function, used to run an
 
 ### Fetching AIs
 
-The `ais` parameter of `run_experiment` configures which AIs will run, how their code will be located, their names, and what parameters will be passed to each of them when they start. In more detail, the `ais`  parameter must be an iterable of the return value of any of the the following 4 functions.
+The `ais` parameter of `run_experiments` configures which AIs will run, how their code will be located, their names, and what parameters will be passed to each of them when they start. In more detail, the `ais`  parameter must be an iterable of the return value of any of the the following 4 functions.
 
 > [!IMPORTANT]
 > The `ai_name` argument passed to each of the following functions must exactly match the name of the corresponding AI as published. If it does not match, the AI will not be started.
 
 > [!IMPORTANT]
-> The return value of each of the following is opaque: it should not be used in client code, other than by passing into `run_experiment` as part of the `ais` parameter.
+> The return value of each of the following is opaque: it should not be used in client code, other than by passing into `run_experiments` as part of the `ais` parameter.
 
 #### `bananas_ai(unique_id, ai_name, ai_params=())`
 
@@ -205,7 +205,7 @@ Fetches the AI by the URL of a tar.gz file that contains the AI code. For exampl
 
 ### Fetching AI libraries
 
-The `ai_libraries` parameter of `run_experiment` ensures that AI libraries are available to the AIs running. In more detail, the `ais_libraries`  parameter must be an iterable, where each item the the return value of the following function.
+The `ai_libraries` parameter of `run_experiments` ensures that AI libraries are available to the AIs running. In more detail, the `ais_libraries`  parameter must be an iterable, where each item the the return value of the following function.
 
 #### `bananas_ai_library(unique_id, ai_library_name)`
 

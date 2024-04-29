@@ -8,7 +8,7 @@ import pytest
 
 from openttdlab import (
     parse_savegame,
-    run_experiment,
+    run_experiments,
     local_folder,
     local_file,
     remote_file,
@@ -32,8 +32,8 @@ def _basic_data(result_row):
 # It changes saving per X game time to per X real time. While this is being
 # worked on/figured out, disabling the test
 @pytest.mark.skip(reason='OpenTTDLab no longer works on OpenTTD 14.0')
-def test_run_experiment_local_ai_default_version():
-    results = run_experiment(
+def test_run_experiments_local_ai_default_version():
+    results = run_experiments(
         days=365 * 5 + 1,
         seeds=range(2, 4),
         ais=(
@@ -71,7 +71,7 @@ def test_run_experiment_local_ai_default_version():
     assert tuple(int(v) for v in results[117]['opengfx_version'].split('.')) >= (7, 1)
 
 
-def test_run_experiment_local_folder():
+def test_run_experiments_local_folder():
 
     with tempfile.TemporaryDirectory() as d:
         with tarfile.open('./fixtures/54524149-trAIns-2.1.tar', 'r') as f_tar:
@@ -80,7 +80,7 @@ def test_run_experiment_local_folder():
                     raise Exception('Unsafe', archive_location)
             f_tar.extractall(d)
 
-        results = run_experiment(
+        results = run_experiments(
             days=365 * 5 + 1,
             seeds=range(2, 4),
             ais=(
@@ -111,9 +111,9 @@ def test_run_experiment_local_folder():
     }
 
 
-def test_run_experiment_local_file():
+def test_run_experiments_local_file():
 
-    results = run_experiment(
+    results = run_experiments(
         days=365 * 5 + 1,
         seeds=range(2, 4),
         ais=(
@@ -144,8 +144,8 @@ def test_run_experiment_local_file():
     }
 
 
-def test_run_experiment_remote():
-    results = run_experiment(
+def test_run_experiments_remote():
+    results = run_experiments(
         days=365 + 1,
         seeds=range(2, 3),
         ais=(
@@ -167,8 +167,8 @@ def test_run_experiment_remote():
     }
 
 
-def test_run_experiment_bananas():
-    results = run_experiment(
+def test_run_experiments_bananas():
+    results = run_experiments(
         days=365 + 1,
         seeds=range(2, 3),
         ais=(
@@ -190,8 +190,8 @@ def test_run_experiment_bananas():
     }
 
 
-def test_run_experiment_bananas_as_library():
-    results = run_experiment(
+def test_run_experiments_bananas_as_library():
+    results = run_experiments(
         days=365 + 1,
         seeds=range(2, 3),
         ais=(
@@ -218,13 +218,13 @@ def test_run_experiment_bananas_as_library():
     }
 
 
-def test_run_experiment_screenshots():
+def test_run_experiments_screenshots():
     def read_header(file):
         with open(file, 'rb') as f:
             return f.read(32)
 
     with tempfile.TemporaryDirectory(prefix=f'OpenTTD-screenshots-') as screenshot_dir:
-        results = run_experiment(
+        results = run_experiments(
             days=365 + 1,
             seeds=range(2, 4),
             ais=(
@@ -264,7 +264,7 @@ def test_run_experiment_screenshots():
     ("none", "zlib", "lzma"),
 )
 def test_savegame_formats(savegame_format):
-    results = run_experiment(
+    results = run_experiments(
         days=100,
         seeds=range(2, 3),
         base_openttd_config=f'[misc]\nsavegame_format={savegame_format}\n',
