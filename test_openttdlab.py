@@ -19,7 +19,7 @@ from openttdlab import (
 
 def _basic_data(result_row):
     return {
-        'seed': result_row['seed'],
+        'seed': result_row['experiment']['seed'],
         'date': result_row['date'],
         'openttd_version': result_row['openttd_version'],
         'opengfx_version': result_row['opengfx_version'],
