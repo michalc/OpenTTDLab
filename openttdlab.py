@@ -44,10 +44,11 @@ __version__ = '0.0.0.dev0'
 
 
 def run_experiments(
-    ais=(),
+    experiments=(),
+    # ais=(),
+    # seeds=(1,),
+    # days=365 * 4 + 1,
     ai_libraries=(),
-    days=365 * 4 + 1,
-    seeds=(1,),
     base_openttd_config='',
     final_screenshot_directory=None,
     max_workers=None,
@@ -197,7 +198,7 @@ def run_experiments(
         # Check if we can use xvfb_run to avoid windows popping up when taking a screenshot
         xvfb_run_available = subprocess.call("type xvfb-run", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE) == 0
 
-        def run_experiment(run_dir, i, seed):
+        def run_experiment(run_dir, i, experiment):
             experiment_dir = os.path.join(run_dir, str(i))
             experiment_baseset_dir = os.path.join(experiment_dir, 'baseset')
             Path(experiment_baseset_dir).mkdir(parents=True)
@@ -207,6 +208,10 @@ def run_experiments(
             Path(experiment_ai_library_dir).mkdir(parents=True)
             experiment_script_dir = os.path.join(experiment_dir, 'scripts')
             Path(experiment_script_dir).mkdir(parents=True)
+
+            ais = experiment.get('ais', [])
+            days = experiment['days']
+            seed = experiment['seed']
 
             # Populate run directory
             shutil.copy(opengfx_binary, experiment_baseset_dir)
@@ -279,8 +284,16 @@ def run_experiments(
             progress.refresh()
 
         run_id = str(uuid.uuid4())
+        experiments_list = list(experiments)
         with tempfile.TemporaryDirectory(prefix=f'OpenTTDLab-{run_id}-') as run_dir:
-            for _, _, ai_copy in ais:
+            # Make sure to only make any internet connections for AIs at most once for
+            # each AI, even if referenced in multiple experiments
+            ai_copy_functions = {
+                ai_name: ai_copy
+                for experiment in experiments_list
+                for ai_name, _, ai_copy in experiment.get('ais', [])
+            }
+            for _, ai_copy in ai_copy_functions.items():
                 ai_copy(client, cache_dir, run_dir)
 
             for _, ai_library_copy in ai_libraries:
@@ -298,8 +311,8 @@ def run_experiments(
                     ) as progress, \
                     ThreadPoolExecutor(max_workers=max_workers) as executor:
                 futures = [
-                    executor.submit(run_experiment, run_dir, i, seed)
-                    for i, seed in enumerate(seeds)
+                    executor.submit(run_experiment, run_dir, i, experiment)
+                    for i, experiment in enumerate(experiments_list)
                 ]
                 task = progress.add_task("Running experiments...", total=len(futures))
                 for future in futures:

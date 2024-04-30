@@ -34,10 +34,15 @@ def _basic_data(result_row):
 @pytest.mark.skip(reason='OpenTTDLab no longer works on OpenTTD 14.0')
 def test_run_experiments_local_ai_default_version():
     results = run_experiments(
-        days=365 * 5 + 1,
-        seeds=range(2, 4),
-        ais=(
-            local_file('./fixtures/54524149-trAIns-2.1.tar', 'trAIns'),
+        experiments=(
+            {
+                'seed': seed,
+                'ais': (
+                    local_file('./fixtures/54524149-trAIns-2.1.tar', 'trAIns'),
+                ),
+                'days': 365 * 5 + 1,
+            }
+            for seed in range(2, 4)
         ),
     )
 
@@ -81,10 +86,15 @@ def test_run_experiments_local_folder():
             f_tar.extractall(d)
 
         results = run_experiments(
-            days=365 * 5 + 1,
-            seeds=range(2, 4),
-            ais=(
-                local_folder(d, 'trAIns'),
+            experiments=(
+                {
+                    'seed': seed,
+                    'ais': (
+                        local_folder(d, 'trAIns'),
+                    ),
+                    'days': 365 * 5 + 1,
+                }
+                for seed in range(2, 4)
             ),
             openttd_version='13.4',
             opengfx_version='7.1',
@@ -114,10 +124,15 @@ def test_run_experiments_local_folder():
 def test_run_experiments_local_file():
 
     results = run_experiments(
-        days=365 * 5 + 1,
-        seeds=range(2, 4),
-        ais=(
-            local_file('./fixtures/54524149-trAIns-2.1.tar', 'trAIns',),
+        experiments=(
+            {
+                'seed': seed,
+                'ais': (
+                    local_file('./fixtures/54524149-trAIns-2.1.tar', 'trAIns',),
+                ),
+                'days': 365 * 5 + 1,
+            }
+            for seed in range(2, 4)
         ),
         openttd_version='13.4',
         opengfx_version='7.1',
@@ -146,10 +161,15 @@ def test_run_experiments_local_file():
 
 def test_run_experiments_remote():
     results = run_experiments(
-        days=365 + 1,
-        seeds=range(2, 3),
-        ais=(
-            remote_file('https://github.com/lhrios/trains/archive/refs/tags/2014_02_14.tar.gz', 'trAIns'),
+        experiments=(
+            {
+                'seed': seed,
+                'ais': (
+                    remote_file('https://github.com/lhrios/trains/archive/refs/tags/2014_02_14.tar.gz', 'trAIns'),
+                ),
+                'days': 365 + 1,
+            }
+            for seed in range(2, 3)
         ),
         openttd_version='13.4',
         opengfx_version='7.1',
@@ -169,10 +189,15 @@ def test_run_experiments_remote():
 
 def test_run_experiments_bananas():
     results = run_experiments(
-        days=365 + 1,
-        seeds=range(2, 3),
-        ais=(
-            bananas_ai('54524149', 'trAIns'),
+        experiments=(
+            {
+                'seed': seed,
+                'ais': (
+                    bananas_ai('54524149', 'trAIns'),
+                ),
+                'days': 365 + 1,
+            }
+            for seed in range(2, 3)
         ),
         openttd_version='13.4',
         opengfx_version='7.1',
@@ -192,10 +217,15 @@ def test_run_experiments_bananas():
 
 def test_run_experiments_bananas_as_library():
     results = run_experiments(
-        days=365 + 1,
-        seeds=range(2, 3),
-        ais=(
-            local_file('./fixtures/NoOpAIImportingPathfinder-1.tar', 'NoOpAIImportingPathfinder'),
+        experiments=(
+            {
+                'seed': seed,
+                'ais': (
+                    local_file('./fixtures/NoOpAIImportingPathfinder-1.tar', 'NoOpAIImportingPathfinder'),
+                ),
+                'days': 365 + 1,
+            }
+            for seed in range(2, 3)
         ),
         ai_libraries=(
             bananas_ai_library('5046524f', 'Pathfinder.Road'),
@@ -225,10 +255,15 @@ def test_run_experiments_screenshots():
 
     with tempfile.TemporaryDirectory(prefix=f'OpenTTD-screenshots-') as screenshot_dir:
         results = run_experiments(
-            days=365 + 1,
-            seeds=range(2, 4),
-            ais=(
-                bananas_ai('54524149', 'trAIns'),
+            experiments=(
+                {
+                    'seed': seed,
+                    'ais': (
+                        bananas_ai('54524149', 'trAIns'),
+                    ),
+                    'days': 365 + 1,
+                }
+                for seed in range(2, 4)
             ),
             final_screenshot_directory=screenshot_dir,
             openttd_version='13.4',
@@ -265,11 +300,16 @@ def test_run_experiments_screenshots():
 )
 def test_savegame_formats(savegame_format):
     results = run_experiments(
-        days=100,
-        seeds=range(2, 3),
         base_openttd_config=f'[misc]\nsavegame_format={savegame_format}\n',
-        ais=(
-            local_file('./fixtures/54524149-trAIns-2.1.tar', 'trAIns'),
+        experiments=(
+            {
+                'seed': seed,
+                'ais': (
+                    local_file('./fixtures/54524149-trAIns-2.1.tar', 'trAIns'),
+                ),
+                'days': 100,
+            }
+            for seed in range(2, 3)
         ),
         openttd_version='13.4',
         opengfx_version='7.1',
