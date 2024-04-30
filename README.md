@@ -98,7 +98,7 @@ import plotly.express as px
 
 df = pd.DataFrame(
     {
-        'seed': row['seed'],
+        'seed': row['experiment']['seed'],
         'date': row['date'],
         'money': row['chunks']['PLYR']['0']['money'],
     }
