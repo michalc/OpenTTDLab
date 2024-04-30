@@ -127,21 +127,25 @@ A notebook of the above example and an example measuring the performance of Open
 
 The core function of OpenTTDLab is the `run_experiments` function, used to run an experiment and return results extracted from the savegame files that OpenTTD produces. It has the following parameters and defaults.
 
-- `ais=()`
+- `experiments=()`
 
-   The list of AIs to run. See the [Fetching AIs](#fetching-ais) section for details on this parameter.
+   An iterable of the experiments to run. Each experiment should be a dictionary with the (string) keys:
+
+   - `'ais'`
+
+      The list of AIs to run in this experiment. See the [Fetching AIs](#fetching-ais) section for details on this parameter.
+
+   - `'seed'`
+
+      The integer seed of the random number generator for this experiment.
+
+   - `'days'`
+
+      The integer number of in-game days that this experiment will run for.
 
 - `ais_libraries=()`
 
    The list of AI libraries to have available to AI code. See the [Fetching AI libraries](#fetching-ai-libraries) section for details on this parameter.
-
-- `seeds=(1,)`
-
-   An iterable of integers, where each is used to seed the random number generator in a run of OpenTTD.
-
-- `days=365 * 4 + 1`
-
-   The number of in-game days that each run of OpenTTD should last.
 
 - `base_openttd_config=''`
 
@@ -149,7 +153,7 @@ The core function of OpenTTDLab is the `run_experiments` function, used to run a
 
 - `final_screenshot_directory=None`
 
-   The directory to save a PNG screenshot of the entire map at the end of each run. Each is named in the format `<seed>.png`, where `<seed>` is the run's seed of the random number generator. If `None`, then no screenshots are saved.
+   The directory to save a PNG screenshot of the entire map at the end of each run. Each is named in the format `<seed>.png`, where `<seed>` is the experiment's seed of the random number generator. If `None`, then no screenshots are saved.
 
    For technical reasons, a window will briefly appear while each screenshot is being saved. This can be avoided when running on Linux if `xvfb-run` is installed and available in the path.
 
@@ -183,7 +187,7 @@ The core function of OpenTTDLab is the `run_experiments` function, used to run a
 
 ### Fetching AIs
 
-The `ais` parameter of `run_experiments` configures which AIs will run, how their code will be located, their names, and what parameters will be passed to each of them when they start. In more detail, the `ais`  parameter must be an iterable of the return value of any of the the following 4 functions.
+The value of the `ais` key of each dictionary in the `experiments` parameter configures which AIs will run, how their code will be located, their names, and what parameters will be passed to each of them when they start. In more detail, the `ais`  parameter must be an iterable of the return value of any of the the following 4 functions.
 
 > [!IMPORTANT]
 > The `ai_name` argument passed to each of the following functions must exactly match the name of the corresponding AI as published. If it does not match, the AI will not be started.
