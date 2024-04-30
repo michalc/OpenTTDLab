@@ -197,24 +197,24 @@ def run_experiments(
         # Check if we can use xvfb_run to avoid windows popping up when taking a screenshot
         xvfb_run_available = subprocess.call("type xvfb-run", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE) == 0
 
-        def run(experiment_dir, i, seed):
-            run_dir = os.path.join(experiment_dir, str(i))
-            experiment_baseset_dir = os.path.join(run_dir, 'baseset')
+        def run_experiment(run_dir, i, seed):
+            experiment_dir = os.path.join(run_dir, str(i))
+            experiment_baseset_dir = os.path.join(experiment_dir, 'baseset')
             Path(experiment_baseset_dir).mkdir(parents=True)
-            experiment_ai_dir = os.path.join(run_dir, 'ai')
+            experiment_ai_dir = os.path.join(experiment_dir, 'ai')
             Path(experiment_ai_dir).mkdir(parents=True)
-            experiment_ai_library_dir = os.path.join(run_dir, 'ai/library')
+            experiment_ai_library_dir = os.path.join(experiment_dir, 'ai/library')
             Path(experiment_ai_library_dir).mkdir(parents=True)
-            experiment_script_dir = os.path.join(run_dir, 'scripts')
+            experiment_script_dir = os.path.join(experiment_dir, 'scripts')
             Path(experiment_script_dir).mkdir(parents=True)
 
             # Populate run directory
             shutil.copy(opengfx_binary, experiment_baseset_dir)
             for ai_name, _, _ in ais:
-                shutil.copy(os.path.join(experiment_dir, ai_name + '.tar'), experiment_ai_dir)
+                shutil.copy(os.path.join(run_dir, ai_name + '.tar'), experiment_ai_dir)
             for ai_library_name, _ in ai_libraries:
-                shutil.copy(os.path.join(experiment_dir, ai_library_name + '.tar'), experiment_ai_library_dir)
-            config_file = os.path.join(run_dir, 'openttdlab.cfg')
+                shutil.copy(os.path.join(run_dir, ai_library_name + '.tar'), experiment_ai_library_dir)
+            config_file = os.path.join(experiment_dir, 'openttdlab.cfg')
 
             with open(os.path.join(experiment_script_dir, 'game_start.scr'), 'w') as f:
                 f.write(''.join(
@@ -242,10 +242,10 @@ def run_experiments(
                     '-vnull:ticks=' + ticks,  # No video, with fixed number of "ticks" and then exit
                      '-c', config_file,       # Config file
                 ),
-                cwd=run_dir,                  # OpenTTD looks in the current working directory for files
+                cwd=experiment_dir,                  # OpenTTD looks in the current working directory for files
             )
 
-            autosave_dir = os.path.join(run_dir, 'save', 'autosave')
+            autosave_dir = os.path.join(experiment_dir, 'save', 'autosave')
             autosave_filenames = sorted(list(os.listdir(autosave_dir)))
 
             if final_screenshot_directory is not None:
@@ -261,11 +261,11 @@ def run_experiments(
                         '-mnull',                 # No music
                          '-c', config_file,       # Config file
                     ),
-                    cwd=run_dir,                  # OpenTTD looks in the current working directory for files
+                    cwd=experiment_dir,                  # OpenTTD looks in the current working directory for files
                 )
-                screenshot_file = os.listdir(os.path.join(run_dir, 'screenshot'))[0]
+                screenshot_file = os.listdir(os.path.join(experiment_dir, 'screenshot'))[0]
                 shutil.copyfile(
-                    os.path.join(run_dir, 'screenshot', screenshot_file),
+                    os.path.join(experiment_dir, 'screenshot', screenshot_file),
                     os.path.join(final_screenshot_directory, str(seed) + '.png'),
                 )
 
@@ -278,13 +278,13 @@ def run_experiments(
             progress.update(task, advance=1)
             progress.refresh()
 
-        experiment_id = str(uuid.uuid4())
-        with tempfile.TemporaryDirectory(prefix=f'OpenTTDLab-{experiment_id}-') as experiment_dir:
+        run_id = str(uuid.uuid4())
+        with tempfile.TemporaryDirectory(prefix=f'OpenTTDLab-{run_id}-') as run_dir:
             for _, _, ai_copy in ais:
-                ai_copy(client, cache_dir, experiment_dir)
+                ai_copy(client, cache_dir, run_dir)
 
             for _, ai_library_copy in ai_libraries:
-                ai_library_copy(client, cache_dir, experiment_dir)
+                ai_library_copy(client, cache_dir, run_dir)
 
             max_workers = \
                 max_workers if max_workers is not None else \
@@ -298,7 +298,7 @@ def run_experiments(
                     ) as progress, \
                     ThreadPoolExecutor(max_workers=max_workers) as executor:
                 futures = [
-                    executor.submit(run, experiment_dir, i, seed)
+                    executor.submit(run_experiment, run_dir, i, seed)
                     for i, seed in enumerate(seeds)
                 ]
                 task = progress.add_task("Running experiments...", total=len(futures))
