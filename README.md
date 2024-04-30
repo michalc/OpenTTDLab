@@ -59,7 +59,7 @@ brew install p7zip
 You do not need to separately download or install OpenTTD (or [OpenGFX](https://github.com/OpenTTD/OpenGFX)) in order to use OpenTTDLab. OpenTTDLab itself handles downloading them.
 
 
-## Running an experiment
+## Running experiments
 
 The core function of OpenTTD is the `run_experiments` function.
 
@@ -70,12 +70,19 @@ from openttdlab import run_experiments, bananas_ai
 results = run_experiments(
     openttd_version='13.4',  # ... for a specific versions of OpenTTD
     opengfx_version='7.1',   # ... and a specific versions of OpenGFX
-    seeds=range(0, 10),      # ... for a range of random seeds
-    days=365 * 4 + 1,        # ... each for a number of (in game) days
-    ais=(
-        # ... running specific AIs. In this case a single AI, with no
-        # parameters, fetching it from https://bananas.openttd.org/package/ai
-        bananas_ai('54524149', 'trAIns', ai_params=()),
+    experiments=(
+       {
+         # ... for random seeds
+         'seed': seed,
+         # ... running specific AIs. In this case a single AI, with no
+         # parameters, fetching it from https://bananas.openttd.org/package/ai
+         'ais': (
+             bananas_ai('54524149', 'trAIns', ai_params=()),
+         ),
+         # ... each for a number of (in game) days
+         'days': 365 * 4 + 1,
+       }
+       for seed in range(0, 10)
     ),
 )
 ```
