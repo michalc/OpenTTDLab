@@ -45,9 +45,6 @@ __version__ = '0.0.0.dev0'
 
 def run_experiments(
     experiments=(),
-    # ais=(),
-    # seeds=(1,),
-    # days=365 * 4 + 1,
     ai_libraries=(),
     base_openttd_config='',
     final_screenshot_directory=None,
