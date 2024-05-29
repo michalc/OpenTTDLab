@@ -143,13 +143,14 @@ The core function of OpenTTDLab is the `run_experiments` function, used to run a
 
       The integer number of in-game days that this experiment will run for.
 
+   - `openttd_config=''`
+
+      OpenTTD config to run each experiment under. This must be in the [openttd.cfg format](https://wiki.openttd.org/en/Archive/Manual/Settings/Openttd.cfg). This is added to by OpenTTDLab before being passed to OpenTTD.
+
 - `ais_libraries=()`
 
    The list of AI libraries to have available to AI code. See the [Fetching AI libraries](#fetching-ai-libraries) section for details on this parameter.
 
-- `base_openttd_config=''`
-
-   OpenTTD config to run each experiment under. This must be in the [openttd.cfg format](https://wiki.openttd.org/en/Archive/Manual/Settings/Openttd.cfg). This is added to by OpenTTDLab before being passed to OpenTTD.
 
 - `final_screenshot_directory=None`
 

@@ -46,7 +46,6 @@ __version__ = '0.0.0.dev0'
 def run_experiments(
     experiments=(),
     ai_libraries=(),
-    base_openttd_config='',
     final_screenshot_directory=None,
     max_workers=None,
     openttd_version=None,
@@ -206,6 +205,7 @@ def run_experiments(
             experiment_script_dir = os.path.join(experiment_dir, 'scripts')
             Path(experiment_script_dir).mkdir(parents=True)
 
+            openttd_config = experiment.get('openttd_config', '')
             ais = experiment.get('ais', [])
             days = experiment['days']
             seed = experiment['seed']
@@ -224,7 +224,7 @@ def run_experiments(
                     for ai_name, ai_params, _ in ais
                 ))
             with open(config_file, 'w') as f:
-                f.write(base_openttd_config + textwrap.dedent('''
+                f.write(textwrap.dedent(openttd_config) + textwrap.dedent('''
                     [gui]
                     autosave = monthly
                     keep_all_autosave = true

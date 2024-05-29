@@ -159,6 +159,47 @@ def test_run_experiments_local_file():
     }
 
 
+def test_run_experiments_local_file_different_config():
+    results = run_experiments(
+        experiments=(
+            {
+                'seed': seed,
+                'ais': (
+                    local_file('./fixtures/54524149-trAIns-2.1.tar', 'trAIns',),
+                ),
+                'days': 365 * 1 + 1,
+                'openttd_config': f'[difficulty]\nterrain_type = {terrain_type}\n',
+            }
+            for seed in range(2, 3)
+            for terrain_type in [1, 3]
+        ),
+        openttd_version='13.4',
+        opengfx_version='7.1',
+    )
+
+    assert len(results) == 24
+    assert results[11]['chunks']['PATS']['0']['difficulty.terrain_type'] == 1
+    assert _basic_data(results[1]) == {
+        'openttd_version': '13.4',
+        'opengfx_version': '7.1',
+        'seed': 2,
+        'name': 'trAIns AI',
+        'date': date(1950, 3, 1),
+        'current_loan': 300000,
+        'money': 285340,
+    }
+    assert results[23]['chunks']['PATS']['0']['difficulty.terrain_type'] == 3
+    assert _basic_data(results[23]) == {
+        'openttd_version': '13.4',
+        'opengfx_version': '7.1',
+        'seed': 2,
+        'name': 'trAIns AI',
+        'date': date(1951, 1, 1),
+        'current_loan': 180000,
+        'money': 5855,
+    }
+
+
 def test_run_experiments_remote():
     results = run_experiments(
         experiments=(
@@ -300,9 +341,9 @@ def test_run_experiments_screenshots():
 )
 def test_savegame_formats(savegame_format):
     results = run_experiments(
-        base_openttd_config=f'[misc]\nsavegame_format={savegame_format}\n',
         experiments=(
             {
+                'openttd_config': f'[misc]\nsavegame_format={savegame_format}\n',
                 'seed': seed,
                 'ais': (
                     local_file('./fixtures/54524149-trAIns-2.1.tar', 'trAIns'),
