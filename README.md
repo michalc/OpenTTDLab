@@ -151,9 +151,9 @@ The core function of OpenTTDLab is the `run_experiments` function, used to run a
 
    The list of AI libraries to have available to AI code. See the [Fetching AI libraries](#fetching-ai-libraries) section for details on this parameter.
 
-- `result_processor=lambda r: r`
+- `result_processor=lambda r: (r,)`
 
-   A function that takes a single result row, which is a parsed save game file from an experiment, alongside other metadata describing the experiment, and returns it processed in some way. This processed row will takes the place of the result in the return value of `run_experiments`.
+   A function that takes a single result row, which is a parsed save game file from an experiment, alongside other metadata describing the experiment, and returns it processed in some way. The function should return an iterable of zero or more rows that will appear in the the return value of `run_experiments`.
 
    This is typically used to reduce memory usage with high numbers of experiments where only a small amount of data is needed for analysis.
 

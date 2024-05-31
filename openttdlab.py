@@ -52,7 +52,7 @@ def run_experiments(
     opengfx_version=None,
     openttd_base_url='https://cdn.openttd.org/openttd-releases/',
     opengfx_base_url='https://cdn.openttd.org/opengfx-releases/',
-    result_processor=lambda x: x,
+    result_processor=lambda x: (x,),
     get_http_client=lambda: httpx.Client(transport=httpx.HTTPTransport(retries=3)),
 ):
     def get(client, url):
@@ -273,8 +273,9 @@ def run_experiments(
                 )
 
             return [
-                get_savegame_row(openttd_version, opengfx_version, experiment, os.path.join(autosave_dir, filename))
+                result_row
                 for filename in autosave_filenames
+                for result_row in get_savegame_row(openttd_version, opengfx_version, experiment, os.path.join(autosave_dir, filename))
             ]
 
         def run_done(progress, task, _):
