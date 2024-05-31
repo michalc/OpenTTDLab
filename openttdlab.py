@@ -117,7 +117,7 @@ def run_experiments(
                     raise Exception('Unsafe', archive_location)
             f_zip.extractall(output_dir)
 
-    def get_savegame_row(openttd_version, opengfx_version, experiment, filename):
+    def get_savegame_row(openttd_version, opengfx_version, experiment, filename, output):
         with open(filename, 'rb') as f:
             game = parse_savegame(iter(lambda: f.read(65536), b''))
 
@@ -131,6 +131,8 @@ def run_experiments(
             'savegame_version': game['savegame_version'],
             'experiment': experiment,
             'date': date(1, 1 , 1) + timedelta(days_since_year_one),
+            'error': 'The script died unexpectedly' in output,
+            'output': output,
             'chunks': {
                 tag: chunk['records'] for tag, chunk in game['chunks'].items()
             },
@@ -241,7 +243,7 @@ def run_experiments(
             # Run the experiment
             ticks_per_day = 74
             ticks = str(ticks_per_day * days)
-            subprocess.check_output(
+            output = subprocess.check_output(
                 (openttd_binary,) + (
                     '-g',                     # Start game immediately
                     '-G', str(seed),          # Seed for random number generator
@@ -251,6 +253,8 @@ def run_experiments(
                      '-c', config_file,       # Config file
                 ),
                 cwd=experiment_dir,                  # OpenTTD looks in the current working directory for files
+                stderr=subprocess.STDOUT,
+                text=True,
             )
 
             autosave_dir = os.path.join(experiment_dir, 'save', 'autosave')
@@ -280,7 +284,7 @@ def run_experiments(
             return [
                 result_row
                 for filename in autosave_filenames
-                for result_row in get_savegame_row(openttd_version, opengfx_version, experiment, os.path.join(autosave_dir, filename))
+                for result_row in get_savegame_row(openttd_version, opengfx_version, experiment, os.path.join(autosave_dir, filename), output)
             ]
 
         def run_done(progress, task, _):
