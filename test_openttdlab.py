@@ -18,7 +18,7 @@ from openttdlab import (
 
 
 def _basic_data(result_row):
-    return {
+    return [{
         'seed': result_row['experiment']['seed'],
         'date': result_row['date'],
         'openttd_version': result_row['openttd_version'],
@@ -27,7 +27,7 @@ def _basic_data(result_row):
         'money': result_row['chunks']['PLYR']['0']['money'],
         'current_loan': result_row['chunks']['PLYR']['0']['current_loan'],
         'terrain_type': result_row['chunks']['PATS']['0']['difficulty.terrain_type'],
-    }
+    }]
 
 # OpenTTD 14.0 changed the way autosave works which OpenTTDLab depended on
 # It changes saving per X game time to per X real time. While this is being
