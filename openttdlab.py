@@ -52,6 +52,7 @@ def run_experiments(
     opengfx_version=None,
     openttd_base_url='https://cdn.openttd.org/openttd-releases/',
     opengfx_base_url='https://cdn.openttd.org/opengfx-releases/',
+    result_processor=lambda x: x,
     get_http_client=lambda: httpx.Client(transport=httpx.HTTPTransport(retries=3)),
 ):
     def get(client, url):
@@ -119,7 +120,7 @@ def run_experiments(
         # and according to the OpenTTD source, year 1 was a leap year
         days_since_year_zero = game['chunks']['DATE']['records']['0']['date']
         days_since_year_one = days_since_year_zero - 366
-        return {
+        return result_processor({
             'openttd_version': openttd_version,
             'opengfx_version': opengfx_version,
             'savegame_version': game['savegame_version'],
@@ -128,7 +129,7 @@ def run_experiments(
             'chunks': {
                 tag: chunk['records'] for tag, chunk in game['chunks'].items()
             },
-        }
+        })
 
     with get_http_client() as client:
 
