@@ -26,6 +26,7 @@ def _basic_data(result_row):
         'name': result_row['chunks']['PLYR']['0']['name'],
         'money': result_row['chunks']['PLYR']['0']['money'],
         'current_loan': result_row['chunks']['PLYR']['0']['current_loan'],
+        'terrain_type': result_row['chunks']['PATS']['0']['difficulty.terrain_type'],
     }
 
 # OpenTTD 14.0 changed the way autosave works which OpenTTDLab depended on
@@ -98,10 +99,11 @@ def test_run_experiments_local_folder():
             ),
             openttd_version='13.4',
             opengfx_version='7.1',
+            result_processor=_basic_data,
         )
 
     assert len(results) == 118
-    assert _basic_data(results[58]) == {
+    assert results[58] == {
         'openttd_version': '13.4',
         'opengfx_version': '7.1',
         'seed': 2,
@@ -109,8 +111,9 @@ def test_run_experiments_local_folder():
         'date': date(1954, 12, 1),
         'current_loan': 110000,
         'money': 6371,
+        'terrain_type': 1,
     }
-    assert _basic_data(results[117]) == {
+    assert results[117] == {
         'openttd_version': '13.4',
         'opengfx_version': '7.1',
         'seed': 3,
@@ -118,6 +121,7 @@ def test_run_experiments_local_folder():
         'date': date(1954, 12, 1),
         'current_loan': 300000,
         'money': 641561,
+        'terrain_type': 1,
     }
 
 
@@ -136,10 +140,11 @@ def test_run_experiments_local_file():
         ),
         openttd_version='13.4',
         opengfx_version='7.1',
+        result_processor=_basic_data,
     )
 
     assert len(results) == 118
-    assert _basic_data(results[58]) == {
+    assert results[58] == {
         'openttd_version': '13.4',
         'opengfx_version': '7.1',
         'seed': 2,
@@ -147,8 +152,9 @@ def test_run_experiments_local_file():
         'date': date(1954, 12, 1),
         'current_loan': 110000,
         'money': 6371,
+        'terrain_type': 1,
     }
-    assert _basic_data(results[117]) == {
+    assert results[117] == {
         'openttd_version': '13.4',
         'opengfx_version': '7.1',
         'seed': 3,
@@ -156,6 +162,7 @@ def test_run_experiments_local_file():
         'date': date(1954, 12, 1),
         'current_loan': 300000,
         'money': 641561,
+        'terrain_type': 1,
     }
 
 
@@ -175,11 +182,11 @@ def test_run_experiments_local_file_different_config():
         ),
         openttd_version='13.4',
         opengfx_version='7.1',
+        result_processor=_basic_data,
     )
 
     assert len(results) == 24
-    assert results[11]['chunks']['PATS']['0']['difficulty.terrain_type'] == 1
-    assert _basic_data(results[1]) == {
+    assert results[1] == {
         'openttd_version': '13.4',
         'opengfx_version': '7.1',
         'seed': 2,
@@ -187,9 +194,9 @@ def test_run_experiments_local_file_different_config():
         'date': date(1950, 3, 1),
         'current_loan': 300000,
         'money': 285340,
+        'terrain_type': 1,
     }
-    assert results[23]['chunks']['PATS']['0']['difficulty.terrain_type'] == 3
-    assert _basic_data(results[23]) == {
+    assert results[23] == {
         'openttd_version': '13.4',
         'opengfx_version': '7.1',
         'seed': 2,
@@ -197,6 +204,7 @@ def test_run_experiments_local_file_different_config():
         'date': date(1951, 1, 1),
         'current_loan': 180000,
         'money': 5855,
+        'terrain_type': 3,
     }
 
 
@@ -214,10 +222,11 @@ def test_run_experiments_remote():
         ),
         openttd_version='13.4',
         opengfx_version='7.1',
+        result_processor=_basic_data,
     )
 
     assert len(results) == 12
-    assert _basic_data(results[10]) == {
+    assert results[10] == {
         'openttd_version': '13.4',
         'opengfx_version': '7.1',
         'seed': 2,
@@ -225,6 +234,7 @@ def test_run_experiments_remote():
         'date': date(1950, 12, 1),
         'current_loan': 300000,
         'money': 280615,
+        'terrain_type': 1,
     }
 
 
@@ -242,10 +252,11 @@ def test_run_experiments_bananas():
         ),
         openttd_version='13.4',
         opengfx_version='7.1',
+        result_processor=_basic_data,
     )
 
     assert len(results) == 12
-    assert _basic_data(results[10]) == {
+    assert results[10] == {
         'openttd_version': '13.4',
         'opengfx_version': '7.1',
         'seed': 2,
@@ -253,6 +264,7 @@ def test_run_experiments_bananas():
         'date': date(1950, 12, 1),
         'current_loan': 300000,
         'money': 280615,
+        'terrain_type': 1,
     }
 
 
@@ -275,10 +287,11 @@ def test_run_experiments_bananas_as_library():
         ),
         openttd_version='13.4',
         opengfx_version='7.1',
+        result_processor=_basic_data,
     )
 
     assert len(results) == 12
-    assert _basic_data(results[10]) == {
+    assert results[10] == {
         'openttd_version': '13.4',
         'opengfx_version': '7.1',
         'seed': 2,
@@ -286,6 +299,7 @@ def test_run_experiments_bananas_as_library():
         'date': date(1950, 12, 1),
         'current_loan': 100000,
         'money': 97891,
+        'terrain_type': 1,
     }
 
 
@@ -309,6 +323,7 @@ def test_run_experiments_screenshots():
             final_screenshot_directory=screenshot_dir,
             openttd_version='13.4',
             opengfx_version='7.1',
+            result_processor=_basic_data,
         )
         screenshots = list(sorted(os.listdir(screenshot_dir)))
         screenshots_are_pngs = all(
@@ -321,7 +336,7 @@ def test_run_experiments_screenshots():
         ]
 
     assert len(results) == 24
-    assert _basic_data(results[10]) == {
+    assert results[10] == {
         'openttd_version': '13.4',
         'opengfx_version': '7.1',
         'seed': 2,
@@ -329,6 +344,7 @@ def test_run_experiments_screenshots():
         'date': date(1950, 12, 1),
         'current_loan': 300000,
         'money': 280615,
+        'terrain_type': 1,
     }
     assert screenshots == ['2.png', '3.png']
     assert screenshots_are_pngs
@@ -354,10 +370,11 @@ def test_savegame_formats(savegame_format):
         ),
         openttd_version='13.4',
         opengfx_version='7.1',
+        result_processor=_basic_data,
     )
 
     assert len(results) == 3
-    assert _basic_data(results[2]) == {
+    assert results[2] == {
         'openttd_version': '13.4',
         'opengfx_version': '7.1',
         'seed': 2,
@@ -365,6 +382,7 @@ def test_savegame_formats(savegame_format):
         'date': date(1950, 4, 1),
         'current_loan': 300000,
         'money': 284815,
+        'terrain_type': 1,
     }
 
 
