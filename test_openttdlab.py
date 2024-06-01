@@ -238,7 +238,7 @@ def test_run_experiments_remote():
     }
 
 
-def test_run_experiments_bananas():
+def test_run_experiments_bananas_without_deps():
     results = run_experiments(
         experiments=(
             {
@@ -268,6 +268,36 @@ def test_run_experiments_bananas():
     }
 
 
+def test_run_experiments_bananas_with_deps():
+    results = run_experiments(
+        experiments=(
+            {
+                'seed': seed,
+                'ais': (
+                    bananas_ai('41444d4c', 'AdmiralAI'),
+                ),
+                'days': 365 + 1,
+            }
+            for seed in range(2, 3)
+        ),
+        openttd_version='13.4',
+        opengfx_version='7.1',
+        result_processor=_basic_data,
+    )
+
+    assert len(results) == 12
+    assert results[10] == {
+        'openttd_version': '13.4',
+        'opengfx_version': '7.1',
+        'seed': 2,
+        'name': 'AdmiralAI and co.',
+        'date': date(1950, 12, 1),
+        'current_loan': 300000,
+        'money': 69995,
+        'terrain_type': 1,
+    }
+
+
 def test_run_experiments_bananas_as_library():
     results = run_experiments(
         experiments=(
@@ -282,8 +312,6 @@ def test_run_experiments_bananas_as_library():
         ),
         ai_libraries=(
             bananas_ai_library('5046524f', 'Pathfinder.Road'),
-            bananas_ai_library('4752412a', 'Graph.AyStar'),
-            bananas_ai_library('51554248', 'Queue.BinaryHeap'),
         ),
         openttd_version='13.4',
         opengfx_version='7.1',
