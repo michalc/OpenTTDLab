@@ -44,6 +44,10 @@ from platformdirs import user_cache_dir
 __version__ = '0.0.0.dev0'
 
 
+CONTENT_TYPE_AI = 3
+CONTENT_TYPE_AI_LIBRARY = 4
+
+
 def run_experiments(
     experiments=(),
     ai_libraries=(),
@@ -294,11 +298,11 @@ def run_experiments(
                 for ai_name, _, ai_copy in experiment.get('ais', [])
             }
             ai_and_library_filenames = [
-                (('ai',), ai_filename)
+                ai_filename
                 for _, ai_copy in ai_copy_functions.items()
                 for ai_filename in ai_copy(client, cache_dir, run_dir)
             ] + [
-                (('ai', 'library'), ai_library_filename)
+                ai_library_filename
                 for _, ai_library_copy in ai_libraries
                 for ai_library_filename in ai_library_copy(client, cache_dir, run_dir)
             ]
@@ -346,7 +350,7 @@ def _gz_decompress(compressed_chunks):
 def local_file(file_path, ai_name, ai_params=()):
     def _copy(client, cache_dir, target):
         shutil.copy(file_path, os.path.join(target, ai_name + '.tar'))
-        return (ai_name + '.tar',)
+        return ((('ai',), ai_name + '.tar'),)
 
     return ai_name, ai_params, _copy
 
@@ -355,7 +359,7 @@ def local_folder(folder_path, ai_name, ai_params=()):
     def _copy(client, cache_dir, target):
         with tarfile.open(os.path.join(target, ai_name + '.tar'), 'w') as tar:
             tar.add(folder_path, arcname='')
-        return (ai_name + '.tar',)
+        return ((('ai',), ai_name + '.tar'),)
 
     return ai_name, ai_params, _copy
 
@@ -367,7 +371,7 @@ def remote_file(url, ai_name, ai_params=()):
             with open(os.path.join(target, ai_name + '.tar'), 'wb') as f:
                 for chunk in _gz_decompress(r.iter_bytes()):
                     f.write(chunk)
-        return (ai_name + '.tar',)
+        return ((('ai',), ai_name + '.tar'),)
 
     return ai_name, ai_params, _download
 
@@ -414,6 +418,12 @@ def _bananas_download(bananas_type_id, bananas_type_str, unique_id, content_name
 
             return read_num
 
+        def path(bananas_type_id):
+            return {
+                CONTENT_TYPE_AI: ('ai',),
+                CONTENT_TYPE_AI_LIBRARY: ('ai', 'library',),
+            }[bananas_type_id]
+
         # Confirm via HTTPs that this name/unique ID pair exists
         api_resp = client.get(f'https://bananas-api.openttd.org/package/{bananas_type_str}/{unique_id}')
         api_resp.raise_for_status()
@@ -427,7 +437,7 @@ def _bananas_download(bananas_type_id, bananas_type_str, unique_id, content_name
         cached_file = os.path.join(content_cache_dir, filename)
         if os.path.exists(cached_file):
             shutil.copy(cached_file, os.path.join(target, filename))
-            return (filename,)
+            return ((path(bananas_type_id),filename),)
 
         # Check name is what client code expected
         if api_dict['name'] != content_name:
@@ -479,20 +489,16 @@ def _bananas_download(bananas_type_id, bananas_type_str, unique_id, content_name
                     f.write(chunk)
             shutil.copy(os.path.join(target, filename), cached_file)
 
-        return (filename,)
+        return ((path(int(binaries_content_type)),filename),)
 
     return _download
 
 
 def bananas_ai(unique_id, ai_name, ai_params=()):
-    CONTENT_TYPE_AI = 3
-
     return ai_name, ai_params, _bananas_download(CONTENT_TYPE_AI, 'ai', unique_id, ai_name)
 
 
 def bananas_ai_library(unique_id, ai_library_name):
-    CONTENT_TYPE_AI_LIBRARY = 4
-
     return ai_library_name, _bananas_download(CONTENT_TYPE_AI_LIBRARY, 'ai-library', unique_id, ai_library_name)
 
 
