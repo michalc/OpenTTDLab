@@ -195,7 +195,7 @@ def run_experiments(
         # Check if we can use xvfb_run to avoid windows popping up when taking a screenshot
         xvfb_run_available = subprocess.call("type xvfb-run", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE) == 0
 
-        def run_experiment(run_dir, i, experiment):
+        def run_experiment(run_dir, i, experiment, ai_names, ai_library_names):
             experiment_dir = os.path.join(run_dir, str(i))
             experiment_baseset_dir = os.path.join(experiment_dir, 'baseset')
             Path(experiment_baseset_dir).mkdir(parents=True)
@@ -207,22 +207,21 @@ def run_experiments(
             Path(experiment_script_dir).mkdir(parents=True)
 
             openttd_config = experiment.get('openttd_config', '')
-            ais = experiment.get('ais', [])
             days = experiment['days']
             seed = experiment['seed']
 
             # Populate run directory
             shutil.copy(opengfx_binary, experiment_baseset_dir)
-            for ai_name, _, _ in ais:
+            for ai_name in ai_names:
                 shutil.copy(os.path.join(run_dir, ai_name + '.tar'), experiment_ai_dir)
-            for ai_library_name, _ in ai_libraries:
+            for ai_library_name in ai_library_names:
                 shutil.copy(os.path.join(run_dir, ai_library_name + '.tar'), experiment_ai_library_dir)
             config_file = os.path.join(experiment_dir, 'openttdlab.cfg')
 
             with open(os.path.join(experiment_script_dir, 'game_start.scr'), 'w') as f:
                 f.write(''.join(
                     f'start_ai {ai_name}' + (' ' + ','.join(f'{key}={value}' for key, value in ai_params) if ai_params else '') + '\n'
-                    for ai_name, ai_params, _ in ais
+                    for ai_name, ai_params, _ in experiment.get('ais', [])
                 ))
             with open(config_file, 'w') as f:
                 f.write(textwrap.dedent(openttd_config) + textwrap.dedent('''
@@ -292,11 +291,14 @@ def run_experiments(
                 for experiment in experiments_list
                 for ai_name, _, ai_copy in experiment.get('ais', [])
             }
-            for _, ai_copy in ai_copy_functions.items():
+            ai_names = [
                 ai_copy(client, cache_dir, run_dir)
-
-            for _, ai_library_copy in ai_libraries:
+                for _, ai_copy in ai_copy_functions.items()
+            ]
+            ai_library_names = [
                 ai_library_copy(client, cache_dir, run_dir)
+                for _, ai_library_copy in ai_libraries
+            ]
 
             max_workers = \
                 max_workers if max_workers is not None else \
@@ -310,7 +312,7 @@ def run_experiments(
                     ) as progress, \
                     ThreadPoolExecutor(max_workers=max_workers) as executor:
                 futures = [
-                    executor.submit(run_experiment, run_dir, i, experiment)
+                    executor.submit(run_experiment, run_dir, i, experiment, ai_names, ai_library_names)
                     for i, experiment in enumerate(experiments_list)
                 ]
                 task = progress.add_task("Running experiments...", total=len(futures))
@@ -341,6 +343,7 @@ def _gz_decompress(compressed_chunks):
 def local_file(file_path, ai_name, ai_params=()):
     def _copy(client, cache_dir, target):
         shutil.copy(file_path, os.path.join(target, ai_name + '.tar'))
+        return ai_name
 
     return ai_name, ai_params, _copy
 
@@ -349,6 +352,7 @@ def local_folder(folder_path, ai_name, ai_params=()):
     def _copy(client, cache_dir, target):
         with tarfile.open(os.path.join(target, ai_name + '.tar'), 'w') as tar:
             tar.add(folder_path, arcname='')
+        return ai_name
 
     return ai_name, ai_params, _copy
 
@@ -360,6 +364,8 @@ def remote_file(url, ai_name, ai_params=()):
             with open(os.path.join(target, ai_name + '.tar'), 'wb') as f:
                 for chunk in _gz_decompress(r.iter_bytes()):
                     f.write(chunk)
+        return ai_name
+
     return ai_name, ai_params, _download
 
 
@@ -417,7 +423,7 @@ def _bananas_download(bananas_type_id, bananas_type_str, unique_id, content_name
         cached_file = os.path.join(content_cache_dir, f'{unique_id}-{api_dict["name"]}-{api_dict_latest_version["version"]}.tar')
         if os.path.exists(cached_file):
             shutil.copy(cached_file, os.path.join(target, content_name + '.tar'))
-            return
+            return content_name
 
         # Check name is what client code expected
         if api_dict['name'] != content_name:
@@ -466,6 +472,8 @@ def _bananas_download(bananas_type_id, bananas_type_str, unique_id, content_name
                 for chunk in _gz_decompress(response.iter_bytes()):
                     f.write(chunk)
             shutil.copy(os.path.join(target, content_name + '.tar'), cached_file)
+
+        return content_name
 
     return _download
 
