@@ -28,7 +28,7 @@ import uuid
 import zipfile
 import zlib
 from concurrent.futures import FIRST_EXCEPTION, ThreadPoolExecutor, wait
-from collections import defaultdict
+from collections import defaultdict, deque
 from datetime import date, timedelta
 from functools import partial
 from pathlib import Path
@@ -408,13 +408,13 @@ def _bananas_download(bananas_type_id, bananas_type_str, unique_id, content_name
                     except OSError:
                         pass
 
-        def path(bananas_type_id):
+        def final_location_path(bananas_type_id):
             return {
                 CONTENT_TYPE_AI: ('ai',),
                 CONTENT_TYPE_AI_LIBRARY: ('ai', 'library',),
             }[bananas_type_id]
 
-        def get_tcp_content_id(bananas_type_id, unique_id):
+        def get_tcp_content_ids(bananas_type_id, unique_id, md5sum=None):
 
             def reader(b):
                 i = 0
@@ -424,29 +424,58 @@ def _bananas_download(bananas_type_id, bananas_type_str, unique_id, content_name
                     i += num
                     return b[i-num:i]
 
-                return read_num
+                def _next_null():
+                    j = i
+                    while b[j] != 0:
+                        j += 1
+                    return j
+
+                def read_until_null():
+                    nonlocal i
+                    start = i
+                    end = _next_null()
+                    i = end + 1
+                    return b[start:end]
+
+                return read_num, read_until_null
                 
             # Convert unique ID to content ID from the Bananas TCP server, and get its expected filesize
             with tcp_connection(("content.openttd.org", 3978)) as (recv_bytes, send_bytes):
-
                 PACKET_CONTENT_CLIENT_INFO_EXTID = 2
+                PACKET_CONTENT_CLIENT_INFO_EXTID_MD5 = 3
+                request_type = \
+                    PACKET_CONTENT_CLIENT_INFO_EXTID if md5sum is None else\
+                    PACKET_CONTENT_CLIENT_INFO_EXTID_MD5
                 packet_body = \
-                    struct.pack("<B", PACKET_CONTENT_CLIENT_INFO_EXTID) + \
+                    struct.pack("<B", request_type) + \
                     struct.pack("<B", 1) + \
                     struct.pack("<B", bananas_type_id) + \
-                    struct.pack(">I", int(unique_id, 16))
+                    struct.pack("4s", bytes.fromhex(unique_id)) + \
+                    (struct.pack("16s", bytes.fromhex(md5sum)) if md5sum is not None else b'')
                 send_bytes(struct.pack("<H", len(packet_body) + 2) + packet_body)
 
                 PACKET_CONTENT_SERVER_INFO = 4
                 packet_size = struct.unpack("<H", recv_bytes(2))[0]
                 if packet_size < 12:
                     raise Exception('Response is too small')
-                packet_read_num = reader(recv_bytes(packet_size - 2))
+                packet_read_num, packet_read_until_null = reader(recv_bytes(packet_size - 2))
                 tcp_packet_type = struct.unpack("<B", packet_read_num(1))[0]
                 tcp_content_type = struct.unpack("<B", packet_read_num(1))[0]
                 tcp_content_id = struct.unpack("<I", packet_read_num(4))[0]
+                tcp_file_size = struct.unpack("<I", packet_read_num(4))[0]
+                tcp_name = packet_read_until_null()
+                tcp_version = packet_read_until_null()
+                tcp_url = packet_read_until_null()
+                tcp_description = packet_read_until_null()
+                tcp_unique_id = packet_read_num(4)
+                tcp_md5sum = packet_read_num(16)
+                tcp_num_dependencies = packet_read_num(1)[0]
+                tcp_dependency_content_ids = tuple(
+                    struct.unpack("<I", packet_read_num(4))[0]
+                    for _ in range(0, tcp_num_dependencies)
+                )
 
-                return tcp_content_id
+                return tcp_content_id, tcp_dependency_content_ids
 
         # Confirm via HTTPs that this name/unique ID pair exists
         api_resp = client.get(f'https://bananas-api.openttd.org/package/{bananas_type_str}/{unique_id}')
@@ -454,48 +483,77 @@ def _bananas_download(bananas_type_id, bananas_type_str, unique_id, content_name
         api_dict = api_resp.json()
         api_dict_latest_version = max(api_dict['versions'], key=lambda version: version['version'].split('.'))
 
-        # Check if we already have this version cached
-        content_cache_dir = os.path.join(cache_dir, 'bananas', bananas_type_str)
+        # Check if we already have this version cached, and all its dependencies
+        content_cache_dir = os.path.join(cache_dir, 'bananas')
         Path(content_cache_dir).mkdir(parents=True, exist_ok=True)
         filename = f'{unique_id}-{api_dict["name"]}-{api_dict_latest_version["version"]}.tar'
         cached_file = os.path.join(content_cache_dir, filename)
-        if os.path.exists(cached_file):
+        cached_dependency_file = cached_file + '_dependencies'
+        if os.path.exists(cached_file) and os.path.exists(cached_dependency_file):
+            with open(cached_dependency_file, 'r', encoding='utf-8') as f:
+                contents = f.read()
+            dependency_filenames = [
+                (tuple(line.split(',')[0].split('/')), line.split(',')[1])
+                for line in contents.split('\n')
+            ] if contents else []
+            for path,dependency_filename in dependency_filenames:
+                shutil.copy(os.path.join(content_cache_dir, dependency_filename), os.path.join(target, dependency_filename))
+
             shutil.copy(cached_file, os.path.join(target, filename))
-            return ((path(bananas_type_id),filename),)
+            return [(final_location_path(bananas_type_id),filename),] + dependency_filenames
 
         # Check name is what client code expected
         if api_dict['name'] != content_name:
             raise Exception("Mismatched name")
 
-        tcp_content_id = get_tcp_content_id(bananas_type_id, unique_id)
+        # Get content ID of the primary content requested from client code, and the content IDs
+        # of all its dependencies. We treat them slightly differently because we have already
+        # found the dependencies of the primary content, but will still need to find the dependencies
+        # of the dependencies later
+        primary_content_id, dependency_content_ids = get_tcp_content_ids(bananas_type_id, unique_id)
 
-        # Fetch CDN URL to download from binaries server
-        response = client.post('https://binaries.openttd.org/bananas', content=str(tcp_content_id).encode() + b'\n')
-        response.raise_for_status()
-        binaries_content_id, binaries_content_type, binaries_filesize, binaries_link = response.text.strip().split(',')
-
-        # Try to verify that the unencrypted connection to content.openttd.org didn't lie to us
-        if f'/{unique_id}/' not in binaries_link:
-            raise Exception('Mismatched content ID')
-        if f'/{api_dict_latest_version["md5sum-partial"]}' not in binaries_link:
-            raise Exception('Mismatched md5sum-partial')
-        if api_dict_latest_version['filesize'] != int(binaries_filesize):
-            raise Exception('Mismatched filesize')
-
-        filename = urlparse(binaries_link).path.split('/')[-1][:-3]  # Withouth .gz extension
-
-        # Download from CDN URL
-        with client.stream("GET", binaries_link) as response:
+        # Download and cache content, and and all transitive dependencies. Note that transitive
+        # dependencies can be specified by exact version, and to download those we need the MD5 sum
+        # of the dependency, which we only know by finding the link to it, so it's a bit of a dance
+        filenames = []
+        to_download = deque()
+        to_download.append((False, primary_content_id))
+        for content_id in dependency_content_ids:
+            to_download.append((True, content_id))
+        while to_download:
+            find_transitive, content_id = to_download.popleft()
+            response = client.post('https://binaries.openttd.org/bananas', content=str(content_id).encode() + b'\n')
             response.raise_for_status()
-            if response.headers['content-length'] != binaries_filesize:
-                raise Exception('Mismatched filesize')
+            binaries_content_id, binaries_content_type, binaries_filesize, binaries_link = response.text.strip().split(',')
+            binaries_md5sum = urlparse(binaries_link).path.split('/')[3]
+            binaries_unique_id = urlparse(binaries_link).path.split('/')[2]
+            filename = urlparse(binaries_link).path.split('/')[-1][:-3]  # Withouth .gz extension
 
-            with open(os.path.join(target, filename), 'wb') as f:
-                for chunk in _gz_decompress(response.iter_bytes()):
-                    f.write(chunk)
-            shutil.copy(os.path.join(target, filename), cached_file)
+            # Download from CDN URL
+            with client.stream("GET", binaries_link) as response:
+                response.raise_for_status()
+                if response.headers['content-length'] != binaries_filesize:
+                    raise Exception('Mismatched filesize')
 
-        return ((path(int(binaries_content_type)),filename),)
+                with open(os.path.join(target, filename), 'wb') as f:
+                    for chunk in _gz_decompress(response.iter_bytes()):
+                        f.write(chunk)
+
+                cached_file = os.path.join(content_cache_dir, filename)
+                shutil.copy(os.path.join(target, filename), cached_file)
+                filenames.append((final_location_path(int(binaries_content_type)), filename),)
+
+            if find_transitive:
+                _, transitive_content_ids = get_tcp_content_ids(int(binaries_content_type), binaries_unique_id, md5sum=binaries_md5sum)
+                for transitive_content_id in transitive_content_ids:
+                    to_download.append((True, transitive_content_id))
+
+        # Write dependency file - simple text file
+        with open(cached_dependency_file, 'w', encoding='utf-8') as f:
+            for path, filename in filenames[1:]:
+                f.write('/'.join(path) + ',' + filename)
+
+        return filenames
 
     return _download
 
