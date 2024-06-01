@@ -32,6 +32,7 @@ from collections import defaultdict
 from datetime import date, timedelta
 from functools import partial
 from pathlib import Path
+from urllib.parse import urlparse
 from rich.progress import MofNCompleteColumn, BarColumn, SpinnerColumn, TextColumn, Progress
 
 import httpx
@@ -213,9 +214,9 @@ def run_experiments(
             # Populate run directory
             shutil.copy(opengfx_binary, experiment_baseset_dir)
             for ai_name in ai_names:
-                shutil.copy(os.path.join(run_dir, ai_name + '.tar'), experiment_ai_dir)
+                shutil.copy(os.path.join(run_dir, ai_name), experiment_ai_dir)
             for ai_library_name in ai_library_names:
-                shutil.copy(os.path.join(run_dir, ai_library_name + '.tar'), experiment_ai_library_dir)
+                shutil.copy(os.path.join(run_dir, ai_library_name), experiment_ai_library_dir)
             config_file = os.path.join(experiment_dir, 'openttdlab.cfg')
 
             with open(os.path.join(experiment_script_dir, 'game_start.scr'), 'w') as f:
@@ -343,7 +344,7 @@ def _gz_decompress(compressed_chunks):
 def local_file(file_path, ai_name, ai_params=()):
     def _copy(client, cache_dir, target):
         shutil.copy(file_path, os.path.join(target, ai_name + '.tar'))
-        return ai_name
+        return ai_name + '.tar'
 
     return ai_name, ai_params, _copy
 
@@ -352,7 +353,7 @@ def local_folder(folder_path, ai_name, ai_params=()):
     def _copy(client, cache_dir, target):
         with tarfile.open(os.path.join(target, ai_name + '.tar'), 'w') as tar:
             tar.add(folder_path, arcname='')
-        return ai_name
+        return ai_name + '.tar'
 
     return ai_name, ai_params, _copy
 
@@ -364,7 +365,7 @@ def remote_file(url, ai_name, ai_params=()):
             with open(os.path.join(target, ai_name + '.tar'), 'wb') as f:
                 for chunk in _gz_decompress(r.iter_bytes()):
                     f.write(chunk)
-        return ai_name
+        return ai_name + '.tar'
 
     return ai_name, ai_params, _download
 
@@ -420,10 +421,11 @@ def _bananas_download(bananas_type_id, bananas_type_str, unique_id, content_name
         # Check if we already have this version cached
         content_cache_dir = os.path.join(cache_dir, 'bananas', bananas_type_str)
         Path(content_cache_dir).mkdir(parents=True, exist_ok=True)
-        cached_file = os.path.join(content_cache_dir, f'{unique_id}-{api_dict["name"]}-{api_dict_latest_version["version"]}.tar')
+        filename = f'{unique_id}-{api_dict["name"]}-{api_dict_latest_version["version"]}.tar'
+        cached_file = os.path.join(content_cache_dir, filename)
         if os.path.exists(cached_file):
-            shutil.copy(cached_file, os.path.join(target, content_name + '.tar'))
-            return content_name
+            shutil.copy(cached_file, os.path.join(target, filename))
+            return filename
 
         # Check name is what client code expected
         if api_dict['name'] != content_name:
@@ -462,18 +464,20 @@ def _bananas_download(bananas_type_id, bananas_type_str, unique_id, content_name
         if api_dict_latest_version['filesize'] != int(binaries_filesize):
             raise Exception('Mismatched filesize')
 
+        filename = urlparse(binaries_link).path.split('/')[-1][:-3]  # Withouth .gz extension
+
         # Download from CDN URL
         with client.stream("GET", binaries_link) as response:
             response.raise_for_status()
             if response.headers['content-length'] != binaries_filesize:
                 raise Exception('Mismatched filesize')
 
-            with open(os.path.join(target, content_name + '.tar'), 'wb') as f:
+            with open(os.path.join(target, filename), 'wb') as f:
                 for chunk in _gz_decompress(response.iter_bytes()):
                     f.write(chunk)
-            shutil.copy(os.path.join(target, content_name + '.tar'), cached_file)
+            shutil.copy(os.path.join(target, filename), cached_file)
 
-        return content_name
+        return filename
 
     return _download
 
