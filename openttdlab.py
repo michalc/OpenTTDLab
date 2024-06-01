@@ -408,21 +408,45 @@ def _bananas_download(bananas_type_id, bananas_type_str, unique_id, content_name
                     except OSError:
                         pass
 
-        def reader(b):
-            i = 0
-
-            def read_num(num):
-                nonlocal i
-                i += num
-                return b[i-num:i]
-
-            return read_num
-
         def path(bananas_type_id):
             return {
                 CONTENT_TYPE_AI: ('ai',),
                 CONTENT_TYPE_AI_LIBRARY: ('ai', 'library',),
             }[bananas_type_id]
+
+        def get_tcp_content_id(bananas_type_id, unique_id):
+
+            def reader(b):
+                i = 0
+
+                def read_num(num):
+                    nonlocal i
+                    i += num
+                    return b[i-num:i]
+
+                return read_num
+                
+            # Convert unique ID to content ID from the Bananas TCP server, and get its expected filesize
+            with tcp_connection(("content.openttd.org", 3978)) as (recv_bytes, send_bytes):
+
+                PACKET_CONTENT_CLIENT_INFO_EXTID = 2
+                packet_body = \
+                    struct.pack("<B", PACKET_CONTENT_CLIENT_INFO_EXTID) + \
+                    struct.pack("<B", 1) + \
+                    struct.pack("<B", bananas_type_id) + \
+                    struct.pack(">I", int(unique_id, 16))
+                send_bytes(struct.pack("<H", len(packet_body) + 2) + packet_body)
+
+                PACKET_CONTENT_SERVER_INFO = 4
+                packet_size = struct.unpack("<H", recv_bytes(2))[0]
+                if packet_size < 12:
+                    raise Exception('Response is too small')
+                packet_read_num = reader(recv_bytes(packet_size - 2))
+                tcp_packet_type = struct.unpack("<B", packet_read_num(1))[0]
+                tcp_content_type = struct.unpack("<B", packet_read_num(1))[0]
+                tcp_content_id = struct.unpack("<I", packet_read_num(4))[0]
+
+                return tcp_content_id
 
         # Confirm via HTTPs that this name/unique ID pair exists
         api_resp = client.get(f'https://bananas-api.openttd.org/package/{bananas_type_str}/{unique_id}')
@@ -443,25 +467,7 @@ def _bananas_download(bananas_type_id, bananas_type_str, unique_id, content_name
         if api_dict['name'] != content_name:
             raise Exception("Mismatched name")
 
-        # Convert unique ID to content ID from the Bananas TCP server, and get its expected filesize
-        with tcp_connection(("content.openttd.org", 3978)) as (recv_bytes, send_bytes):
-
-            PACKET_CONTENT_CLIENT_INFO_EXTID = 2
-            packet_body = \
-                struct.pack("<B", PACKET_CONTENT_CLIENT_INFO_EXTID) + \
-                struct.pack("<B", 1) + \
-                struct.pack("<B", bananas_type_id) + \
-                struct.pack(">I", int(unique_id, 16))
-            send_bytes(struct.pack("<H", len(packet_body) + 2) + packet_body)
-
-            PACKET_CONTENT_SERVER_INFO = 4
-            packet_size = struct.unpack("<H", recv_bytes(2))[0]
-            if packet_size < 12:
-                raise Exception('Response is too small')
-            packet_read_num = reader(recv_bytes(packet_size - 2))
-            tcp_packet_type = struct.unpack("<B", packet_read_num(1))[0]
-            tcp_content_type = struct.unpack("<B", packet_read_num(1))[0]
-            tcp_content_id = struct.unpack("<I", packet_read_num(4))[0]
+        tcp_content_id = get_tcp_content_id(bananas_type_id, unique_id)
 
         # Fetch CDN URL to download from binaries server
         response = client.post('https://binaries.openttd.org/bananas', content=str(tcp_content_id).encode() + b'\n')
