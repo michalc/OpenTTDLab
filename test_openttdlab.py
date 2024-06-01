@@ -27,6 +27,7 @@ def _basic_data(result_row):
         'money': result_row['chunks']['PLYR']['0']['money'],
         'current_loan': result_row['chunks']['PLYR']['0']['current_loan'],
         'terrain_type': result_row['chunks']['PATS']['0']['difficulty.terrain_type'],
+        'error': result_row['error'],
     }]
 
 # OpenTTD 14.0 changed the way autosave works which OpenTTDLab depended on
@@ -58,6 +59,7 @@ def test_run_experiments_local_ai_default_version():
         'date': date(1954, 12, 1),
         'current_loan': 110000,
         'money': 6371,
+        'error': '',
     }
     assert tuple(int(v) for v in results[58]['openttd_version'].split('.')) >= (13, 4)
     assert tuple(int(v) for v in results[58]['opengfx_version'].split('.')) >= (7, 1)
@@ -112,6 +114,7 @@ def test_run_experiments_local_folder():
         'current_loan': 110000,
         'money': 6371,
         'terrain_type': 1,
+        'error': False,
     }
     assert results[117] == {
         'openttd_version': '13.4',
@@ -122,7 +125,44 @@ def test_run_experiments_local_folder():
         'current_loan': 300000,
         'money': 641561,
         'terrain_type': 1,
+        'error': False,
     }
+
+def test_run_experiments_with_error():
+    # This particular seed is known to make this version of trAINs error
+
+    results = run_experiments(
+        openttd_version='13.4',
+        opengfx_version='7.1',
+        experiments=(
+            {
+                'seed': seed,
+                'ais': (
+                    bananas_ai('54524149', 'trAIns'),
+                    bananas_ai('41444d4c', 'AdmiralAI', ai_params=(
+                        ('use_trains', '1'),
+                        ('use_busses', '0'),
+                        ('use_trucks', '0'),
+                        ('use_planes', '0'),
+                    )),
+                ),
+                'days': 365 * 10 + 1,
+                'openttd_config': f'''
+                    [game_creation]
+                    starting_year=1960
+                ''',
+            }
+            for seed in range(18, 19)
+        ),
+        max_workers=4,
+        result_processor=lambda result: ({
+            'error': result['error'],
+            'output': result['output'],
+        },),
+    )
+    assert "trains" in results[-1]['output']
+    assert "the index 'exit_tile' does not exist" in results[-1]['output']
+    assert results[-1]['error'] == True
 
 
 def test_run_experiments_local_file():
@@ -153,6 +193,7 @@ def test_run_experiments_local_file():
         'current_loan': 110000,
         'money': 6371,
         'terrain_type': 1,
+        'error': False,
     }
     assert results[117] == {
         'openttd_version': '13.4',
@@ -163,6 +204,7 @@ def test_run_experiments_local_file():
         'current_loan': 300000,
         'money': 641561,
         'terrain_type': 1,
+        'error': False,
     }
 
 
@@ -195,6 +237,7 @@ def test_run_experiments_local_file_different_config():
         'current_loan': 300000,
         'money': 285340,
         'terrain_type': 1,
+        'error': False,
     }
     assert results[23] == {
         'openttd_version': '13.4',
@@ -205,6 +248,7 @@ def test_run_experiments_local_file_different_config():
         'current_loan': 180000,
         'money': 5855,
         'terrain_type': 3,
+        'error': False,
     }
 
 
@@ -235,6 +279,7 @@ def test_run_experiments_remote():
         'current_loan': 300000,
         'money': 280615,
         'terrain_type': 1,
+        'error': False,
     }
 
 
@@ -265,6 +310,7 @@ def test_run_experiments_bananas_without_deps():
         'current_loan': 300000,
         'money': 280615,
         'terrain_type': 1,
+        'error': False,
     }
 
 
@@ -295,6 +341,7 @@ def test_run_experiments_bananas_with_deps():
         'current_loan': 300000,
         'money': 69995,
         'terrain_type': 1,
+        'error': False,
     }
 
 
@@ -328,6 +375,7 @@ def test_run_experiments_bananas_as_library():
         'current_loan': 100000,
         'money': 97891,
         'terrain_type': 1,
+        'error': False,
     }
 
 
@@ -373,6 +421,7 @@ def test_run_experiments_screenshots():
         'current_loan': 300000,
         'money': 280615,
         'terrain_type': 1,
+        'error': False,
     }
     assert screenshots == ['2.png', '3.png']
     assert screenshots_are_pngs
@@ -411,6 +460,7 @@ def test_savegame_formats(savegame_format):
         'current_loan': 300000,
         'money': 284815,
         'terrain_type': 1,
+        'error': False,
     }
 
 
