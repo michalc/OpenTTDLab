@@ -196,7 +196,7 @@ def run_experiments(
         # Check if we can use xvfb_run to avoid windows popping up when taking a screenshot
         xvfb_run_available = subprocess.call("type xvfb-run", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE) == 0
 
-        def run_experiment(run_dir, i, experiment, ai_filenames, ai_library_filenames):
+        def run_experiment(run_dir, i, experiment, ai_and_library_filenames):
             experiment_dir = os.path.join(run_dir, str(i))
             experiment_baseset_dir = os.path.join(experiment_dir, 'baseset')
             Path(experiment_baseset_dir).mkdir(parents=True)
@@ -213,10 +213,11 @@ def run_experiments(
 
             # Populate run directory
             shutil.copy(opengfx_binary, experiment_baseset_dir)
-            for ai_filename in ai_filenames:
-                shutil.copy(os.path.join(run_dir, ai_filename), experiment_ai_dir)
-            for ai_library_filename in ai_library_filenames:
-                shutil.copy(os.path.join(run_dir, ai_library_filename), experiment_ai_library_dir)
+            for path, ai_or_library_filename in ai_and_library_filenames:
+                shutil.copy(
+                    os.path.join(run_dir, ai_or_library_filename),
+                    os.path.join(experiment_dir, *path, ai_or_library_filename),
+                )
             config_file = os.path.join(experiment_dir, 'openttdlab.cfg')
 
             with open(os.path.join(experiment_script_dir, 'game_start.scr'), 'w') as f:
@@ -292,13 +293,12 @@ def run_experiments(
                 for experiment in experiments_list
                 for ai_name, _, ai_copy in experiment.get('ais', [])
             }
-            ai_filenames = [
-                ai_filename
+            ai_and_library_filenames = [
+                (('ai',), ai_filename)
                 for _, ai_copy in ai_copy_functions.items()
                 for ai_filename in ai_copy(client, cache_dir, run_dir)
-            ]
-            ai_library_filenames = [
-                ai_library_filename
+            ] + [
+                (('ai', 'library'), ai_library_filename)
                 for _, ai_library_copy in ai_libraries
                 for ai_library_filename in ai_library_copy(client, cache_dir, run_dir)
             ]
@@ -315,7 +315,7 @@ def run_experiments(
                     ) as progress, \
                     ThreadPoolExecutor(max_workers=max_workers) as executor:
                 futures = [
-                    executor.submit(run_experiment, run_dir, i, experiment, ai_filenames, ai_library_filenames)
+                    executor.submit(run_experiment, run_dir, i, experiment, ai_and_library_filenames)
                     for i, experiment in enumerate(experiments_list)
                 ]
                 task = progress.add_task("Running experiments...", total=len(futures))
