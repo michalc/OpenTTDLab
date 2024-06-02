@@ -30,13 +30,14 @@ import zlib
 from collections import defaultdict, deque
 from datetime import date, timedelta
 from functools import partial
-from multiprocess import Pool
+from multiprocessing import Pool
 from pathlib import Path
 from urllib.parse import urlparse
 from rich.progress import MofNCompleteColumn, BarColumn, SpinnerColumn, TextColumn, Progress
 
 import httpx
 import yaml
+from dill import dumps, loads
 from platformdirs import user_cache_dir
 
 
@@ -117,27 +118,6 @@ def run_experiments(
                     raise Exception('Unsafe', archive_location)
             f_zip.extractall(output_dir)
 
-    def get_savegame_row(openttd_version, opengfx_version, experiment, filename, output):
-        with open(filename, 'rb') as f:
-            game = parse_savegame(iter(lambda: f.read(65536), b''))
-
-        # Python (and indeed, the gregorian calendar) doesn't have a year zero,
-        # and according to the OpenTTD source, year 1 was a leap year
-        days_since_year_zero = game['chunks']['DATE']['records']['0']['date']
-        days_since_year_one = days_since_year_zero - 366
-        return result_processor({
-            'openttd_version': openttd_version,
-            'opengfx_version': opengfx_version,
-            'savegame_version': game['savegame_version'],
-            'experiment': experiment,
-            'date': date(1, 1 , 1) + timedelta(days_since_year_one),
-            'error': 'The script died unexpectedly' in output,
-            'output': output,
-            'chunks': {
-                tag: chunk['records'] for tag, chunk in game['chunks'].items()
-            },
-        })
-
     with get_http_client() as client:
 
         # Choose platform-specific details
@@ -183,91 +163,6 @@ def run_experiments(
 
         # Check if we can use xvfb_run to avoid windows popping up when taking a screenshot
         xvfb_run_available = subprocess.call("type xvfb-run", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE) == 0
-
-        def run_experiment(run_dir, i, experiment, ai_and_library_filenames):
-            experiment_dir = os.path.join(run_dir, str(i))
-            experiment_baseset_dir = os.path.join(experiment_dir, 'baseset')
-            Path(experiment_baseset_dir).mkdir(parents=True)
-            experiment_ai_dir = os.path.join(experiment_dir, 'ai')
-            Path(experiment_ai_dir).mkdir(parents=True)
-            experiment_ai_library_dir = os.path.join(experiment_dir, 'ai/library')
-            Path(experiment_ai_library_dir).mkdir(parents=True)
-            experiment_script_dir = os.path.join(experiment_dir, 'scripts')
-            Path(experiment_script_dir).mkdir(parents=True)
-
-            openttd_config = experiment.get('openttd_config', '')
-            days = experiment['days']
-            seed = experiment['seed']
-
-            # Populate run directory
-            shutil.copy(opengfx_binary, experiment_baseset_dir)
-            for path, ai_or_library_filename in ai_and_library_filenames:
-                shutil.copy(
-                    os.path.join(run_dir, ai_or_library_filename),
-                    os.path.join(experiment_dir, *path, ai_or_library_filename),
-                )
-            config_file = os.path.join(experiment_dir, 'openttdlab.cfg')
-
-            with open(os.path.join(experiment_script_dir, 'game_start.scr'), 'w') as f:
-                f.write(''.join(
-                    f'start_ai {ai_name}' + (' ' + ','.join(f'{key}={value}' for key, value in ai_params) if ai_params else '') + '\n'
-                    for ai_name, ai_params, _ in experiment.get('ais', [])
-                ))
-            with open(config_file, 'w') as f:
-                f.write(textwrap.dedent(openttd_config) + textwrap.dedent('''
-                    [gui]
-                    autosave = monthly
-                    keep_all_autosave = true
-                    threaded_saves = false
-                ''')
-            )
-
-            # Run the experiment
-            ticks_per_day = 74
-            ticks = str(ticks_per_day * days)
-            output = subprocess.check_output(
-                (openttd_binary,) + (
-                    '-g',                     # Start game immediately
-                    '-G', str(seed),          # Seed for random number generator
-                    '-snull',                 # No sound
-                    '-mnull',                 # No music
-                    '-vnull:ticks=' + ticks,  # No video, with fixed number of "ticks" and then exit
-                     '-c', config_file,       # Config file
-                ),
-                cwd=experiment_dir,                  # OpenTTD looks in the current working directory for files
-                stderr=subprocess.STDOUT,
-                text=True,
-            )
-
-            autosave_dir = os.path.join(experiment_dir, 'save', 'autosave')
-            autosave_filenames = sorted(list(os.listdir(autosave_dir)))
-
-            if final_screenshot_directory is not None:
-                with open(os.path.join(experiment_script_dir, 'game_start.scr'), 'w') as f:
-                    f.write('screenshot giant\n')
-                    f.write('quit\n')
-
-                subprocess.check_output(
-                    (('xvfb-run', '-a',) if xvfb_run_available else ()) + (openttd_binary,) + (
-                        '-g', os.path.join(autosave_dir, autosave_filenames[-1]),
-                        '-G', str(seed),          # Seed for random number generator
-                        '-snull',                 # No sound
-                        '-mnull',                 # No music
-                         '-c', config_file,       # Config file
-                    ),
-                    cwd=experiment_dir,                  # OpenTTD looks in the current working directory for files
-                )
-                screenshot_file = os.listdir(os.path.join(experiment_dir, 'screenshot'))[0]
-                shutil.copyfile(
-                    os.path.join(experiment_dir, 'screenshot', screenshot_file),
-                    os.path.join(final_screenshot_directory, str(seed) + '.png'),
-                )
-
-            return [
-                result_row
-                for filename in autosave_filenames
-                for result_row in get_savegame_row(openttd_version, opengfx_version, experiment, os.path.join(autosave_dir, filename), output)
-            ]
 
         def run_done(progress, task, _):
             progress.update(task, advance=1)
@@ -320,23 +215,149 @@ def run_experiments(
                         TextColumn("[progress.description]{task.description}"),
                         BarColumn(),
                         MofNCompleteColumn(),
-                    ) as progress, \
-                    Pool(processes=max_workers) as pool:
-                task = progress.add_task("Running experiments...", total=len(experiments_list))
-                async_results = [
-                    pool.apply_async(
-                        run_experiment,
-                        args=(run_dir, i, experiment, ai_and_library_filenames),
-                        callback=partial(run_done, progress, task),
-                    )
-                    for i, experiment in enumerate(experiments_list)
-                ]
+                    ) as progress:
+                pool = Pool(processes=max_workers)
+                try:
+                    task = progress.add_task("Running experiments...", total=len(experiments_list))
+                    async_results = [
+                        pool.apply_async(
+                            _run_experiment,
+                            args=(
+                                opengfx_binary, openttd_binary, final_screenshot_directory,
+                                openttd_version, opengfx_version, dumps(result_processor),
+                                run_dir, i, dumps(experiment), ai_and_library_filenames,
+                                xvfb_run_available,
+                            ),
+                            callback=partial(run_done, progress, task),
+                        )
+                        for i, experiment in enumerate(experiments_list)
+                    ]
 
-                return [
-                    savegame_row
-                    for savegame_rows_async_result in async_results
-                    for savegame_row in savegame_rows_async_result.get()
-                ]
+                    return [
+                        savegame_row
+                        for savegame_rows_async_result in async_results
+                        for savegame_row in loads(savegame_rows_async_result.get())
+                    ]
+                finally:
+                    # Not calling these explicitly can result in code coverage not measuring
+                    # subprocesses. Even using Pool as a context manager doesn't call these
+                    pool.close()
+                    pool.join()
+
+
+def _run_experiment(
+        opengfx_binary, openttd_binary, final_screenshot_directory,
+        openttd_version, opengfx_version, result_processor,
+        run_dir, i, experiment, ai_and_library_filenames,
+        xvfb_run_available,
+):
+    result_processor = loads(result_processor)
+    experiment = loads(experiment)
+
+    def get_savegame_row(openttd_version, opengfx_version, experiment, filename, output):
+        with open(filename, 'rb') as f:
+            game = parse_savegame(iter(lambda: f.read(65536), b''))
+
+        # Python (and indeed, the gregorian calendar) doesn't have a year zero,
+        # and according to the OpenTTD source, year 1 was a leap year
+        days_since_year_zero = game['chunks']['DATE']['records']['0']['date']
+        days_since_year_one = days_since_year_zero - 366
+        return result_processor({
+            'openttd_version': openttd_version,
+            'opengfx_version': opengfx_version,
+            'savegame_version': game['savegame_version'],
+            'experiment': experiment,
+            'date': date(1, 1 , 1) + timedelta(days_since_year_one),
+            'error': 'The script died unexpectedly' in output,
+            'output': output,
+            'chunks': {
+                tag: chunk['records'] for tag, chunk in game['chunks'].items()
+            },
+        })
+
+    experiment_dir = os.path.join(run_dir, str(i))
+    experiment_baseset_dir = os.path.join(experiment_dir, 'baseset')
+    Path(experiment_baseset_dir).mkdir(parents=True)
+    experiment_ai_dir = os.path.join(experiment_dir, 'ai')
+    Path(experiment_ai_dir).mkdir(parents=True)
+    experiment_ai_library_dir = os.path.join(experiment_dir, 'ai/library')
+    Path(experiment_ai_library_dir).mkdir(parents=True)
+    experiment_script_dir = os.path.join(experiment_dir, 'scripts')
+    Path(experiment_script_dir).mkdir(parents=True)
+
+    openttd_config = experiment.get('openttd_config', '')
+    days = experiment['days']
+    seed = experiment['seed']
+
+    # Populate run directory
+    shutil.copy(opengfx_binary, experiment_baseset_dir)
+    for path, ai_or_library_filename in ai_and_library_filenames:
+        shutil.copy(
+            os.path.join(run_dir, ai_or_library_filename),
+            os.path.join(experiment_dir, *path, ai_or_library_filename),
+        )
+    config_file = os.path.join(experiment_dir, 'openttdlab.cfg')
+
+    with open(os.path.join(experiment_script_dir, 'game_start.scr'), 'w') as f:
+        f.write(''.join(
+            f'start_ai {ai_name}' + (' ' + ','.join(f'{key}={value}' for key, value in ai_params) if ai_params else '') + '\n'
+            for ai_name, ai_params, _ in experiment.get('ais', [])
+        ))
+    with open(config_file, 'w') as f:
+        f.write(textwrap.dedent(openttd_config) + textwrap.dedent('''
+            [gui]
+            autosave = monthly
+            keep_all_autosave = true
+            threaded_saves = false
+        ''')
+    )
+
+    # Run the experiment
+    ticks_per_day = 74
+    ticks = str(ticks_per_day * days)
+    output = subprocess.check_output(
+        (openttd_binary,) + (
+            '-g',                     # Start game immediately
+            '-G', str(seed),          # Seed for random number generator
+            '-snull',                 # No sound
+            '-mnull',                 # No music
+            '-vnull:ticks=' + ticks,  # No video, with fixed number of "ticks" and then exit
+             '-c', config_file,       # Config file
+        ),
+        cwd=experiment_dir,                  # OpenTTD looks in the current working directory for files
+        stderr=subprocess.STDOUT,
+        text=True,
+    )
+
+    autosave_dir = os.path.join(experiment_dir, 'save', 'autosave')
+    autosave_filenames = sorted(list(os.listdir(autosave_dir)))
+
+    if final_screenshot_directory is not None:
+        with open(os.path.join(experiment_script_dir, 'game_start.scr'), 'w') as f:
+            f.write('screenshot giant\n')
+            f.write('quit\n')
+
+        subprocess.check_output(
+            (('xvfb-run', '-a',) if xvfb_run_available else ()) + (openttd_binary,) + (
+                '-g', os.path.join(autosave_dir, autosave_filenames[-1]),
+                '-G', str(seed),          # Seed for random number generator
+                '-snull',                 # No sound
+                '-mnull',                 # No music
+                 '-c', config_file,       # Config file
+            ),
+            cwd=experiment_dir,                  # OpenTTD looks in the current working directory for files
+        )
+        screenshot_file = os.listdir(os.path.join(experiment_dir, 'screenshot'))[0]
+        shutil.copyfile(
+            os.path.join(experiment_dir, 'screenshot', screenshot_file),
+            os.path.join(final_screenshot_directory, str(seed) + '.png'),
+        )
+
+    return dumps([
+        result_row
+        for filename in autosave_filenames
+        for result_row in get_savegame_row(openttd_version, opengfx_version, experiment, os.path.join(autosave_dir, filename), output)
+    ])
 
 
 def _gz_decompress(compressed_chunks):
