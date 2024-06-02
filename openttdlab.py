@@ -322,21 +322,27 @@ def run_experiments(
                         MofNCompleteColumn(),
                     ) as progress, \
                     Pool(processes=max_workers) as pool:
-                task = progress.add_task("Running experiments...", total=len(experiments_list))
-                async_results = [
-                    pool.apply_async(
-                        run_experiment,
-                        args=(run_dir, i, experiment, ai_and_library_filenames),
-                        callback=partial(run_done, progress, task),
-                    )
-                    for i, experiment in enumerate(experiments_list)
-                ]
+                try:
+                    task = progress.add_task("Running experiments...", total=len(experiments_list))
+                    async_results = [
+                        pool.apply_async(
+                            run_experiment,
+                            args=(run_dir, i, experiment, ai_and_library_filenames),
+                            callback=partial(run_done, progress, task),
+                        )
+                        for i, experiment in enumerate(experiments_list)
+                    ]
 
-                return [
-                    savegame_row
-                    for savegame_rows_async_result in async_results
-                    for savegame_row in savegame_rows_async_result.get()
-                ]
+                    results = [
+                        savegame_row
+                        for savegame_rows_async_result in async_results
+                        for savegame_row in savegame_rows_async_result.get()
+                    ]
+                finally:
+                    pool.close()
+                    pool.join()
+
+            return results
 
 
 def _gz_decompress(compressed_chunks):
