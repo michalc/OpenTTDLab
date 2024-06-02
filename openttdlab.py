@@ -85,10 +85,7 @@ def run_experiments(
             file['id']: file
             for file in manifest['files']
         }
-        try:
-            return files_by_id[filename]
-        except KeyError:
-            raise Exception("Unable to fine platform-specific file", filename)
+        return files_by_id[filename]
 
     def check_sha_256(location, expected_sha_256):
         sha256 = hashlib.sha256()
@@ -147,14 +144,24 @@ def run_experiments(
             'zip': extract_zip,
         }
         system_machine_to_release_params = {
-            ('Darwin', 'arm64'): ('macos', 'universal', 'dmg', '{binary_dir}/openttd-{version}-macos-universal/OpenTTD.app/Contents/MacOS/openttd'),
-            ('Darwin', 'x86_64'): ('macos', 'universal', 'dmg', '{binary_dir}/openttd-{version}-macos-universal/OpenTTD.app/Contents/MacOS/openttd'),
-            ('Linux', 'x86_64'): ('linux-generic', 'amd64', 'tar.xz', '{binary_dir}/openttd-{version}-linux-generic-amd64/openttd'),
-            ('Windows', 'AMD64'): ('windows', 'win64', 'zip', '{binary_dir}/openttd-{version}-windows-win64/openttd.exe'),
+            ('Darwin', 'arm64'): (
+                ('macos', 'universal', 'dmg', '{binary_dir}/openttd-{version}-macos-universal/OpenTTD.app/Contents/MacOS/openttd'),
+                ('macosx', 'universal', 'zip', '{binary_dir}/OpenTTD.app/Contents/MacOS/openttd'),
+            ),
+            ('Darwin', 'x86_64'): (
+                ('macos', 'universal', 'dmg', '{binary_dir}/openttd-{version}-macos-universal/OpenTTD.app/Contents/MacOS/openttd'),
+                ('macosx', 'universal', 'zip', '{binary_dir}/OpenTTD.app/Contents/MacOS/openttd'),
+            ),
+            ('Linux', 'x86_64'): (
+                ('linux-generic', 'amd64', 'tar.xz', '{binary_dir}/openttd-{version}-linux-generic-amd64/openttd'),
+            ),
+            ('Windows', 'AMD64'): (
+                ('windows', 'win64', 'zip', '{binary_dir}/openttd-{version}-windows-win64/openttd.exe'),
+            )
         }
         uname = platform.uname()
         try:
-            operating_system, architecture, openttd_extension, openttd_binary_template = system_machine_to_release_params[(uname.system, uname.machine)]
+            release_params_for_platform = system_machine_to_release_params[(uname.system, uname.machine)]
         except KeyError:
             raise Exception("Unable to map platform to OpenTTD release", uname.system, uname.machine)
 
@@ -167,9 +174,18 @@ def run_experiments(
         opengfx_manifest = get_yaml(client, opengfx_base_url + opengfx_version + '/manifest.yaml')
 
         # Find file details in manifest
-        openttd_filename = f"{openttd_manifest['base']}{operating_system}-{architecture}.{openttd_extension}"
+        for operating_system, architecture, openttd_extension, openttd_binary_template in release_params_for_platform:
+            openttd_filename = f"{openttd_manifest['base']}{operating_system}-{architecture}.{openttd_extension}"            
+            try:
+                openttd_file_details = find_details(openttd_manifest, openttd_filename)
+            except KeyError:
+                continue
+            else:
+                break
+        else:
+            raise Exception("Unable to find platform-specific file")
+
         opengfx_filename = f"{opengfx_manifest['base']}all.zip"
-        openttd_file_details = find_details(openttd_manifest, openttd_filename)
         opengfx_file_details = find_details(opengfx_manifest, opengfx_filename)
 
         # Download archives if necessary
