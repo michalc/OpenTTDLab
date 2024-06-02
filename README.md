@@ -171,7 +171,7 @@ The core function of OpenTTDLab is the `run_experiments` function, used to run a
 
    The version of OpenTTD to use. If `None`, the latest version available at `openttd_base_url` is used.
 
-   > [!CAUTION]
+   > **Caution**
    > OpenTTDLab currently does not work with OpenTTD 14.0 or later. The latest version of OpenTTD known to work is 13.4.
 
 - `opengfx_version=None`
