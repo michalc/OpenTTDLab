@@ -237,6 +237,7 @@ The `unique_id` is sometimes surfaced as the "Content Id", but it should not inc
 
 ## Compatibility
 
+- OpenTTD versions between 12.0 and 13.4 (OpenTTD >= 14.0 is not currently supported. See this [discussion on the changes in OpenTTD 14.0](https://github.com/OpenTTD/OpenTTD/discussions/12496).)
 - Linux (tested on Ubuntu 20.04), Windows (tested on Windows Server 2019), or macOS (tested on macOS 11)
 - Python >= 3.8.0 (tested on 3.8.0 and 3.12.0)
 
