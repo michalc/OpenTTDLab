@@ -173,7 +173,7 @@ def run_experiments(
         with tempfile.TemporaryDirectory(prefix=f'OpenTTDLab-{run_id}-') as run_dir:
             # Extract the binaries into the run dir
             openttd_binary_dir = os.path.join(run_dir, f'{openttd_filename}-{openttd_file_details["sha256sum"]}')
-            opengfx_binary_dir = os.path.join(f'{opengfx_filename}-{opengfx_file_details["sha256sum"]}')
+            opengfx_binary_dir = os.path.join(run_dir, f'{opengfx_filename}-{opengfx_file_details["sha256sum"]}')
             Path(openttd_binary_dir).mkdir(parents=True, exist_ok=True)
             Path(opengfx_binary_dir).mkdir(parents=True, exist_ok=True)
             extractors[openttd_extension](openttd_archive_location, openttd_binary_dir)
