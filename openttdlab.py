@@ -181,24 +181,6 @@ def run_experiments(
         check_sha_256(openttd_archive_location, openttd_file_details['sha256sum'])
         check_sha_256(opengfx_archive_location, opengfx_file_details['sha256sum'])
 
-        # Extract the binaries
-        openttd_binary_dir = f'{openttd_archive_location}-{openttd_file_details["sha256sum"]}'
-        opengfx_binary_dir = f'{opengfx_archive_location}-{opengfx_file_details["sha256sum"]}'
-        Path(openttd_binary_dir).mkdir(parents=True, exist_ok=True)
-        Path(opengfx_binary_dir).mkdir(parents=True, exist_ok=True)
-        extractors[openttd_extension](openttd_archive_location, openttd_binary_dir)
-        extractors['zip'](opengfx_archive_location, opengfx_binary_dir)
-
-        # Construct the location of the binaries
-        openttd_binary = os.path.join(openttd_binary_dir, openttd_binary_template.format_map({
-            'binary_dir': openttd_binary_dir,
-            'version': openttd_version,
-        }))
-        opengfx_binary = os.path.join(opengfx_binary_dir, f'opengfx-{opengfx_version}.tar')
-
-        # Ensure the OpenTTD binary is executable
-        os.chmod(openttd_binary, os.stat(openttd_binary).st_mode | stat.S_IEXEC)
-
         # Check if we can use xvfb_run to avoid windows popping up when taking a screenshot
         xvfb_run_available = subprocess.call("type xvfb-run", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE) == 0
 
@@ -294,6 +276,24 @@ def run_experiments(
         run_id = str(uuid.uuid4())
         experiments_list = list(experiments)
         with tempfile.TemporaryDirectory(prefix=f'OpenTTDLab-{run_id}-') as run_dir:
+            # Extract the binaries into the run dir
+            openttd_binary_dir = os.path.join(run_dir, f'{openttd_filename}-{openttd_file_details["sha256sum"]}')
+            opengfx_binary_dir = os.path.join(f'{opengfx_filename}-{opengfx_file_details["sha256sum"]}')
+            Path(openttd_binary_dir).mkdir(parents=True, exist_ok=True)
+            Path(opengfx_binary_dir).mkdir(parents=True, exist_ok=True)
+            extractors[openttd_extension](openttd_archive_location, openttd_binary_dir)
+            extractors['zip'](opengfx_archive_location, opengfx_binary_dir)
+
+            # Construct the location of the binaries
+            openttd_binary = os.path.join(openttd_binary_dir, openttd_binary_template.format_map({
+                'binary_dir': openttd_binary_dir,
+                'version': openttd_version,
+            }))
+            opengfx_binary = os.path.join(opengfx_binary_dir, f'opengfx-{opengfx_version}.tar')
+
+            # Ensure the OpenTTD binary is executable
+            os.chmod(openttd_binary, os.stat(openttd_binary).st_mode | stat.S_IEXEC)
+
             # Make sure to only make any internet connections for AIs at most once for
             # each AI, even if referenced in multiple experiments
             ai_copy_functions = {

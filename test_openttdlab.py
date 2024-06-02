@@ -79,6 +79,37 @@ def test_run_experiments_local_ai_default_version():
     assert tuple(int(v) for v in results[117]['opengfx_version'].split('.')) >= (7, 1)
 
 
+def test_run_experiments_local_ai_early_version_of_openttd():
+    results = run_experiments(
+        openttd_version='12.0',
+        opengfx_version='7.1',
+        experiments=(
+            {
+                'seed': seed,
+                'ais': (
+                    local_file('./fixtures/54524149-trAIns-2.1.tar', 'trAIns'),
+                ),
+                'days': 365 * 5 + 1,
+            }
+            for seed in range(2, 4)
+        ),
+        result_processor=_basic_data,
+    )
+
+    assert len(results) == 118
+    assert results[117] == {
+        'openttd_version': '12.0',
+        'opengfx_version': '7.1',
+        'seed': 3,
+        'name': 'trAIns AI',
+        'date': date(1954, 12, 1),
+        'current_loan': 300000,
+        'money': 320011,
+        'terrain_type': 1,
+        'error': False,
+    }
+
+
 def test_run_experiments_local_folder():
 
     with tempfile.TemporaryDirectory() as d:
