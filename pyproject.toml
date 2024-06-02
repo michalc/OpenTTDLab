@@ -19,7 +19,9 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
+    "dill>=0.3.8",
     "httpx>=0.26.0",
+    "multiprocess>=0.70.16",
     "platformdirs>=4.1.0",
     "PyYAML>=6.0.1",
     "rich>=13.7.1",
@@ -40,7 +42,9 @@ ci = [
   "pytest==7.4.4",
   "pytest-cov==4.1.0",
   # Pinned normal dependencies
+  "dill==0.3.8",
   "httpx==0.26.0",
+  "multiprocess==0.70.16",
   "platformdirs==4.1.0",
   "PyYAML==6.0.1",
   "rich==13.7.1",

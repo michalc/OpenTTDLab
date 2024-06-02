@@ -27,10 +27,10 @@ import textwrap
 import uuid
 import zipfile
 import zlib
-from concurrent.futures import FIRST_EXCEPTION, ThreadPoolExecutor, wait
 from collections import defaultdict, deque
 from datetime import date, timedelta
 from functools import partial
+from multiprocess import Pool
 from pathlib import Path
 from urllib.parse import urlparse
 from rich.progress import MofNCompleteColumn, BarColumn, SpinnerColumn, TextColumn, Progress
@@ -321,23 +321,22 @@ def run_experiments(
                         BarColumn(),
                         MofNCompleteColumn(),
                     ) as progress, \
-                    ThreadPoolExecutor(max_workers=max_workers) as executor:
-                futures = [
-                    executor.submit(run_experiment, run_dir, i, experiment, ai_and_library_filenames)
+                    Pool(processes=max_workers) as pool:
+                task = progress.add_task("Running experiments...", total=len(experiments_list))
+                async_results = [
+                    pool.apply_async(
+                        run_experiment,
+                        args=(run_dir, i, experiment, ai_and_library_filenames),
+                        callback=partial(run_done, progress, task),
+                    )
                     for i, experiment in enumerate(experiments_list)
                 ]
-                task = progress.add_task("Running experiments...", total=len(futures))
-                for future in futures:
-                    future.add_done_callback(partial(run_done, progress, task))
-                done, _ = wait(futures, return_when=FIRST_EXCEPTION)
-                if e := next(iter(done)).exception():
-                    raise e from None
 
-            return [
-                savegame_row
-                for future in futures
-                for savegame_row in future.result()
-            ]
+                return [
+                    savegame_row
+                    for savegame_rows_async_result in async_results
+                    for savegame_row in savegame_rows_async_result.get()
+                ]
 
 
 def _gz_decompress(compressed_chunks):
