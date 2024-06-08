@@ -28,8 +28,8 @@ OpenTTDLab is based on [Patric Stout's OpenTTD Savegame Reader](https://github.c
 - [Examples](#examples)
 - [API](#API)
   - [Running experiments](#running-experiments-1)
-  - [Fetching AIs](#fetching-ais)
-  - [Fetching AI libraries](#fetching-ai-libraries)
+  - [Configuring AIs](#configuring-ais)
+  - [Configuring AI libraries](#configuring-ai-libraries)
   - [Parsing savegame files](#parsing-savegame-files)
 - [Compatibility](#compatibility)
 - [Licenses and attributions](#licenses-and-attributions)
@@ -199,7 +199,7 @@ The core function of OpenTTDLab is the `run_experiments` function, used to run a
    The HTTP client used to make HTTP requests when fetching OpenTTD, OpenGFX, or AIs. Note that the `bananas_ai` function uses a raw TCP connection in addition to HTTP requests, and so not all outgoing connections use the client specified by this.
 
 
-### Fetching AIs
+### Configuring AIs
 
 The value of the `ais` key of each dictionary in the `experiments` parameter configures which AIs will run, how their code will be located, their names, and what parameters will be passed to each of them when they start. In more detail, the `ais`  parameter must be an iterable of the return value of any of the the following 4 functions.
 
@@ -228,7 +228,7 @@ Defines an AI by the local path to a .tar AI file that contains the AI code. The
 Fetches the AI by the URL of a tar.gz file that contains the AI code. For example, a specific GitHub tag of a repository that contains its code. The `ai_params` parameter is an optional parameter of an iterable of `(key, value)` parameters passed to the AI on startup.
 
 
-### Fetching AI libraries
+### Configuring AI libraries
 
 The `ai_libraries` parameter of `run_experiments` ensures that AI libraries are available to the AIs running. In more detail, the `ais_libraries` parameter must be an iterable, where each item the the return value of the `bananas_ai_library` function described below.
 
