@@ -159,6 +159,39 @@ def test_run_experiments_local_folder():
         'error': False,
     }
 
+def test_run_experiments_local_folder():
+    results = run_experiments(
+        experiments=(
+            {
+                'seed': seed,
+                'ais': (
+                    local_folder('./fixtures/NoOpAIImportingPathfinder-1', 'NoOpAIImportingPathfinder'),
+                ),
+                'days': 366 * 1 + 1,
+            }
+            for seed in range(0, 1)
+        ),
+        ai_libraries=(
+            bananas_ai_library('5046524f', 'Pathfinder.Road'),
+        ),
+        openttd_version='13.4',
+        opengfx_version='7.1',
+        result_processor=_basic_data,
+    )
+
+    assert len(results) == 12
+    assert results[-1] == {
+        'openttd_version': '13.4',
+        'opengfx_version': '7.1',
+        'seed': 0,
+        'name': 'NoOpAIImportingPathfinder',
+        'date': date(1951, 1, 1),
+        'current_loan': 100000,
+        'money': 97700,
+        'terrain_type': 1,
+        'error': False,
+    }
+
 def test_run_experiments_with_error():
     # This particular seed is known to make this version of trAINs error
 
