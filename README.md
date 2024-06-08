@@ -27,7 +27,7 @@ OpenTTDLab is based on [Patric Stout's OpenTTD Savegame Reader](https://github.c
 - [Plotting results](#plotting-results)
 - [Examples](#examples)
 - [API](#API)
-  - [Running experiments](#running-experiments-1)
+  - [Core function](#core-function)
   - [Configuring AIs](#configuring-ais)
   - [Configuring AI libraries](#configuring-ai-libraries)
   - [Parsing savegame files](#parsing-savegame-files)
@@ -63,7 +63,7 @@ brew install p7zip
 You do not need to separately download or install OpenTTD (or [OpenGFX](https://github.com/OpenTTD/OpenGFX)) in order to use OpenTTDLab. OpenTTDLab itself handles downloading them.
 
 
-## Running experiments
+## Core function
 
 The core function of OpenTTD is the `run_experiments` function.
 
