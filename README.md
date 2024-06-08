@@ -10,7 +10,7 @@
     <a href="https://app.codecov.io/gh/michalc/OpenTTDLab"><img alt="Code coverage" height="20" src="https://img.shields.io/codecov/c/github/michalc/OpenTTDLab?label=Code%20coverage"></a>
 </p>
 
-OpenTTDLab is a Python framework for using [OpenTTD](https://github.com/OpenTTD/OpenTTD) to run reproducible experiments and extracting results from them, with as few manual steps as possible.
+OpenTTDLab is a Python framework for using [OpenTTD](https://github.com/OpenTTD/OpenTTD) to run reproducible experiments and extracting results from them, with as few manual steps as possible. OpenTTDLab can also be used to help run regression tests of OpenTTD AIs.
 
 OpenTTDLab is based on [Patric Stout's OpenTTD Savegame Reader](https://github.com/TrueBrain/OpenTTD-savegame-reader).
 
@@ -116,7 +116,11 @@ should output a plot much like this one.
 
 ## Examples
 
-A notebook of the above example and an example measuring the performance of OpenTTDLab are in the [examples](https://github.com/michalc/OpenTTDLab/tree/main/examples) folder.
+A few examples are available:
+
+- [A Jupyter notebook of the above example, briefly exploring the performance of trAIns](https://github.com/michalc/OpenTTDLab/blob/main/examples/01-single-ai.ipynb)
+- [A Jupyter notebook showing how the performance of OpenTTDLab scales with the number of workers](https://github.com/michalc/OpenTTDLab/blob/main/examples/02-openttdlab-scaling.ipynb)
+- [A pytest .py file using OpenTTDLab as a test harness for an OpenTTD AI](https://github.com/michalc/ParameterisedAI/blob/main/test_parameterised_ai.py), run automatically using [a GitHub action workflow](https://github.com/michalc/ParameterisedAI/blob/main/.github/workflows/test.yml)
 
 
 ## API
