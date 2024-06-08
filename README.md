@@ -235,6 +235,22 @@ Fetches the AI library defined by `unique_id` and `ai_name` of a library publish
 The `unique_id` is sometimes surfaced as the "Content Id", but it should not include its `ai-library/` prefix.
 
 
+### Parsing savegame files
+
+#### `parse_savegame(chunks: Iterable[bytes])`
+
+Under the hood the `run_experiments` handles the generation and parsing of savegame files, but if you have your own savegame files generated separately, the `parse_savegame` function is exposed that can extract data from them.
+
+It takes an iterable of `bytes` instances of a savegame file, and returns a nested dictionary of parsed data.
+
+```python
+from openttdlab import parse_savegame
+
+with open('my.sav') as f:
+   parsed_savegame = parse_savegame(iter(lambda: f.read(65536), b''))
+```
+
+
 ## Compatibility
 
 - OpenTTD versions between 12.0 and 13.4 (OpenTTD >= 14.0 is not currently supported. See this [discussion on the changes in OpenTTD 14.0](https://github.com/OpenTTD/OpenTTD/discussions/12496).)
