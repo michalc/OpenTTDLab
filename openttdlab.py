@@ -402,7 +402,7 @@ def remote_file(url, ai_name, ai_params=()):
     return ai_name, ai_params, _download
 
 
-def _bananas_download(bananas_type_id, content_id, client, cache_dir, target):
+def _bananas_download(content_id, client, cache_dir, target):
     @contextlib.contextmanager
     def tcp_connection(address):
 
@@ -502,6 +502,10 @@ def _bananas_download(bananas_type_id, content_id, client, cache_dir, target):
             return tcp_content_id, tcp_dependency_content_ids
 
     bananas_type_str, unique_id = content_id.split('/')
+    bananas_type_id = {
+        'ai': CONTENT_TYPE_AI,
+        'ai-library': CONTENT_TYPE_AI_LIBRARY,
+    }[bananas_type_str]
 
     # Confirm via HTTPs that this name/unique ID pair exists
     api_resp = client.get(f'https://bananas-api.openttd.org/package/{bananas_type_str}/{unique_id}')
@@ -583,11 +587,11 @@ def _bananas_download(bananas_type_id, content_id, client, cache_dir, target):
 
 
 def bananas_ai(unique_id, ai_name, ai_params=()):
-    return ai_name, ai_params, partial(_bananas_download, CONTENT_TYPE_AI, 'ai/' + unique_id)
+    return ai_name, ai_params, partial(_bananas_download, 'ai/' + unique_id)
 
 
 def bananas_ai_library(unique_id, ai_library_name):
-    return ai_library_name, partial(_bananas_download, CONTENT_TYPE_AI_LIBRARY, 'ai-library/' + unique_id)
+    return ai_library_name, partial(_bananas_download, 'ai-library/' + unique_id)
 
 
 def parse_savegame(chunks, chunk_size=65536):
