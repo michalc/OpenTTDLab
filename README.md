@@ -27,6 +27,10 @@ OpenTTDLab is based on [Patric Stout's OpenTTD Savegame Reader](https://github.c
 - [Plotting results](#plotting-results)
 - [Examples](#examples)
 - [API](#API)
+  - [Running experiments](#running-experiments-1)
+  - [Fetching AIs](#fetching-ais)
+  - [Fetching AI libraries](#fetching-ai-libraries)
+  - [Parsing savegame files](#parsing-savegame-files)
 - [Compatibility](#compatibility)
 - [Licenses and attributions](#licenses-and-attributions)
 
