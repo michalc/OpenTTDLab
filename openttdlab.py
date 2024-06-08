@@ -402,7 +402,7 @@ def remote_file(url, ai_name, ai_params=()):
     return ai_name, ai_params, _download
 
 
-def _bananas_download(bananas_type_id, bananas_type_str, unique_id, client, cache_dir, target):
+def _bananas_download(bananas_type_id, content_id, client, cache_dir, target):
     @contextlib.contextmanager
     def tcp_connection(address):
 
@@ -501,6 +501,8 @@ def _bananas_download(bananas_type_id, bananas_type_str, unique_id, client, cach
 
             return tcp_content_id, tcp_dependency_content_ids
 
+    bananas_type_str, unique_id = content_id.split('/')
+
     # Confirm via HTTPs that this name/unique ID pair exists
     api_resp = client.get(f'https://bananas-api.openttd.org/package/{bananas_type_str}/{unique_id}')
     api_resp.raise_for_status()
@@ -534,19 +536,19 @@ def _bananas_download(bananas_type_id, bananas_type_str, unique_id, client, cach
     # of all its dependencies. We treat them slightly differently because we have already
     # found the dependencies of the primary content, but will still need to find the dependencies
     # of the dependencies later
-    primary_content_id, dependency_content_ids = get_tcp_content_ids(bananas_type_id, unique_id)
+    primary_tcp_content_id, dependency_tcp_content_ids = get_tcp_content_ids(bananas_type_id, unique_id)
 
     # Download and cache content, and and all transitive dependencies. Note that transitive
     # dependencies can be specified by exact version, and to download those we need the MD5 sum
     # of the dependency, which we only know by finding the link to it, so it's a bit of a dance
     filenames = []
     to_download = deque()
-    to_download.append((False, primary_content_id))
-    for content_id in dependency_content_ids:
-        to_download.append((True, content_id))
+    to_download.append((False, primary_tcp_content_id))
+    for tcp_content_id in dependency_tcp_content_ids:
+        to_download.append((True, tcp_content_id))
     while to_download:
-        find_transitive, content_id = to_download.popleft()
-        response = client.post('https://binaries.openttd.org/bananas', content=str(content_id).encode() + b'\n')
+        find_transitive, tcp_content_id = to_download.popleft()
+        response = client.post('https://binaries.openttd.org/bananas', content=str(tcp_content_id).encode() + b'\n')
         response.raise_for_status()
         binaries_content_id, binaries_content_type, binaries_filesize, binaries_link = response.text.strip().split(',')
         binaries_md5sum = urlparse(binaries_link).path.split('/')[3]
@@ -568,9 +570,9 @@ def _bananas_download(bananas_type_id, bananas_type_str, unique_id, client, cach
             filenames.append((final_location_path(int(binaries_content_type)), filename),)
 
         if find_transitive:
-            _, transitive_content_ids = get_tcp_content_ids(int(binaries_content_type), binaries_unique_id, md5sum=binaries_md5sum)
-            for transitive_content_id in transitive_content_ids:
-                to_download.append((True, transitive_content_id))
+            _, transitive_tcp_content_ids = get_tcp_content_ids(int(binaries_content_type), binaries_unique_id, md5sum=binaries_md5sum)
+            for transitive_tcp_content_id in transitive_tcp_content_ids:
+                to_download.append((True, transitive_tcp_content_id))
 
     # Write dependency file - simple text file
     with open(cached_dependency_file, 'w', encoding='utf-8') as f:
@@ -581,11 +583,11 @@ def _bananas_download(bananas_type_id, bananas_type_str, unique_id, client, cach
 
 
 def bananas_ai(unique_id, ai_name, ai_params=()):
-    return ai_name, ai_params, partial(_bananas_download, CONTENT_TYPE_AI, 'ai', unique_id)
+    return ai_name, ai_params, partial(_bananas_download, CONTENT_TYPE_AI, 'ai/' + unique_id)
 
 
 def bananas_ai_library(unique_id, ai_library_name):
-    return ai_library_name, partial(_bananas_download, CONTENT_TYPE_AI_LIBRARY, 'ai-library', unique_id)
+    return ai_library_name, partial(_bananas_download, CONTENT_TYPE_AI_LIBRARY, 'ai-library/' + unique_id)
 
 
 def parse_savegame(chunks, chunk_size=65536):
