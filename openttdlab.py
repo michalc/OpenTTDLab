@@ -438,7 +438,7 @@ def _bananas_download(content_id, client, cache_dir, target):
             CONTENT_TYPE_AI_LIBRARY: ('ai', 'library',),
         }[bananas_type_id]
 
-    def get_tcp_content_ids(bananas_type_id, unique_id, md5sum=None):
+    def get_tcp_content_ids(recv_bytes, send_bytes, bananas_type_id, unique_id, md5sum=None):
 
         def reader(b):
             i = 0
@@ -464,42 +464,41 @@ def _bananas_download(content_id, client, cache_dir, target):
             return read_num, read_until_null
 
         # Convert unique ID to content ID from the Bananas TCP server, and get its expected filesize
-        with tcp_connection(("content.openttd.org", 3978)) as (recv_bytes, send_bytes):
-            PACKET_CONTENT_CLIENT_INFO_EXTID = 2
-            PACKET_CONTENT_CLIENT_INFO_EXTID_MD5 = 3
-            request_type = \
-                PACKET_CONTENT_CLIENT_INFO_EXTID if md5sum is None else\
-                PACKET_CONTENT_CLIENT_INFO_EXTID_MD5
-            packet_body = \
-                struct.pack("<B", request_type) + \
-                struct.pack("<B", 1) + \
-                struct.pack("<B", bananas_type_id) + \
-                struct.pack("4s", bytes.fromhex(unique_id)) + \
-                (struct.pack("16s", bytes.fromhex(md5sum)) if md5sum is not None else b'')
-            send_bytes(struct.pack("<H", len(packet_body) + 2) + packet_body)
+        PACKET_CONTENT_CLIENT_INFO_EXTID = 2
+        PACKET_CONTENT_CLIENT_INFO_EXTID_MD5 = 3
+        request_type = \
+            PACKET_CONTENT_CLIENT_INFO_EXTID if md5sum is None else\
+            PACKET_CONTENT_CLIENT_INFO_EXTID_MD5
+        packet_body = \
+            struct.pack("<B", request_type) + \
+            struct.pack("<B", 1) + \
+            struct.pack("<B", bananas_type_id) + \
+            struct.pack("4s", bytes.fromhex(unique_id)) + \
+            (struct.pack("16s", bytes.fromhex(md5sum)) if md5sum is not None else b'')
+        send_bytes(struct.pack("<H", len(packet_body) + 2) + packet_body)
 
-            PACKET_CONTENT_SERVER_INFO = 4
-            packet_size = struct.unpack("<H", recv_bytes(2))[0]
-            if packet_size < 12:
-                raise Exception('Response is too small')
-            packet_read_num, packet_read_until_null = reader(recv_bytes(packet_size - 2))
-            tcp_packet_type = struct.unpack("<B", packet_read_num(1))[0]
-            tcp_content_type = struct.unpack("<B", packet_read_num(1))[0]
-            tcp_content_id = struct.unpack("<I", packet_read_num(4))[0]
-            tcp_file_size = struct.unpack("<I", packet_read_num(4))[0]
-            tcp_name = packet_read_until_null()
-            tcp_version = packet_read_until_null()
-            tcp_url = packet_read_until_null()
-            tcp_description = packet_read_until_null()
-            tcp_unique_id = packet_read_num(4)
-            tcp_md5sum = packet_read_num(16)
-            tcp_num_dependencies = packet_read_num(1)[0]
-            tcp_dependency_content_ids = tuple(
-                struct.unpack("<I", packet_read_num(4))[0]
-                for _ in range(0, tcp_num_dependencies)
-            )
+        PACKET_CONTENT_SERVER_INFO = 4
+        packet_size = struct.unpack("<H", recv_bytes(2))[0]
+        if packet_size < 12:
+            raise Exception('Response is too small')
+        packet_read_num, packet_read_until_null = reader(recv_bytes(packet_size - 2))
+        tcp_packet_type = struct.unpack("<B", packet_read_num(1))[0]
+        tcp_content_type = struct.unpack("<B", packet_read_num(1))[0]
+        tcp_content_id = struct.unpack("<I", packet_read_num(4))[0]
+        tcp_file_size = struct.unpack("<I", packet_read_num(4))[0]
+        tcp_name = packet_read_until_null()
+        tcp_version = packet_read_until_null()
+        tcp_url = packet_read_until_null()
+        tcp_description = packet_read_until_null()
+        tcp_unique_id = packet_read_num(4)
+        tcp_md5sum = packet_read_num(16)
+        tcp_num_dependencies = packet_read_num(1)[0]
+        tcp_dependency_content_ids = tuple(
+            struct.unpack("<I", packet_read_num(4))[0]
+            for _ in range(0, tcp_num_dependencies)
+        )
 
-            return tcp_content_id, tcp_dependency_content_ids
+        return tcp_content_id, tcp_dependency_content_ids
 
     bananas_type_str, unique_id = content_id.split('/')
     bananas_type_id = {
@@ -537,32 +536,36 @@ def _bananas_download(content_id, client, cache_dir, target):
         raise Exception("Mismatched name")
 
     # Get TCP content ID of the primary content requested from client code, and the TCP content IDs
-    # of all its dependencies. We treat them slightly differently below because we have the
-    # dependencies of the primary content, but will still need make more TCP queries to find the
-    # dependencies of the dependencies
-    primary_tcp_content_id, dependency_tcp_content_ids = get_tcp_content_ids(bananas_type_id, unique_id)
+    # of all its dependencies. We treat them slightly differently below because we get the
+    # dependencies of the primary content immediately, but will still need make more TCP queries to
+    # find the dependencies of the dependencies
+    with tcp_connection(("content.openttd.org", 3978)) as (recv_bytes, send_bytes):
+        get_tcp_content_ids_from_conn = partial(get_tcp_content_ids, recv_bytes, send_bytes)
+        primary_tcp_content_id, dependency_tcp_content_ids = get_tcp_content_ids_from_conn(bananas_type_id, unique_id)
 
-    # Find URLs to download the primary content, and all of its dependencies and transitve
-    # dependencies. Note that dependencies can be specified by exact version, and to download those
-    # we need the MD5 sum of the dependency, which we only know by finding the link to it
-    urls = []
-    tcp_content_ids = deque()
-    tcp_content_ids.append((False, primary_tcp_content_id))
-    for tcp_content_id in dependency_tcp_content_ids:
-        tcp_content_ids.append((True, tcp_content_id))
-    while tcp_content_ids:
-        find_transitive, tcp_content_id = tcp_content_ids.popleft()
-        response = client.post('https://binaries.openttd.org/bananas', content=str(tcp_content_id).encode() + b'\n')
-        response.raise_for_status()
-        binaries_content_id, binaries_content_type, binaries_filesize, binaries_link = response.text.strip().split(',')
-        binaries_md5sum = urlparse(binaries_link).path.split('/')[3]
-        binaries_unique_id = urlparse(binaries_link).path.split('/')[2]
-        urls.append((binaries_content_id, binaries_content_type, binaries_filesize, binaries_link, binaries_md5sum, binaries_unique_id))
+        # Find URLs to download the primary content, and all of its dependencies and transitve
+        # dependencies. Note that dependencies can be specified by exact version, and to download those
+        # we need the MD5 sum of the dependency, which we only know by finding the link to it
+        urls = []
+        tcp_content_ids = deque()
+        tcp_content_ids.append((False, primary_tcp_content_id))
+        for tcp_content_id in dependency_tcp_content_ids:
+            tcp_content_ids.append((True, tcp_content_id))
+        while tcp_content_ids:
+            find_transitive, tcp_content_id = tcp_content_ids.popleft()
+            response = client.post('https://binaries.openttd.org/bananas', content=str(tcp_content_id).encode() + b'\n')
+            response.raise_for_status()
+            binaries_content_id, binaries_content_type, binaries_filesize, binaries_link = response.text.strip().split(',')
+            binaries_md5sum = urlparse(binaries_link).path.split('/')[3]
+            binaries_unique_id = urlparse(binaries_link).path.split('/')[2]
+            urls.append((binaries_content_id, binaries_content_type, binaries_filesize, binaries_link, binaries_md5sum, binaries_unique_id))
 
-        if find_transitive:
-            _, transitive_tcp_content_ids = get_tcp_content_ids(int(binaries_content_type), binaries_unique_id, md5sum=binaries_md5sum)
-            for transitive_tcp_content_id in transitive_tcp_content_ids:
-                tcp_content_ids.append((True, transitive_tcp_content_id))
+            if find_transitive:
+                _, transitive_tcp_content_ids = get_tcp_content_ids_from_conn(
+                    int(binaries_content_type), binaries_unique_id, md5sum=binaries_md5sum,
+                )
+                for transitive_tcp_content_id in transitive_tcp_content_ids:
+                    tcp_content_ids.append((True, transitive_tcp_content_id))
 
     # Download all the content from the URLs found above
     filenames = []
