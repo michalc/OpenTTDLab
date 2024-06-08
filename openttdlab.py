@@ -536,35 +536,43 @@ def _bananas_download(content_id, client, cache_dir, target):
     if api_dict['unique-id'] != unique_id:
         raise Exception("Mismatched name")
 
-    # Get content ID of the primary content requested from client code, and the content IDs
-    # of all its dependencies. We treat them slightly differently because we have already
-    # found the dependencies of the primary content, but will still need to find the dependencies
-    # of the dependencies later
+    # Get TCP content ID of the primary content requested from client code, and the TCP content IDs
+    # of all its dependencies. We treat them slightly differently below because we have the
+    # dependencies of the primary content, but will still need make more TCP queries to find the
+    # dependencies of the dependencies
     primary_tcp_content_id, dependency_tcp_content_ids = get_tcp_content_ids(bananas_type_id, unique_id)
 
-    # Download and cache content, and and all transitive dependencies. Note that transitive
-    # dependencies can be specified by exact version, and to download those we need the MD5 sum
-    # of the dependency, which we only know by finding the link to it, so it's a bit of a dance
-    filenames = []
-    to_download = deque()
-    to_download.append((False, primary_tcp_content_id))
+    # Find URLs to download the primary content, and all of its dependencies and transitve
+    # dependencies. Note that dependencies can be specified by exact version, and to download those
+    # we need the MD5 sum of the dependency, which we only know by finding the link to it
+    urls = []
+    tcp_content_ids = deque()
+    tcp_content_ids.append((False, primary_tcp_content_id))
     for tcp_content_id in dependency_tcp_content_ids:
-        to_download.append((True, tcp_content_id))
-    while to_download:
-        find_transitive, tcp_content_id = to_download.popleft()
+        tcp_content_ids.append((True, tcp_content_id))
+    while tcp_content_ids:
+        find_transitive, tcp_content_id = tcp_content_ids.popleft()
         response = client.post('https://binaries.openttd.org/bananas', content=str(tcp_content_id).encode() + b'\n')
         response.raise_for_status()
         binaries_content_id, binaries_content_type, binaries_filesize, binaries_link = response.text.strip().split(',')
         binaries_md5sum = urlparse(binaries_link).path.split('/')[3]
         binaries_unique_id = urlparse(binaries_link).path.split('/')[2]
-        filename = urlparse(binaries_link).path.split('/')[-1][:-3]  # Withouth .gz extension
+        urls.append((binaries_content_id, binaries_content_type, binaries_filesize, binaries_link, binaries_md5sum, binaries_unique_id))
 
-        # Download from CDN URL
+        if find_transitive:
+            _, transitive_tcp_content_ids = get_tcp_content_ids(int(binaries_content_type), binaries_unique_id, md5sum=binaries_md5sum)
+            for transitive_tcp_content_id in transitive_tcp_content_ids:
+                tcp_content_ids.append((True, transitive_tcp_content_id))
+
+    # Download all the content from the URLs found above
+    filenames = []
+    for binaries_content_id, binaries_content_type, binaries_filesize, binaries_link, binaries_md5sum, binaries_unique_id in urls:
         with client.stream("GET", binaries_link) as response:
             response.raise_for_status()
             if response.headers['content-length'] != binaries_filesize:
                 raise Exception('Mismatched filesize')
 
+            filename = urlparse(binaries_link).path.split('/')[-1][:-3]  # Withouth .gz extension
             with open(os.path.join(target, filename), 'wb') as f:
                 for chunk in _gz_decompress(response.iter_bytes()):
                     f.write(chunk)
@@ -572,11 +580,6 @@ def _bananas_download(content_id, client, cache_dir, target):
             cached_file = os.path.join(content_cache_dir, filename)
             shutil.copy(os.path.join(target, filename), cached_file)
             filenames.append((final_location_path(int(binaries_content_type)), filename),)
-
-        if find_transitive:
-            _, transitive_tcp_content_ids = get_tcp_content_ids(int(binaries_content_type), binaries_unique_id, md5sum=binaries_md5sum)
-            for transitive_tcp_content_id in transitive_tcp_content_ids:
-                to_download.append((True, transitive_tcp_content_id))
 
     # Write dependency file - simple text file
     with open(cached_dependency_file, 'w', encoding='utf-8') as f:
