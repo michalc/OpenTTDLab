@@ -402,7 +402,7 @@ def remote_file(url, ai_name, ai_params=()):
     return ai_name, ai_params, _download
 
 
-def _bananas_download(bananas_type_id, bananas_type_str, unique_id, content_name, client, cache_dir, target):
+def _bananas_download(bananas_type_id, bananas_type_str, unique_id, client, cache_dir, target):
     @contextlib.contextmanager
     def tcp_connection(address):
 
@@ -526,8 +526,8 @@ def _bananas_download(bananas_type_id, bananas_type_str, unique_id, content_name
         shutil.copy(cached_file, os.path.join(target, filename))
         return [(final_location_path(bananas_type_id),filename),] + dependency_filenames
 
-    # Check name is what client code expected
-    if api_dict['name'] != content_name:
+    # Check unique_id is what's expected
+    if api_dict['unique-id'] != unique_id:
         raise Exception("Mismatched name")
 
     # Get content ID of the primary content requested from client code, and the content IDs
@@ -581,11 +581,11 @@ def _bananas_download(bananas_type_id, bananas_type_str, unique_id, content_name
 
 
 def bananas_ai(unique_id, ai_name, ai_params=()):
-    return ai_name, ai_params, partial(_bananas_download, CONTENT_TYPE_AI, 'ai', unique_id, ai_name)
+    return ai_name, ai_params, partial(_bananas_download, CONTENT_TYPE_AI, 'ai', unique_id)
 
 
 def bananas_ai_library(unique_id, ai_library_name):
-    return ai_library_name, partial(_bananas_download, CONTENT_TYPE_AI_LIBRARY, 'ai-library', unique_id, ai_library_name)
+    return ai_library_name, partial(_bananas_download, CONTENT_TYPE_AI_LIBRARY, 'ai-library', unique_id)
 
 
 def parse_savegame(chunks, chunk_size=65536):
