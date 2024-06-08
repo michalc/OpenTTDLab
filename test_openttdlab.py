@@ -377,37 +377,39 @@ def test_run_experiments_bananas_with_deps():
 
 
 def test_run_experiments_bananas_as_library():
-    results = run_experiments(
-        experiments=(
-            {
-                'seed': seed,
-                'ais': (
-                    local_file('./fixtures/NoOpAIImportingPathfinder-1.tar', 'NoOpAIImportingPathfinder'),
-                ),
-                'days': 365 + 1,
-            }
-            for seed in range(2, 3)
-        ),
-        ai_libraries=(
-            bananas_ai_library('5046524f', 'Pathfinder.Road'),
-        ),
-        openttd_version='13.4',
-        opengfx_version='7.1',
-        result_processor=_basic_data,
-    )
+    # Run multiple time to check caching behavior
+    for _ in range(0, 2):
+        results = run_experiments(
+            experiments=(
+                {
+                    'seed': seed,
+                    'ais': (
+                        local_file('./fixtures/NoOpAIImportingPathfinder-1.tar', 'NoOpAIImportingPathfinder'),
+                    ),
+                    'days': 365 + 1,
+                }
+                for seed in range(2, 3)
+            ),
+            ai_libraries=(
+                bananas_ai_library('5046524f', 'Pathfinder.Road'),
+            ),
+            openttd_version='13.4',
+            opengfx_version='7.1',
+            result_processor=_basic_data,
+        )
 
-    assert len(results) == 12
-    assert results[10] == {
-        'openttd_version': '13.4',
-        'opengfx_version': '7.1',
-        'seed': 2,
-        'name': 'NoOpAIImportingPathfinder',
-        'date': date(1950, 12, 1),
-        'current_loan': 100000,
-        'money': 97891,
-        'terrain_type': 1,
-        'error': False,
-    }
+        assert len(results) == 12
+        assert results[10] == {
+            'openttd_version': '13.4',
+            'opengfx_version': '7.1',
+            'seed': 2,
+            'name': 'NoOpAIImportingPathfinder',
+            'date': date(1950, 12, 1),
+            'current_loan': 100000,
+            'money': 97891,
+            'terrain_type': 1,
+            'error': False,
+        }
 
 
 def test_run_experiments_screenshots():

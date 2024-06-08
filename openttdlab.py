@@ -518,7 +518,7 @@ def _bananas_download(bananas_type_id, bananas_type_str, unique_id, content_name
                 contents = f.read()
             dependency_filenames = [
                 (tuple(line.split(',')[0].split('/')), line.split(',')[1])
-                for line in contents.split('\n')
+                for line in contents.splitlines()
             ] if contents else []
             for path,dependency_filename in dependency_filenames:
                 shutil.copy(os.path.join(content_cache_dir, dependency_filename), os.path.join(target, dependency_filename))
@@ -575,7 +575,7 @@ def _bananas_download(bananas_type_id, bananas_type_str, unique_id, content_name
         # Write dependency file - simple text file
         with open(cached_dependency_file, 'w', encoding='utf-8') as f:
             for path, filename in filenames[1:]:
-                f.write('/'.join(path) + ',' + filename)
+                f.write('/'.join(path) + ',' + filename + '\n')
 
         return filenames
 
