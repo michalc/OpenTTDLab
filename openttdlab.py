@@ -382,7 +382,9 @@ def local_file(file_path, ai_name, ai_params=()):
 def local_folder(folder_path, ai_name, ai_params=()):
     def _copy(client, cache_dir, target):
         with tarfile.open(os.path.join(target, ai_name + '.tar'), 'w') as tar:
-            tar.add(folder_path, arcname='')
+            # Arcname adds the folder to a folder in the root of the tar. Doesn't seem to
+            # matter what the folder is called, as long as there is one
+            tar.add(folder_path, arcname='local-ai')
         return ((('ai',), ai_name + '.tar'),)
 
     return ai_name, ai_params, _copy
