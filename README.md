@@ -63,7 +63,7 @@ brew install p7zip
 You do not need to separately download or install OpenTTD (or [OpenGFX](https://github.com/OpenTTD/OpenGFX)) in order to use OpenTTDLab. OpenTTDLab itself handles downloading them.
 
 
-## Core function
+## Running experiments
 
 The core function of OpenTTD is the `run_experiments` function.
 
@@ -129,7 +129,7 @@ A few examples are available:
 
 ## API
 
-### Running experiments
+### Core function
 
 #### `run_experiments(...)`
 
