@@ -139,6 +139,11 @@ def run_experiments(
                     raise Exception('Unsafe', archive_location)
             f_zip.extractall(output_dir)
 
+    content_types_by_str = {
+        type_str: (type_id, path)
+        for (type_id, type_str, path) in CONTENT_TYPES
+    }
+
     with get_http_client() as client:
 
         # Choose platform-specific details
@@ -227,7 +232,8 @@ def run_experiments(
             def copy_ai_or_library_to_run_dir():
                 for copy_func in ai_and_library_filenames:
                     with copy_func(lambda: contextlib.nullcontext(client), lambda: cache_dir) as filenames_and_data:
-                        for path, filename, data_context in filenames_and_data:
+                        for content_id, filename, data_context in filenames_and_data:
+                            path = content_types_by_str[content_id.split('/')[0]][1]
                             with \
                                     data_context as data, \
                                     open(os.path.join(run_dir, filename), 'wb') as f:
@@ -411,7 +417,7 @@ def local_file(file_path, ai_name, ai_params=()):
     @contextlib.contextmanager
     def _copy(client, cache_dir):
         yield (
-            (('ai',), ai_name + '.tar', _file_contents(file_path)),
+            ('ai/', ai_name + '.tar', _file_contents(file_path)),
         )
 
     return ai_name, ai_params, _copy
@@ -431,7 +437,7 @@ def local_folder(folder_path, ai_name, ai_params=()):
                     tar.add(folder_path, arcname='local-ai')
 
                 yield (
-                    (('ai',), ai_name + '.tar', _file_contents(file.name)),
+                    ('ai/', ai_name + '.tar', _file_contents(file.name)),
                 )
         finally:
             if file is not None:
@@ -455,7 +461,7 @@ def remote_file(url, ai_name, ai_params=()):
     @contextlib.contextmanager
     def _download(client, get_cache_dir):
         yield (
-            (('ai',), ai_name + '.tar', _gz_download(client, url)),
+            ('ai/', ai_name + '.tar', _gz_download(client, url)),
         )
 
     return ai_name, ai_params, _download
@@ -620,13 +626,12 @@ def _bananas_download(
             with open(cached_dependency_file, 'r', encoding='utf-8') as f:
                 contents = f.read()
             dependency_filenames = [
-                (tuple(line.split(',')[0].split('/')), line.split(',')[1])
+                line.split(',')
                 for line in contents.splitlines()
             ] if contents else []
-            all_filenames = [(content_types_by_id[bananas_type_id][1],filename),] + dependency_filenames
             yield [
-                (path, filename, _file_contents(os.path.join(content_cache_dir, filename)))
-                for path, filename in all_filenames
+                (content_id, filename, _file_contents(os.path.join(content_cache_dir, filename)))
+                for content_id, filename in dependency_filenames
             ]
             return
 
@@ -671,7 +676,7 @@ def _bananas_download(
         total_iterated = 0
         for binaries_content_id, binaries_content_type, binaries_filesize, binaries_link, binaries_md5sum, binaries_unique_id, binaries_filename in urls:
             filenames.append((
-                content_types_by_id[int(binaries_content_type)][1],
+                content_types_by_id[int(binaries_content_type)][0] + '/' + binaries_unique_id,
                 binaries_filename,
                 url_contents_while_writing(binaries_link, os.path.join(content_cache_dir, binaries_filename), binaries_filesize),
             ))
@@ -680,8 +685,8 @@ def _bananas_download(
         # Write dependency file (simple text file) only if we have iterated everything
         if total_iterated == len(filenames):
             with open(cached_dependency_file, 'w', encoding='utf-8') as f:
-                for path, filename, _ in filenames[1:]:
-                    f.write('/'.join(path) + ',' + filename + '\n')
+                for content_id, filename, _ in filenames:
+                    f.write(content_id + ',' + filename + '\n')
 
 
 def bananas_ai(unique_id, ai_name, ai_params=()):
