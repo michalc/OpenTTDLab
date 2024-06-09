@@ -45,8 +45,28 @@ from platformdirs import user_cache_dir
 __version__ = '0.0.0.dev0'
 
 
-CONTENT_TYPE_AI = 3
-CONTENT_TYPE_AI_LIBRARY = 4
+CONTENT_TYPE_BASE_GRAPHICS = 1
+CONTENT_TYPE_NEWGRF        = 2
+CONTENT_TYPE_AI            = 3
+CONTENT_TYPE_AI_LIBRARY    = 4
+CONTENT_TYPE_SCENARIO      = 5
+CONTENT_TYPE_HEIGHTMAP     = 6
+CONTENT_TYPE_BASE_SOUNDS   = 7
+CONTENT_TYPE_BASE_MUSIC    = 8
+CONTENT_TYPE_GAME          = 9
+CONTENT_TYPE_GAME_LIBRARY  = 10
+CONTENT_TYPES = (
+    (CONTENT_TYPE_BASE_GRAPHICS, 'base-graphics', ('baseset',)),
+    (CONTENT_TYPE_NEWGRF, 'newgrf', ('newgrf',)),
+    (CONTENT_TYPE_AI, 'ai', ('ai',)),
+    (CONTENT_TYPE_AI_LIBRARY, 'ai-library', ('ai', 'library')),
+    (CONTENT_TYPE_SCENARIO, 'scenario', ()),
+    (CONTENT_TYPE_HEIGHTMAP, 'heightmap', ()),
+    (CONTENT_TYPE_BASE_SOUNDS, 'base-sounds', ('baseset',)),
+    (CONTENT_TYPE_BASE_MUSIC, 'base-music', ('baseset',)),
+    (CONTENT_TYPE_GAME, 'game-script', ('game',)),
+    (CONTENT_TYPE_GAME_LIBRARY, 'game-script-library', ('game', 'library')),
+)
 
 
 def run_experiments(
@@ -476,12 +496,6 @@ def _bananas_download(
                 except OSError:
                     pass
 
-    def final_location_path(bananas_type_id):
-        return {
-            CONTENT_TYPE_AI: ('ai',),
-            CONTENT_TYPE_AI_LIBRARY: ('ai', 'library',),
-        }[bananas_type_id]
-
     def get_tcp_content_ids(recv_bytes, send_bytes, bananas_type_id, unique_id, md5sum=None):
 
         def reader(b):
@@ -577,12 +591,18 @@ def _bananas_download(
             except FileNotFoundError:
                 pass
 
+    content_types_by_id = {
+        type_id: (type_str, path)
+        for (type_id, type_str, path) in CONTENT_TYPES
+    }
+    content_types_by_str = {
+        type_str: (type_id, path)
+        for (type_id, type_str, path) in CONTENT_TYPES
+    }
+
     with get_http_client() as client:
         bananas_type_str, unique_id = content_id.split('/')
-        bananas_type_id = {
-            'ai': CONTENT_TYPE_AI,
-            'ai-library': CONTENT_TYPE_AI_LIBRARY,
-        }[bananas_type_str]
+        bananas_type_id = content_types_by_str[bananas_type_str][0]
 
         # Confirm via HTTPs that this name/unique ID pair exists
         api_resp = client.get(f'https://bananas-api.openttd.org/package/{bananas_type_str}/{unique_id}')
@@ -603,7 +623,7 @@ def _bananas_download(
                 (tuple(line.split(',')[0].split('/')), line.split(',')[1])
                 for line in contents.splitlines()
             ] if contents else []
-            all_filenames = [(final_location_path(bananas_type_id),filename),] + dependency_filenames
+            all_filenames = [(content_types_by_id[bananas_type_id][1],filename),] + dependency_filenames
             yield [
                 (path, filename, _file_contents(os.path.join(content_cache_dir, filename)))
                 for path, filename in all_filenames
@@ -651,7 +671,7 @@ def _bananas_download(
         total_iterated = 0
         for binaries_content_id, binaries_content_type, binaries_filesize, binaries_link, binaries_md5sum, binaries_unique_id, binaries_filename in urls:
             filenames.append((
-                final_location_path(int(binaries_content_type)),
+                content_types_by_id[int(binaries_content_type)][1],
                 binaries_filename,
                 url_contents_while_writing(binaries_link, os.path.join(content_cache_dir, binaries_filename), binaries_filesize),
             ))
