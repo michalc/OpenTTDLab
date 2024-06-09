@@ -60,6 +60,7 @@ def run_experiments(
     opengfx_base_url='https://cdn.openttd.org/opengfx-releases/',
     result_processor=lambda x: (x,),
     get_http_client=lambda: httpx.Client(transport=httpx.HTTPTransport(retries=3)),
+    get_cache_dir=lambda: user_cache_dir(appname='OpenTTDLab', version=__version__, ensure_exists=True),
 ):
     def get(client, url):
         response = client.get(url)
@@ -153,7 +154,7 @@ def run_experiments(
         opengfx_file_details = find_details(opengfx_manifest, opengfx_filename)
 
         # Download archives if necessary
-        cache_dir = user_cache_dir(appname='OpenTTDLab', version=__version__, ensure_exists=True)
+        cache_dir = get_cache_dir()
         openttd_archive_location = os.path.join(cache_dir, openttd_filename)
         opengfx_archive_location = os.path.join(cache_dir, opengfx_filename)
         stream_to_file_if_necessary(client, openttd_base_url + openttd_version + '/' + openttd_filename, openttd_archive_location)
@@ -205,7 +206,7 @@ def run_experiments(
             ]
             def copy_ai_or_library_to_run_dir():
                 for copy_func in ai_and_library_filenames:
-                    with copy_func(lambda: contextlib.nullcontext(client), cache_dir) as filenames_and_data:
+                    with copy_func(lambda: contextlib.nullcontext(client), lambda: cache_dir) as filenames_and_data:
                         for path, filename, data_context in filenames_and_data:
                             with \
                                     data_context as data, \
@@ -432,7 +433,7 @@ def remote_file(url, ai_name, ai_params=()):
             yield _gz_decompress(r.iter_bytes())
 
     @contextlib.contextmanager
-    def _download(client, cache_dir):
+    def _download(client, get_cache_dir):
         yield (
             (('ai',), ai_name + '.tar', _gz_download(client, url)),
         )
@@ -441,7 +442,7 @@ def remote_file(url, ai_name, ai_params=()):
 
 
 @contextlib.contextmanager
-def _bananas_download(content_id, get_http_client, cache_dir):
+def _bananas_download(content_id, get_http_client, get_cache_dir=user_cache_dir(appname='OpenTTDLab', version=__version__, ensure_exists=True)):
     @contextlib.contextmanager
     def tcp_connection(address):
 
@@ -586,7 +587,7 @@ def _bananas_download(content_id, get_http_client, cache_dir):
         api_dict_latest_version = max(api_dict['versions'], key=lambda version: version['version'].split('.'))
 
         # Check if we already have this version cached, and all its dependencies
-        content_cache_dir = os.path.join(cache_dir, 'bananas')
+        content_cache_dir = os.path.join(get_cache_dir(), 'bananas')
         Path(content_cache_dir).mkdir(parents=True, exist_ok=True)
         filename = f'{unique_id}-{api_dict["name"]}-{api_dict_latest_version["version"]}.tar'
         cached_file = os.path.join(content_cache_dir, filename)
