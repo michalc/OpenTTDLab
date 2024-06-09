@@ -442,7 +442,11 @@ def remote_file(url, ai_name, ai_params=()):
 
 
 @contextlib.contextmanager
-def _bananas_download(content_id, get_http_client, get_cache_dir=user_cache_dir(appname='OpenTTDLab', version=__version__, ensure_exists=True)):
+def _bananas_download(
+        content_id,
+        get_http_client=lambda: httpx.Client(transport=httpx.HTTPTransport(retries=3)),
+        get_cache_dir=user_cache_dir(appname='OpenTTDLab', version=__version__, ensure_exists=True),
+):
     @contextlib.contextmanager
     def tcp_connection(address):
 
