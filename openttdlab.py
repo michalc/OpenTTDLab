@@ -189,22 +189,31 @@ def run_experiments(
             # Ensure the OpenTTD binary is executable
             os.chmod(openttd_binary, os.stat(openttd_binary).st_mode | stat.S_IEXEC)
 
-            # Make sure to only make any internet connections for AIs at most once for
-            # each AI, even if referenced in multiple experiments
+            # Make sure to only make fetch remote AIs at most once for each, even if referenced
+            # in multiple experiments
             ai_copy_functions = {
                 ai_name: ai_copy
                 for experiment in experiments_list
-                for ai_name, _, ai_copy in experiment.get('ais', [])
+                for ai_name, ai_params, ai_copy in experiment.get('ais', [])
             }
             ai_and_library_filenames = [
-                ai_filename
-                for _, ai_copy in ai_copy_functions.items()
-                for ai_filename in ai_copy(client, cache_dir, run_dir)
+                ai_copy
+                for ai_copy in ai_copy_functions.values()
             ] + [
-                ai_library_filename
+                ai_library_copy
                 for _, ai_library_copy in ai_libraries
-                for ai_library_filename in ai_library_copy(client, cache_dir, run_dir)
             ]
+            def copy_ai_or_library_to_run_dir():
+                for copy_func in ai_and_library_filenames:
+                    with copy_func(client, cache_dir) as filenames_and_data:
+                        for path, filename, data_context in filenames_and_data:
+                            with \
+                                    data_context as data, \
+                                    open(os.path.join(run_dir, filename), 'wb') as f:
+                                for chunk in data:
+                                    f.write(chunk)
+                            yield path, filename
+            ai_and_library_filenames = tuple(copy_ai_or_library_to_run_dir())
 
             max_workers = \
                 max_workers if max_workers is not None else \
@@ -360,6 +369,12 @@ def _run_experiment(
     ])
 
 
+@contextlib.contextmanager
+def _file_contents(filename):
+    with open(filename, 'rb') as f:
+        yield iter(lambda: f.read(65536), b'')
+
+
 def _gz_decompress(compressed_chunks):
     dec = zlib.decompressobj(32 + zlib.MAX_WBITS)
     for compressed_chunk in compressed_chunks:
@@ -372,37 +387,59 @@ def _gz_decompress(compressed_chunks):
 
 
 def local_file(file_path, ai_name, ai_params=()):
-    def _copy(client, cache_dir, target):
-        shutil.copy(file_path, os.path.join(target, ai_name + '.tar'))
-        return ((('ai',), ai_name + '.tar'),)
+    @contextlib.contextmanager
+    def _copy(client, cache_dir):
+        yield (
+            (('ai',), ai_name + '.tar', _file_contents(file_path)),
+        )
 
     return ai_name, ai_params, _copy
 
 
 def local_folder(folder_path, ai_name, ai_params=()):
-    def _copy(client, cache_dir, target):
-        with tarfile.open(os.path.join(target, ai_name + '.tar'), 'w') as tar:
-            # Arcname adds the folder to a folder in the root of the tar. Doesn't seem to
-            # matter what the folder is called, as long as there is one
-            tar.add(folder_path, arcname='local-ai')
-        return ((('ai',), ai_name + '.tar'),)
+    @contextlib.contextmanager
+    def _copy(client, cache_dir):
+        # Manual cleanup of temporary file for Windows. See https://stackoverflow.com/q/23212435/1319998
+        # Maybe would be better to not have a temporary file at all, and stream-construct the tar file?
+        file = None
+        try:
+            with tempfile.NamedTemporaryFile(delete=False) as file:
+                with tarfile.open(file.name, 'w') as tar:
+                    # Arcname adds the folder to a folder in the root of the tar. Doesn't seem to
+                    # matter what the folder is called, as long as there is one
+                    tar.add(folder_path, arcname='local-ai')
+
+                yield (
+                    (('ai',), ai_name + '.tar', _file_contents(file.name)),
+                )
+        finally:
+            if file is not None:
+                try:
+                    os.unlink(file.name)
+                except FileNotFoundError:
+                    pass
 
     return ai_name, ai_params, _copy
 
 
 def remote_file(url, ai_name, ai_params=()):
-    def _download(client, cache_dir, target):
+    @contextlib.contextmanager
+    def _gz_download(client, url):
         with client.stream("GET", url, follow_redirects=True) as r:
             r.raise_for_status()
-            with open(os.path.join(target, ai_name + '.tar'), 'wb') as f:
-                for chunk in _gz_decompress(r.iter_bytes()):
-                    f.write(chunk)
-        return ((('ai',), ai_name + '.tar'),)
+            yield _gz_decompress(r.iter_bytes())
+
+    @contextlib.contextmanager
+    def _download(client, cache_dir):
+        yield (
+            (('ai',), ai_name + '.tar', _gz_download(client, url)),
+        )
 
     return ai_name, ai_params, _download
 
 
-def _bananas_download(content_id, client, cache_dir, target):
+@contextlib.contextmanager
+def _bananas_download(content_id, client, cache_dir):
     @contextlib.contextmanager
     def tcp_connection(address):
 
@@ -500,6 +537,39 @@ def _bananas_download(content_id, client, cache_dir, target):
 
         return tcp_content_id, tcp_dependency_content_ids
 
+    @contextlib.contextmanager
+    def url_contents_while_writing(url, write_filename, expected_size):
+        # Fetches from url while to write_filename. Although it actually writes to a temporary
+        # file first to make sure that the write_filename only ever has the full file, or no file
+        nonlocal total_iterated
+        total_bytes = 0
+        temp_filename = write_filename + '_temp_' + str(uuid.uuid4())[:8]
+        try:
+            with open(temp_filename, 'wb') as f:
+                with client.stream("GET", url) as response:
+                    response.raise_for_status()
+                    if response.headers['content-length'] != expected_size:
+                        raise Exception('Mismatched filesize')
+                    def counted():
+                        nonlocal total_bytes
+                        for chunk in response.iter_bytes():
+                            yield chunk
+                            total_bytes += len(chunk)
+
+                    def while_writing():
+                        for chunk in _gz_decompress(counted()):
+                            yield chunk
+                            f.write(chunk)
+                    yield while_writing()
+            if total_bytes == int(expected_size):
+                os.rename(temp_filename, write_filename)
+                total_iterated += 1
+        finally:
+            try:
+                os.unlink(temp_filename)
+            except FileNotFoundError:
+                pass
+
     bananas_type_str, unique_id = content_id.split('/')
     bananas_type_id = {
         'ai': CONTENT_TYPE_AI,
@@ -525,11 +595,12 @@ def _bananas_download(content_id, client, cache_dir, target):
             (tuple(line.split(',')[0].split('/')), line.split(',')[1])
             for line in contents.splitlines()
         ] if contents else []
-        for path,dependency_filename in dependency_filenames:
-            shutil.copy(os.path.join(content_cache_dir, dependency_filename), os.path.join(target, dependency_filename))
-
-        shutil.copy(cached_file, os.path.join(target, filename))
-        return [(final_location_path(bananas_type_id),filename),] + dependency_filenames
+        all_filenames = [(final_location_path(bananas_type_id),filename),] + dependency_filenames
+        yield [
+            (path, filename, _file_contents(os.path.join(content_cache_dir, filename)))
+            for path, filename in all_filenames
+        ]
+        return
 
     # Check unique_id is what's expected
     if api_dict['unique-id'] != unique_id:
@@ -558,7 +629,8 @@ def _bananas_download(content_id, client, cache_dir, target):
             binaries_content_id, binaries_content_type, binaries_filesize, binaries_link = response.text.strip().split(',')
             binaries_md5sum = urlparse(binaries_link).path.split('/')[3]
             binaries_unique_id = urlparse(binaries_link).path.split('/')[2]
-            urls.append((binaries_content_id, binaries_content_type, binaries_filesize, binaries_link, binaries_md5sum, binaries_unique_id))
+            binaries_filename = urlparse(binaries_link).path.split('/')[-1][:-3]  # Withouth .gz extension
+            urls.append((binaries_content_id, binaries_content_type, binaries_filesize, binaries_link, binaries_md5sum, binaries_unique_id, binaries_filename))
 
             if find_transitive:
                 _, transitive_tcp_content_ids = get_tcp_content_ids_from_conn(
@@ -567,29 +639,21 @@ def _bananas_download(content_id, client, cache_dir, target):
                 for transitive_tcp_content_id in transitive_tcp_content_ids:
                     tcp_content_ids.append((True, transitive_tcp_content_id))
 
-    # Download all the content from the URLs found above
     filenames = []
-    for binaries_content_id, binaries_content_type, binaries_filesize, binaries_link, binaries_md5sum, binaries_unique_id in urls:
-        with client.stream("GET", binaries_link) as response:
-            response.raise_for_status()
-            if response.headers['content-length'] != binaries_filesize:
-                raise Exception('Mismatched filesize')
+    total_iterated = 0
+    for binaries_content_id, binaries_content_type, binaries_filesize, binaries_link, binaries_md5sum, binaries_unique_id, binaries_filename in urls:
+        filenames.append((
+            final_location_path(int(binaries_content_type)),
+            binaries_filename,
+            url_contents_while_writing(binaries_link, os.path.join(content_cache_dir, binaries_filename), binaries_filesize),
+        ))
+    yield filenames
 
-            filename = urlparse(binaries_link).path.split('/')[-1][:-3]  # Withouth .gz extension
-            with open(os.path.join(target, filename), 'wb') as f:
-                for chunk in _gz_decompress(response.iter_bytes()):
-                    f.write(chunk)
-
-            cached_file = os.path.join(content_cache_dir, filename)
-            shutil.copy(os.path.join(target, filename), cached_file)
-            filenames.append((final_location_path(int(binaries_content_type)), filename),)
-
-    # Write dependency file - simple text file
-    with open(cached_dependency_file, 'w', encoding='utf-8') as f:
-        for path, filename in filenames[1:]:
-            f.write('/'.join(path) + ',' + filename + '\n')
-
-    return filenames
+    # Write dependency file (simple text file) only if we have iterated everything
+    if total_iterated == len(filenames):
+        with open(cached_dependency_file, 'w', encoding='utf-8') as f:
+            for path, filename, _ in filenames[1:]:
+                f.write('/'.join(path) + ',' + filename + '\n')
 
 
 def bananas_ai(unique_id, ai_name, ai_params=()):
