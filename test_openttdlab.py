@@ -110,7 +110,7 @@ def test_run_experiments_local_ai_early_version_of_openttd():
     }
 
 
-def test_run_experiments_local_folder():
+def test_run_experiments_local_folder_from_tar():
 
     with tempfile.TemporaryDirectory() as d:
         with tarfile.open('./fixtures/54524149-trAIns-2.1.tar', 'r') as f_tar:
