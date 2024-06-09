@@ -205,7 +205,7 @@ def run_experiments(
             ]
             def copy_ai_or_library_to_run_dir():
                 for copy_func in ai_and_library_filenames:
-                    with copy_func(client, cache_dir) as filenames_and_data:
+                    with copy_func(lambda: contextlib.nullcontext(client), cache_dir) as filenames_and_data:
                         for path, filename, data_context in filenames_and_data:
                             with \
                                     data_context as data, \
@@ -424,8 +424,10 @@ def local_folder(folder_path, ai_name, ai_params=()):
 
 def remote_file(url, ai_name, ai_params=()):
     @contextlib.contextmanager
-    def _gz_download(client, url):
-        with client.stream("GET", url, follow_redirects=True) as r:
+    def _gz_download(get_http_client, url):
+        with \
+                get_http_client() as client, \
+                client.stream("GET", url, follow_redirects=True) as r:
             r.raise_for_status()
             yield _gz_decompress(r.iter_bytes())
 
@@ -439,7 +441,7 @@ def remote_file(url, ai_name, ai_params=()):
 
 
 @contextlib.contextmanager
-def _bananas_download(content_id, client, cache_dir):
+def _bananas_download(content_id, get_http_client, cache_dir):
     @contextlib.contextmanager
     def tcp_connection(address):
 
@@ -570,90 +572,91 @@ def _bananas_download(content_id, client, cache_dir):
             except FileNotFoundError:
                 pass
 
-    bananas_type_str, unique_id = content_id.split('/')
-    bananas_type_id = {
-        'ai': CONTENT_TYPE_AI,
-        'ai-library': CONTENT_TYPE_AI_LIBRARY,
-    }[bananas_type_str]
+    with get_http_client() as client:
+        bananas_type_str, unique_id = content_id.split('/')
+        bananas_type_id = {
+            'ai': CONTENT_TYPE_AI,
+            'ai-library': CONTENT_TYPE_AI_LIBRARY,
+        }[bananas_type_str]
 
-    # Confirm via HTTPs that this name/unique ID pair exists
-    api_resp = client.get(f'https://bananas-api.openttd.org/package/{bananas_type_str}/{unique_id}')
-    api_resp.raise_for_status()
-    api_dict = api_resp.json()
-    api_dict_latest_version = max(api_dict['versions'], key=lambda version: version['version'].split('.'))
+        # Confirm via HTTPs that this name/unique ID pair exists
+        api_resp = client.get(f'https://bananas-api.openttd.org/package/{bananas_type_str}/{unique_id}')
+        api_resp.raise_for_status()
+        api_dict = api_resp.json()
+        api_dict_latest_version = max(api_dict['versions'], key=lambda version: version['version'].split('.'))
 
-    # Check if we already have this version cached, and all its dependencies
-    content_cache_dir = os.path.join(cache_dir, 'bananas')
-    Path(content_cache_dir).mkdir(parents=True, exist_ok=True)
-    filename = f'{unique_id}-{api_dict["name"]}-{api_dict_latest_version["version"]}.tar'
-    cached_file = os.path.join(content_cache_dir, filename)
-    cached_dependency_file = cached_file + '_dependencies'
-    if os.path.exists(cached_file) and os.path.exists(cached_dependency_file):
-        with open(cached_dependency_file, 'r', encoding='utf-8') as f:
-            contents = f.read()
-        dependency_filenames = [
-            (tuple(line.split(',')[0].split('/')), line.split(',')[1])
-            for line in contents.splitlines()
-        ] if contents else []
-        all_filenames = [(final_location_path(bananas_type_id),filename),] + dependency_filenames
-        yield [
-            (path, filename, _file_contents(os.path.join(content_cache_dir, filename)))
-            for path, filename in all_filenames
-        ]
-        return
+        # Check if we already have this version cached, and all its dependencies
+        content_cache_dir = os.path.join(cache_dir, 'bananas')
+        Path(content_cache_dir).mkdir(parents=True, exist_ok=True)
+        filename = f'{unique_id}-{api_dict["name"]}-{api_dict_latest_version["version"]}.tar'
+        cached_file = os.path.join(content_cache_dir, filename)
+        cached_dependency_file = cached_file + '_dependencies'
+        if os.path.exists(cached_file) and os.path.exists(cached_dependency_file):
+            with open(cached_dependency_file, 'r', encoding='utf-8') as f:
+                contents = f.read()
+            dependency_filenames = [
+                (tuple(line.split(',')[0].split('/')), line.split(',')[1])
+                for line in contents.splitlines()
+            ] if contents else []
+            all_filenames = [(final_location_path(bananas_type_id),filename),] + dependency_filenames
+            yield [
+                (path, filename, _file_contents(os.path.join(content_cache_dir, filename)))
+                for path, filename in all_filenames
+            ]
+            return
 
-    # Check unique_id is what's expected
-    if api_dict['unique-id'] != unique_id:
-        raise Exception("Mismatched name")
+        # Check unique_id is what's expected
+        if api_dict['unique-id'] != unique_id:
+            raise Exception("Mismatched name")
 
-    # Get TCP content ID of the primary content requested from client code, and the TCP content IDs
-    # of all its dependencies. We treat them slightly differently below because we get the
-    # dependencies of the primary content immediately, but will still need make more TCP queries to
-    # find the dependencies of the dependencies
-    with tcp_connection(("content.openttd.org", 3978)) as (recv_bytes, send_bytes):
-        get_tcp_content_ids_from_conn = partial(get_tcp_content_ids, recv_bytes, send_bytes)
-        primary_tcp_content_id, dependency_tcp_content_ids = get_tcp_content_ids_from_conn(bananas_type_id, unique_id)
+        # Get TCP content ID of the primary content requested from client code, and the TCP content IDs
+        # of all its dependencies. We treat them slightly differently below because we get the
+        # dependencies of the primary content immediately, but will still need make more TCP queries to
+        # find the dependencies of the dependencies
+        with tcp_connection(("content.openttd.org", 3978)) as (recv_bytes, send_bytes):
+            get_tcp_content_ids_from_conn = partial(get_tcp_content_ids, recv_bytes, send_bytes)
+            primary_tcp_content_id, dependency_tcp_content_ids = get_tcp_content_ids_from_conn(bananas_type_id, unique_id)
 
-        # Find URLs to download the primary content, and all of its dependencies and transitve
-        # dependencies. Note that dependencies can be specified by exact version, and to download those
-        # we need the MD5 sum of the dependency, which we only know by finding the link to it
-        urls = []
-        tcp_content_ids = deque()
-        tcp_content_ids.append((False, primary_tcp_content_id))
-        for tcp_content_id in dependency_tcp_content_ids:
-            tcp_content_ids.append((True, tcp_content_id))
-        while tcp_content_ids:
-            find_transitive, tcp_content_id = tcp_content_ids.popleft()
-            response = client.post('https://binaries.openttd.org/bananas', content=str(tcp_content_id).encode() + b'\n')
-            response.raise_for_status()
-            binaries_content_id, binaries_content_type, binaries_filesize, binaries_link = response.text.strip().split(',')
-            binaries_md5sum = urlparse(binaries_link).path.split('/')[3]
-            binaries_unique_id = urlparse(binaries_link).path.split('/')[2]
-            binaries_filename = urlparse(binaries_link).path.split('/')[-1][:-3]  # Withouth .gz extension
-            urls.append((binaries_content_id, binaries_content_type, binaries_filesize, binaries_link, binaries_md5sum, binaries_unique_id, binaries_filename))
+            # Find URLs to download the primary content, and all of its dependencies and transitve
+            # dependencies. Note that dependencies can be specified by exact version, and to download those
+            # we need the MD5 sum of the dependency, which we only know by finding the link to it
+            urls = []
+            tcp_content_ids = deque()
+            tcp_content_ids.append((False, primary_tcp_content_id))
+            for tcp_content_id in dependency_tcp_content_ids:
+                tcp_content_ids.append((True, tcp_content_id))
+            while tcp_content_ids:
+                find_transitive, tcp_content_id = tcp_content_ids.popleft()
+                response = client.post('https://binaries.openttd.org/bananas', content=str(tcp_content_id).encode() + b'\n')
+                response.raise_for_status()
+                binaries_content_id, binaries_content_type, binaries_filesize, binaries_link = response.text.strip().split(',')
+                binaries_md5sum = urlparse(binaries_link).path.split('/')[3]
+                binaries_unique_id = urlparse(binaries_link).path.split('/')[2]
+                binaries_filename = urlparse(binaries_link).path.split('/')[-1][:-3]  # Withouth .gz extension
+                urls.append((binaries_content_id, binaries_content_type, binaries_filesize, binaries_link, binaries_md5sum, binaries_unique_id, binaries_filename))
 
-            if find_transitive:
-                _, transitive_tcp_content_ids = get_tcp_content_ids_from_conn(
-                    int(binaries_content_type), binaries_unique_id, md5sum=binaries_md5sum,
-                )
-                for transitive_tcp_content_id in transitive_tcp_content_ids:
-                    tcp_content_ids.append((True, transitive_tcp_content_id))
+                if find_transitive:
+                    _, transitive_tcp_content_ids = get_tcp_content_ids_from_conn(
+                        int(binaries_content_type), binaries_unique_id, md5sum=binaries_md5sum,
+                    )
+                    for transitive_tcp_content_id in transitive_tcp_content_ids:
+                        tcp_content_ids.append((True, transitive_tcp_content_id))
 
-    filenames = []
-    total_iterated = 0
-    for binaries_content_id, binaries_content_type, binaries_filesize, binaries_link, binaries_md5sum, binaries_unique_id, binaries_filename in urls:
-        filenames.append((
-            final_location_path(int(binaries_content_type)),
-            binaries_filename,
-            url_contents_while_writing(binaries_link, os.path.join(content_cache_dir, binaries_filename), binaries_filesize),
-        ))
-    yield filenames
+        filenames = []
+        total_iterated = 0
+        for binaries_content_id, binaries_content_type, binaries_filesize, binaries_link, binaries_md5sum, binaries_unique_id, binaries_filename in urls:
+            filenames.append((
+                final_location_path(int(binaries_content_type)),
+                binaries_filename,
+                url_contents_while_writing(binaries_link, os.path.join(content_cache_dir, binaries_filename), binaries_filesize),
+            ))
+        yield filenames
 
-    # Write dependency file (simple text file) only if we have iterated everything
-    if total_iterated == len(filenames):
-        with open(cached_dependency_file, 'w', encoding='utf-8') as f:
-            for path, filename, _ in filenames[1:]:
-                f.write('/'.join(path) + ',' + filename + '\n')
+        # Write dependency file (simple text file) only if we have iterated everything
+        if total_iterated == len(filenames):
+            with open(cached_dependency_file, 'w', encoding='utf-8') as f:
+                for path, filename, _ in filenames[1:]:
+                    f.write('/'.join(path) + ',' + filename + '\n')
 
 
 def bananas_ai(unique_id, ai_name, ai_params=()):
