@@ -153,7 +153,7 @@ def run_experiments(
         opengfx_file_details = find_details(opengfx_manifest, opengfx_filename)
 
         # Download archives if necessary
-        cache_dir = user_cache_dir(appname='OpenTTDLab', ensure_exists=True)
+        cache_dir = user_cache_dir(appname='OpenTTDLab', version=__version__, ensure_exists=True)
         openttd_archive_location = os.path.join(cache_dir, openttd_filename)
         opengfx_archive_location = os.path.join(cache_dir, opengfx_filename)
         stream_to_file_if_necessary(client, openttd_base_url + openttd_version + '/' + openttd_filename, openttd_archive_location)
