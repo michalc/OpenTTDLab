@@ -31,6 +31,7 @@ OpenTTDLab is based on [Patric Stout's OpenTTD Savegame Reader](https://github.c
   - [Configuring AIs](#configuring-ais)
   - [Configuring AI libraries](#configuring-ai-libraries)
   - [Parsing savegame files](#parsing-savegame-files)
+  - [Downloading from BaNaNaS](#downloading-from-bananas)
 - [Compatibility](#compatibility)
 - [Licenses and attributions](#licenses-and-attributions)
 
@@ -257,6 +258,28 @@ from openttdlab import parse_savegame
 with open('my.sav') as f:
    parsed_savegame = parse_savegame(iter(lambda: f.read(65536), b''))
 ```
+
+
+### Downloading from BaNaNaS
+
+#### `download_from_bananas(content_id: str)`
+
+This function is essentially a Python BaNaNaS client for downloading the latest version of content from [BaNaNaS](https://bananas.openttd.org/). Given a content id, it returns an iterable of that content and all of its direct and transitive dependencies.
+
+```python
+from openttdlab import download_from_bananas
+
+with download_from_bananas('ai/41444d4c') as files:
+    for content_id, filename, md5_partial, get_data in files:
+        with get_data() as chunks:
+            # This is just an example, can save chunks to a file if desired
+            for chunk in chunks:
+                pass
+```
+
+Each `chunks` iterable are the binary chunks of the non-compressed `.tar` file of the content. Also, under the hood `download_from_bananas` transparently caches content where possible. This is the main reason for using context managers as in the above example - they allow for robust cleanup of resources and caching of data once the data has been iterated over.
+
+Note that the function `run_experiments` that uses `bananas_ai` or `bananas_ai_library` will handle automatically downloading from BaNaNaS, so this function is usually only useful if you would like to run experiments outside of the `run_experiments` function, or report on the filename (which includes the version of each piece of content) or the (partial) MD5 sum of the file.
 
 
 ## Compatibility

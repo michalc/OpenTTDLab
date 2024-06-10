@@ -232,10 +232,10 @@ def run_experiments(
             def copy_ai_or_library_to_run_dir():
                 for copy_func in ai_and_library_filenames:
                     with copy_func(lambda: contextlib.nullcontext(client), lambda: cache_dir) as filenames_and_data:
-                        for content_id, filename, md5sum, data_context in filenames_and_data:
+                        for content_id, filename, md5sum, get_data in filenames_and_data:
                             path = content_types_by_str[content_id.split('/')[0]][1]
                             with \
-                                    data_context as data, \
+                                    get_data() as data, \
                                     open(os.path.join(run_dir, filename), 'wb') as f:
                                 for chunk in data:
                                     f.write(chunk)
@@ -417,7 +417,7 @@ def local_file(file_path, ai_name, ai_params=()):
     @contextlib.contextmanager
     def _copy(client, cache_dir):
         yield (
-            ('ai/', ai_name + '.tar', None, _file_contents(file_path)),
+            ('ai/', ai_name + '.tar', None, lambda: _file_contents(file_path)),
         )
 
     return ai_name, ai_params, _copy
@@ -437,7 +437,7 @@ def local_folder(folder_path, ai_name, ai_params=()):
                     tar.add(folder_path, arcname='local-ai')
 
                 yield (
-                    ('ai/', ai_name + '.tar', None, _file_contents(file.name)),
+                    ('ai/', ai_name + '.tar', None, lambda: _file_contents(file.name)),
                 )
         finally:
             if file is not None:
@@ -461,17 +461,17 @@ def remote_file(url, ai_name, ai_params=()):
     @contextlib.contextmanager
     def _download(client, get_cache_dir):
         yield (
-            ('ai/', ai_name + '.tar', None, _gz_download(client, url)),
+            ('ai/', ai_name + '.tar', None, lambda: _gz_download(client, url)),
         )
 
     return ai_name, ai_params, _download
 
 
 @contextlib.contextmanager
-def _bananas_download(
+def download_from_bananas(
         content_id,
         get_http_client=lambda: httpx.Client(transport=httpx.HTTPTransport(retries=3)),
-        get_cache_dir=user_cache_dir(appname='OpenTTDLab', version=__version__, ensure_exists=True),
+        get_cache_dir=lambda: user_cache_dir(appname='OpenTTDLab', version=__version__, ensure_exists=True),
 ):
     @contextlib.contextmanager
     def tcp_connection(address):
@@ -571,6 +571,12 @@ def _bananas_download(
         nonlocal total_iterated
         total_bytes = 0
         temp_filename = write_filename + '_temp_' + str(uuid.uuid4())[:8]
+
+        if os.path.isfile(write_filename):
+            with open(write_filename, 'rb') as f:
+                yield iter(lambda: f.read(65536), b'')
+            return
+
         try:
             with open(temp_filename, 'wb') as f:
                 with client.stream("GET", url) as response:
@@ -630,7 +636,7 @@ def _bananas_download(
                 for line in contents.splitlines()
             ] if contents else []
             yield [
-                (content_id, filename, md5sum, _file_contents(os.path.join(content_cache_dir, filename)))
+                (content_id, filename, md5sum, partial(_file_contents, os.path.join(content_cache_dir, filename)))
                 for content_id, filename, md5sum in dependency_filenames
             ]
             return
@@ -678,8 +684,8 @@ def _bananas_download(
             filenames.append((
                 content_types_by_id[int(binaries_content_type)][0] + '/' + binaries_unique_id,
                 binaries_filename,
-                binaries_md5sum,
-                url_contents_while_writing(binaries_link, os.path.join(content_cache_dir, binaries_filename), binaries_filesize),
+                binaries_md5sum[:8],
+                partial(url_contents_while_writing, binaries_link, os.path.join(content_cache_dir, binaries_filename), binaries_filesize),
             ))
         yield filenames
 
@@ -691,11 +697,11 @@ def _bananas_download(
 
 
 def bananas_ai(unique_id, ai_name, ai_params=()):
-    return ai_name, ai_params, partial(_bananas_download, 'ai/' + unique_id)
+    return ai_name, ai_params, partial(download_from_bananas, 'ai/' + unique_id)
 
 
 def bananas_ai_library(unique_id, ai_library_name):
-    return ai_library_name, partial(_bananas_download, 'ai-library/' + unique_id)
+    return ai_library_name, partial(download_from_bananas, 'ai-library/' + unique_id)
 
 
 def parse_savegame(chunks, chunk_size=65536):
