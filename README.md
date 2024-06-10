@@ -279,7 +279,7 @@ with download_from_bananas('ai/41444d4c') as files:
 
 Each `chunks` iterable are the binary chunks of the non-compressed `.tar` file of the content. Also, under the hood `download_from_bananas` transparently caches content where possible. This is the main reason for using context managers as in the above example - they allow for robust cleanup of resources and caching of data once the data has been iterated over.
 
-Note that the function `run_experiments` that uses `bananas_ai` or `bananas_ai_library` will handle automatically downloading from BaNaNaS, so this function is usually only useful if you would like to run experiments outside of the `run_experiments` function, or report on the filename (which includes the version of each piece of content) or the (partial) MD5 sum of the file.
+Note that the function `run_experiments` that uses `bananas_ai` or `bananas_ai_library` will handle automatically downloading from BaNaNaS, so this function is usually only useful if you would like to run experiments without using the `bananas_*` functions, or report on the filename (which includes the version of each piece of content) or the (partial) MD5 sum of the file.
 
 
 ## Compatibility
