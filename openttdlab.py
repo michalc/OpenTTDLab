@@ -432,9 +432,11 @@ def local_folder(folder_path, ai_name, ai_params=()):
         try:
             with tempfile.NamedTemporaryFile(delete=False) as file:
                 with tarfile.open(file.name, 'w') as tar:
-                    # Arcname adds the folder to a folder in the root of the tar. Doesn't seem to
-                    # matter what the folder is called, as long as there is one
-                    tar.add(folder_path, arcname='local-ai')
+                    # Arcname adds the folder to a folder in the root of the tar. Because of how
+                    # OpenTTD uses tars, it must, in order to find all the files in all the tars,
+                    # each must have a unique folder name. Because we can only have a single AI
+                    # of each name anyway, the name of the AI is suitable
+                    tar.add(folder_path, arcname=ai_name)
 
                 yield (
                     ('ai/', ai_name + '.tar', None, lambda: _file_contents(file.name)),
