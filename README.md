@@ -262,6 +262,9 @@ with open('my.sav') as f:
 
 ### Downloading from BaNaNaS
 
+> [!IMPORTANT]
+> Please do not use this to try to download all content from BaNaNaS. See this [discussion about writing a client for BaNaNaS](https://github.com/OpenTTD/OpenTTD/discussions/11863#discussioncomment-8201505) for more details.
+
 #### `download_from_bananas(content_id: str)`
 
 This function is essentially a Python BaNaNaS client for downloading the latest version of content from [BaNaNaS](https://bananas.openttd.org/). Given a content id, it returns an iterable of that content and all of its direct and transitive dependencies.
