@@ -275,9 +275,9 @@ from openttdlab import download_from_bananas
 with download_from_bananas('ai/41444d4c') as files:
     for content_id, filename, md5_partial, get_data in files:
         with get_data() as chunks:
-            # This is just an example, can save chunks to a file if desired
-            for chunk in chunks:
-                pass
+            with open(filename, 'wb') as f:
+                for chunk in chunks:
+                    f.write(chunk)
 ```
 
 Each `chunks` iterable are the binary chunks of the non-compressed `.tar` file of the content. Also, under the hood `download_from_bananas` transparently caches content where possible. This is the main reason for using context managers as in the above example - they allow for robust cleanup of resources and caching of data once the data has been iterated over.
