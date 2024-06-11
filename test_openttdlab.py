@@ -193,6 +193,39 @@ def test_run_experiments_local_folder():
         'error': False,
     }
 
+def test_run_experiments_multiple_local_folder():
+    with tempfile.TemporaryDirectory() as d:
+        with tarfile.open('./fixtures/54524149-trAIns-2.1.tar', 'r') as f_tar:
+            for name in f_tar.getnames():
+                print('name', name)
+                if '..' in name or name.strip().startswith('/'):
+                    raise Exception('Unsafe', archive_location)
+            f_tar.extractall(d)
+
+        results = run_experiments(
+            experiments=(
+                {
+                    'seed': seed,
+                    'ais': (
+                        local_folder(os.path.join(d, 'trAIns-2.1'), 'trAIns'),
+                        local_folder('./fixtures/NoOpAIImportingPathfinder-1', 'NoOpAIImportingPathfinder'),
+                    ),
+                    'days': 366 * 1 + 1,
+                }
+                for seed in range(0, 1)
+            ),
+            ai_libraries=(
+                bananas_ai_library('5046524f', 'Pathfinder.Road'),
+            ),
+            openttd_version='13.4',
+            opengfx_version='7.1',
+        )
+
+    assert len(results) == 12
+    assert results[-1]['chunks']['PLYR']['0']['name'] == 'trAIns AI'
+    assert results[-1]['chunks']['PLYR']['1']['name'] == 'NoOpAIImportingPathfinder'
+
+
 def test_run_experiments_with_error():
     # This particular seed is known to make this version of trAINs error
 
