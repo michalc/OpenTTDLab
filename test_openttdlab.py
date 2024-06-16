@@ -579,14 +579,14 @@ def test_bananas_download():
 
     file_details = []
     with download_from_bananas('ai/505a4c41') as files:
-        for content_id, filename, md5sum, get_data in files:
-            file_details.append((content_id, filename, md5sum))
+        for content_id, filename, license, md5sum, get_data in files:
+            file_details.append((content_id, filename, license, md5sum))
             with get_data() as chunks:
                 for chunk in chunks:
                     pass
 
     assert len(file_details) == 3
-    for content_id, filename, md5sum in file_details:
+    for content_id, filename, license, md5sum in file_details:
         assert len(md5sum) == 8
     assert file_details[0][0] == 'ai/505a4c41'
     assert file_details[1][0] == 'ai-library/4752412a'
@@ -595,3 +595,7 @@ def test_bananas_download():
     assert file_details[0][1].startswith('505a4c41-PathZilla')
     assert file_details[1][1].startswith('4752412a-Graph.AyStar')
     assert file_details[2][1].startswith('51554248-Queue.BinaryHeap')
+
+    assert file_details[0][2] == 'GPL v2'
+    assert file_details[1][2] == 'GPL v2'
+    assert file_details[2][2] == 'GPL v2'
