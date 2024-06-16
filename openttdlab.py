@@ -232,7 +232,7 @@ def run_experiments(
             def copy_ai_or_library_to_run_dir():
                 for copy_func in ai_and_library_filenames:
                     with copy_func(lambda: contextlib.nullcontext(client), lambda: cache_dir) as filenames_and_data:
-                        for content_id, filename, md5sum, get_data in filenames_and_data:
+                        for content_id, filename, license, md5sum, get_data in filenames_and_data:
                             path = content_types_by_str[content_id.split('/')[0]][1]
                             with \
                                     get_data() as data, \
@@ -417,7 +417,7 @@ def local_file(file_path, ai_name, ai_params=()):
     @contextlib.contextmanager
     def _copy(client, cache_dir):
         yield (
-            ('ai/', ai_name + '.tar', None, lambda: _file_contents(file_path)),
+            ('ai/', ai_name + '.tar', None, None, lambda: _file_contents(file_path)),
         )
 
     return ai_name, ai_params, _copy
@@ -439,7 +439,7 @@ def local_folder(folder_path, ai_name, ai_params=()):
                     tar.add(folder_path, arcname=ai_name)
 
                 yield (
-                    ('ai/', ai_name + '.tar', None, lambda: _file_contents(file.name)),
+                    ('ai/', ai_name + '.tar', None, None, lambda: _file_contents(file.name)),
                 )
         finally:
             if file is not None:
@@ -463,7 +463,7 @@ def remote_file(url, ai_name, ai_params=()):
     @contextlib.contextmanager
     def _download(client, get_cache_dir):
         yield (
-            ('ai/', ai_name + '.tar', None, lambda: _gz_download(client, url)),
+            ('ai/', ai_name + '.tar', None, None, lambda: _gz_download(client, url)),
         )
 
     return ai_name, ai_params, _download
@@ -638,8 +638,8 @@ def download_from_bananas(
                 for line in contents.splitlines()
             ] if contents else []
             yield [
-                (content_id, filename, md5sum, partial(_file_contents, os.path.join(content_cache_dir, filename)))
-                for content_id, filename, md5sum in dependency_filenames
+                (content_id, filename, license, md5sum, partial(_file_contents, os.path.join(content_cache_dir, filename)))
+                for content_id, filename, license, md5sum in dependency_filenames
             ]
             return
 
@@ -671,7 +671,15 @@ def download_from_bananas(
                 binaries_md5sum = urlparse(binaries_link).path.split('/')[3]
                 binaries_unique_id = urlparse(binaries_link).path.split('/')[2]
                 binaries_filename = urlparse(binaries_link).path.split('/')[-1][:-3]  # Withouth .gz extension
-                urls.append((binaries_content_id, binaries_content_type, binaries_filesize, binaries_link, binaries_md5sum, binaries_unique_id, binaries_filename))
+
+                version = binaries_filename.split('-')[2].split('.')[-0]  # {unique-iq}-{name}-{version}.{extension}
+                binaries_content_type_str = content_types_by_id[int(binaries_content_type)][0]
+                api_resp = client.get(f'https://bananas-api.openttd.org/package/{binaries_content_type_str}/{binaries_unique_id}')
+                api_resp.raise_for_status()
+                api_dict = api_resp.json()
+                license = next((api_version['license'] for api_version in api_dict['versions'] if api_version['version'] == version))
+                
+                urls.append((binaries_content_id, binaries_content_type, binaries_filesize, binaries_link, binaries_md5sum, binaries_unique_id, binaries_filename, license))
 
                 if find_transitive:
                     _, transitive_tcp_content_ids = get_tcp_content_ids_from_conn(
@@ -682,10 +690,11 @@ def download_from_bananas(
 
         filenames = []
         total_iterated = 0
-        for binaries_content_id, binaries_content_type, binaries_filesize, binaries_link, binaries_md5sum, binaries_unique_id, binaries_filename in urls:
+        for binaries_content_id, binaries_content_type, binaries_filesize, binaries_link, binaries_md5sum, binaries_unique_id, binaries_filename, license in urls:
             filenames.append((
                 content_types_by_id[int(binaries_content_type)][0] + '/' + binaries_unique_id,
                 binaries_filename,
+                license,
                 binaries_md5sum[:8],
                 partial(url_contents_while_writing, binaries_link, os.path.join(content_cache_dir, binaries_filename), binaries_filesize),
             ))
@@ -694,8 +703,8 @@ def download_from_bananas(
         # Write dependency file (simple text file) only if we have iterated everything
         if total_iterated == len(filenames):
             with open(cached_dependency_file, 'w', encoding='utf-8') as f:
-                for content_id, filename, md5sum, _ in filenames:
-                    f.write(f'{content_id},{filename},{md5sum}\n')
+                for content_id, filename, license, md5sum, _ in filenames:
+                    f.write(f'{content_id},{filename},{license},{md5sum}\n')
 
 
 def bananas_ai(unique_id, ai_name, ai_params=()):

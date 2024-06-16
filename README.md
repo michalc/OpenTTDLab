@@ -265,6 +265,9 @@ with open('my.sav') as f:
 > [!IMPORTANT]
 > Please do not use this to try to download all content from BaNaNaS. See this [discussion about writing a client for BaNaNaS](https://github.com/OpenTTD/OpenTTD/discussions/11863#discussioncomment-8201505) for more details.
 
+> [!IMPORTANT]
+> Please note the license of each piece of content you download, and adhere to its rules. As examples, licenses may require you to attribute the author, they can restrict you from distributing any modifications you make, they can restrict you from using the content for commercial purposes, or they can require you to make the source available if you distribute a compiled version.
+
 #### `download_from_bananas(content_id: str)`
 
 This function is essentially a Python BaNaNaS client for downloading the latest version of content from [BaNaNaS](https://bananas.openttd.org/). Given a content id, it returns an iterable of that content and all of its direct and transitive dependencies.
@@ -273,7 +276,7 @@ This function is essentially a Python BaNaNaS client for downloading the latest 
 from openttdlab import download_from_bananas
 
 with download_from_bananas('ai/41444d4c') as files:
-    for content_id, filename, md5_partial, get_data in files:
+    for content_id, filename, license, md5_partial, get_data in files:
         with get_data() as chunks:
             with open(filename, 'wb') as f:
                 for chunk in chunks:
