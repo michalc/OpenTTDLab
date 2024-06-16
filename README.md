@@ -268,15 +268,15 @@ with open('my.sav') as f:
 > [!IMPORTANT]
 > Please note the license of each piece of content you download, and adhere to its rules. As examples, licenses may require you to attribute the author, they can restrict you from distributing any modifications you make, they can restrict you from using the content for commercial purposes, or they can require you to make the source available if you distribute a compiled version.
 
-#### `download_from_bananas(content_id: str)`
+#### `download_from_bananas(content_id: str, md5: Optional[str]=None)`
 
-This function is essentially a Python BaNaNaS client for downloading the latest version of content from [BaNaNaS](https://bananas.openttd.org/). Given a content id, it returns an iterable of that content and all of its direct and transitive dependencies.
+This function is a Python BaNaNaS client for downloading the content from [BaNaNaS](https://bananas.openttd.org/). Given a content id, it returns an iterable of that content and all of its direct and transitive dependencies.
 
 ```python
 from openttdlab import download_from_bananas
 
 with download_from_bananas('ai/41444d4c') as files:
-    for content_id, filename, license, md5_partial, get_data in files:
+    for content_id, filename, license, partial_or_full_md5, get_data in files:
         with get_data() as chunks:
             with open(filename, 'wb') as f:
                 for chunk in chunks:
@@ -285,7 +285,9 @@ with download_from_bananas('ai/41444d4c') as files:
 
 Each `chunks` iterable are the binary chunks of the non-compressed `.tar` file of the content. Also, under the hood `download_from_bananas` transparently caches content where possible. This is the main reason for using context managers as in the above example - they allow for robust cleanup of resources and caching of data once the data has been iterated over.
 
-Note that the function `run_experiments` that uses `bananas_ai` or `bananas_ai_library` will handle automatically downloading from BaNaNaS, so this function is usually only useful if you would like to run experiments without using the `bananas_*` functions, or report on the filename (which includes the version of each piece of content) or the (partial) MD5 sum of the file.
+If you don't pass `md5`, `download_from_bananas` will return details for the _latest_ version of the content. And if the content has a known and acceptable license, `partial_or_full_md5` will contain the full MD5 for the content, which can then be subsequently passed back into `download_from_bananas` to download the same version later. If the file does not have a known license, `download_from_bananas` will contain the only the first 8 characters of the MD5. This means that `download_from_bananas` is deterministic only for content that has an acceptable license, and if you pass an MD5 previously retrieved from a call to `download_from_bananas`.
+
+Note that the function `run_experiments` that uses `bananas_ai` or `bananas_ai_library` will handle automatically downloading from BaNaNaS, so this function is usually only useful if you would like to run experiments without using the `bananas_*` functions, or report on the filename (which includes the version of each piece of content) or the MD5 sum of the file.
 
 
 ## Compatibility
