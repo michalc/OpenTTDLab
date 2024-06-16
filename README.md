@@ -210,11 +210,13 @@ The value of the `ais` key of each dictionary in the `experiments` parameter con
 > [!IMPORTANT]
 > The return value of each of the following is opaque: it should not be used in client code, other than by passing into `run_experiments` as part of the `ais` parameter.
 
-#### `bananas_ai(unique_id, ai_name, ai_params=())`
+#### `bananas_ai(unique_id, ai_name, ai_params=(), md5=None)`
 
 Defines an AI by the `unique_id` and `ai_name` of an AI published through OpenTTD's content service at https://bananas.openttd.org/package/ai. This allows you to quickly run OpenTTDLab with a published AI. The `ai_params` parameter is an optional parameter of an iterable of `(key, value)` parameters passed to the AI on startup.
 
 The `unique_id` is sometimes surfaced as the "Content Id", but it should not include its `ai/` prefix.
+
+If you pass the full MD5 hex string of a specific version of AI as `md5`, for example previously returned from the `download_from_bananas` function, the corresponding version will be used. Otherwise, the latest version will be used.
 
 #### `local_folder(folder_path, ai_name, ai_params=()))`
 
@@ -237,11 +239,13 @@ Note that for AIs specified by `bananas_ai` OpenTTDLab automatically downloads a
 
 Similarly for AI libraries specified by `bananas_ai_library` - OpenTTDLab automatically downloads of their AI library dependencies.
 
-#### `bananas_ai_library(unique_id, ai_library_name)`
+#### `bananas_ai_library(unique_id, ai_library_name, md5=None)`
 
 Fetches the AI library defined by `unique_id` and `ai_name` of a library published through OpenTTD's content service at https://bananas.openttd.org/package/ai-library.
 
 The `unique_id` is sometimes surfaced as the "Content Id", but it should not include its `ai-library/` prefix.
+
+If you pass the full MD5 string of a specific version of AI library as `md5`, for example previously returned from the `download_from_bananas` function, this will fetch this corresponding version from BaNaNaS. Otherwise, the latest version is fetched.
 
 
 ### Parsing savegame files

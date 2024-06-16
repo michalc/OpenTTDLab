@@ -411,6 +411,35 @@ def test_run_experiments_bananas_without_deps():
         'error': False,
     }
 
+def test_run_experiments_bananas_without_deps_specific_version():
+    results = run_experiments(
+        experiments=(
+            {
+                'seed': seed,
+                'ais': (
+                    bananas_ai('54524149', 'trAIns', md5='c4c069dc797674e545411b59867ad0c2'),
+                ),
+                'days': 365 + 1,
+            }
+            for seed in range(2, 3)
+        ),
+        openttd_version='13.4',
+        opengfx_version='7.1',
+        result_processor=_basic_data,
+    )
+
+    assert len(results) == 12
+    assert results[10] == {
+        'openttd_version': '13.4',
+        'opengfx_version': '7.1',
+        'seed': 2,
+        'name': 'trAIns AI',
+        'date': date(1950, 12, 1),
+        'current_loan': 300000,
+        'money': 280615,
+        'terrain_type': 1,
+        'error': False,
+    }
 
 def test_run_experiments_bananas_with_deps():
     results = run_experiments(
@@ -458,7 +487,7 @@ def test_run_experiments_bananas_as_library():
                 for seed in range(2, 3)
             ),
             ai_libraries=(
-                bananas_ai_library('5046524f', 'Pathfinder.Road'),
+                bananas_ai_library('5046524f', 'Pathfinder.Road', md5='999de61cd3a10680b4ff91547299dc53'),
             ),
             openttd_version='13.4',
             opengfx_version='7.1',
