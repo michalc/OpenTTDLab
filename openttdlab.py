@@ -720,12 +720,12 @@ def download_from_bananas(
                     f.write(f'{content_id},{filename},{license},{md5sum}\n')
 
 
-def bananas_ai(unique_id, ai_name, ai_params=()):
-    return ai_name, ai_params, partial(download_from_bananas, 'ai/' + unique_id)
+def bananas_ai(unique_id, ai_name, ai_params=(), md5=None):
+    return ai_name, ai_params, partial(download_from_bananas, 'ai/' + unique_id, md5=md5)
 
 
-def bananas_ai_library(unique_id, ai_library_name):
-    return ai_library_name, partial(download_from_bananas, 'ai-library/' + unique_id)
+def bananas_ai_library(unique_id, ai_library_name, md5=None):
+    return ai_library_name, partial(download_from_bananas, 'ai-library/' + unique_id, md5=md5)
 
 
 def parse_savegame(chunks, chunk_size=65536):
