@@ -575,10 +575,10 @@ def test_savegame_parser():
         assert json.loads(json.dumps(game))['chunks'] == json.loads(f.read())['chunks']
 
 
-def test_bananas_download():
+def test_bananas_download_exact_version():
 
     file_details = []
-    with download_from_bananas('ai/505a4c41') as files:
+    with download_from_bananas('ai/505a4c41', md5='83b1197505bb2dcc26b14005814de75b') as files:
         for content_id, filename, license, md5sum, get_data in files:
             file_details.append((content_id, filename, license, md5sum))
             with get_data() as chunks:
@@ -587,7 +587,7 @@ def test_bananas_download():
 
     assert len(file_details) == 3
     for content_id, filename, license, md5sum in file_details:
-        assert len(md5sum) == 8
+        assert len(md5sum) == 32
     assert file_details[0][0] == 'ai/505a4c41'
     assert file_details[1][0] == 'ai-library/4752412a'
     assert file_details[2][0] == 'ai-library/51554248'
@@ -599,3 +599,36 @@ def test_bananas_download():
     assert file_details[0][2] == 'GPL v2'
     assert file_details[1][2] == 'GPL v2'
     assert file_details[2][2] == 'GPL v2'
+
+
+def test_bananas_download_latest_version_gpl():
+
+    file_details = []
+    with download_from_bananas('ai/505a4c41') as files:
+        for content_id, filename, license, md5sum, get_data in files:
+            file_details.append((content_id, filename, license, md5sum))
+            with get_data() as chunks:
+                for chunk in chunks:
+                    pass
+
+    assert len(file_details) == 3
+    for content_id, filename, license, md5sum in file_details:
+        assert len(md5sum) == 32
+    assert file_details[0][0] == 'ai/505a4c41'
+    assert file_details[1][0] == 'ai-library/4752412a'
+    assert file_details[2][0] == 'ai-library/51554248'
+
+    assert file_details[0][1].startswith('505a4c41-PathZilla')
+    assert file_details[1][1].startswith('4752412a-Graph.AyStar')
+    assert file_details[2][1].startswith('51554248-Queue.BinaryHeap')
+
+    assert file_details[0][2] == 'GPL v2'
+    assert file_details[1][2] == 'GPL v2'
+    assert file_details[2][2] == 'GPL v2'
+
+
+def test_bananas_download_latest_version_custom_license():
+
+    with download_from_bananas('ai/4349564c') as files:
+        assert files[0][2] == 'Custom'
+        assert len(files[0][3]) == 8

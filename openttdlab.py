@@ -68,6 +68,16 @@ CONTENT_TYPES = (
     (CONTENT_TYPE_GAME_LIBRARY, 'game-script-library', ('game', 'library')),
 )
 
+LICENSES_THAT_ALLOW_EXACT_VERSION_DOWNLOAD = {
+    'GPL v2',
+    'GPL v3',
+    'LGPL v2.1',
+    'CC-0 v1.0',
+    'CC-BY v3.0',
+    'CC-BY-SA v3.0',
+    'CC-BY-NC-SA v3.0',
+    'CC-BY-NC-ND v3.0',
+}
 
 def run_experiments(
     experiments=(),
@@ -231,7 +241,7 @@ def run_experiments(
             ]
             def copy_ai_or_library_to_run_dir():
                 for copy_func in ai_and_library_filenames:
-                    with copy_func(lambda: contextlib.nullcontext(client), lambda: cache_dir) as filenames_and_data:
+                    with copy_func(get_http_client=lambda: contextlib.nullcontext(client), get_cache_dir=lambda: cache_dir) as filenames_and_data:
                         for content_id, filename, license, md5sum, get_data in filenames_and_data:
                             path = content_types_by_str[content_id.split('/')[0]][1]
                             with \
@@ -415,7 +425,7 @@ def _gz_decompress(compressed_chunks):
 
 def local_file(file_path, ai_name, ai_params=()):
     @contextlib.contextmanager
-    def _copy(client, cache_dir):
+    def _copy(get_http_client, get_cache_dir):
         yield (
             ('ai/', ai_name + '.tar', None, None, lambda: _file_contents(file_path)),
         )
@@ -425,7 +435,7 @@ def local_file(file_path, ai_name, ai_params=()):
 
 def local_folder(folder_path, ai_name, ai_params=()):
     @contextlib.contextmanager
-    def _copy(client, cache_dir):
+    def _copy(get_http_client, get_cache_dir):
         # Manual cleanup of temporary file for Windows. See https://stackoverflow.com/q/23212435/1319998
         # Maybe would be better to not have a temporary file at all, and stream-construct the tar file?
         file = None
@@ -461,9 +471,9 @@ def remote_file(url, ai_name, ai_params=()):
             yield _gz_decompress(r.iter_bytes())
 
     @contextlib.contextmanager
-    def _download(client, get_cache_dir):
+    def _download(get_http_client, get_cache_dir):
         yield (
-            ('ai/', ai_name + '.tar', None, None, lambda: _gz_download(client, url)),
+            ('ai/', ai_name + '.tar', None, None, lambda: _gz_download(get_http_client, url)),
         )
 
     return ai_name, ai_params, _download
@@ -472,6 +482,7 @@ def remote_file(url, ai_name, ai_params=()):
 @contextlib.contextmanager
 def download_from_bananas(
         content_id,
+        md5=None,
         get_http_client=lambda: httpx.Client(transport=httpx.HTTPTransport(retries=3)),
         get_cache_dir=lambda: user_cache_dir(appname='OpenTTDLab', version=__version__, ensure_exists=True),
 ):
@@ -653,7 +664,7 @@ def download_from_bananas(
         # find the dependencies of the dependencies
         with tcp_connection(("content.openttd.org", 3978)) as (recv_bytes, send_bytes):
             get_tcp_content_ids_from_conn = partial(get_tcp_content_ids, recv_bytes, send_bytes)
-            primary_tcp_content_id, dependency_tcp_content_ids = get_tcp_content_ids_from_conn(bananas_type_id, unique_id)
+            primary_tcp_content_id, dependency_tcp_content_ids = get_tcp_content_ids_from_conn(bananas_type_id, unique_id, md5sum=md5)
 
             # Find URLs to download the primary content, and all of its dependencies and transitve
             # dependencies. Note that dependencies can be specified by exact version, and to download those
@@ -691,11 +702,13 @@ def download_from_bananas(
         filenames = []
         total_iterated = 0
         for binaries_content_id, binaries_content_type, binaries_filesize, binaries_link, binaries_md5sum, binaries_unique_id, binaries_filename, license in urls:
+            public_md5 = binaries_md5sum if license in LICENSES_THAT_ALLOW_EXACT_VERSION_DOWNLOAD else binaries_md5sum[:8]
+
             filenames.append((
                 content_types_by_id[int(binaries_content_type)][0] + '/' + binaries_unique_id,
                 binaries_filename,
                 license,
-                binaries_md5sum[:8],
+                public_md5,
                 partial(url_contents_while_writing, binaries_link, os.path.join(content_cache_dir, binaries_filename), binaries_filesize),
             ))
         yield filenames
