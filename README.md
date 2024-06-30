@@ -32,12 +32,15 @@ OpenTTDLab is based on [Patric Stout's OpenTTD Savegame Reader](https://github.c
   - [Configuring AI libraries](#configuring-ai-libraries)
   - [Parsing savegame files](#parsing-savegame-files)
   - [Downloading from BaNaNaS](#downloading-from-bananas)
+- [Tips for repeatability, reproducibility, and replicability](#tips-for-repeatability-reproducibility-and-replicability)
 - [Compatibility](#compatibility)
 - [Licenses and attributions](#licenses-and-attributions)
 
 ---
 
 ## Features
+
+OpenTTDLab essentially turns OpenTTD into a simulator - and through AIs and AI libraries it allows you to experiment with different techniques of building supply chains and study their effects. In more detail OpenTTDLab:
 
 - Allows you to easily run OpenTTD in a headless mode (i.e. without a graphical interface) over a variety of configurations.
 - And allows you to do this from Python code - for example from a Jupyter Notebook.
@@ -292,6 +295,47 @@ Each `chunks` iterable are the binary chunks of the non-compressed `.tar` file o
 If you don't pass `md5`, `download_from_bananas` will return details for the _latest_ version of the content. And if the content has a known and acceptable license, `partial_or_full_md5` will contain the full MD5 for the content, which can then be subsequently passed back into `download_from_bananas` to download the same version later. If the file does not have a known license, `download_from_bananas` will contain the only the first 8 characters of the MD5. This means that `download_from_bananas` is deterministic only for content that has an acceptable license, and if you pass an MD5 previously retrieved from a call to `download_from_bananas`.
 
 Note that the function `run_experiments` that uses `bananas_ai` or `bananas_ai_library` will handle automatically downloading from BaNaNaS, so this function is usually only useful if you would like to run experiments without using the `bananas_*` functions, or report on the filename (which includes the version of each piece of content) or the MD5 sum of the file.
+
+
+## Tips for repeatability, reproducibility, and replicability
+
+OpenTTDLab should be able to help with all the 3Rs of repeatability, reproducibility and (although to a lesser degree) replicability of simulations. Definitions of the 3Rs are taken from https://www.acm.org/publications/policies/artifact-review-and-badging-current.
+
+### Repeatability
+
+> "For computational experiments, this means that a researcher can reliably repeat her own computation."
+
+The run_experiments function is the primary way OpenTTLab supports repeatability - with a single function call you can run a range of experiments. But to make sure you get the same results on each invocation:
+
+- Pin to a specific OpenTTD and OpenGFX version.
+- If fetching AIs and AI libraries from BaNaNaS, use the MD5 to ensure the same versions are used (at the moment the only way of discovering these is to initially separately call the download_from_bananas_function).
+- If fetching AIs and AI libraries from another remote source, make sure that source is immutable.
+- For all your own code store in version control, e.g. git, and make sure to note version/commit IDs used to generate results.
+- Use a virtual environment to pin Python version and all dependencies (most importantly of OpenTTDLab).
+- Use fixed random seeds.
+- (Out of paranoia mostly, note the OS and its version, and CPU type.)
+
+### Reproducibility
+
+> "For computational experiments, this means that an independent group can obtain the same result using the author’s own artifacts."
+
+To help others reproduce your results:
+
+- Take all the repeatability steps above, and make sure to communicate all the noted details, e.g. what versions where pinned, along with any results.
+- Make any artifacts that you have created available alongide the results / linked from the results. This can include the source of AIs you have used or created, the Python code to run OpenTTDLab, and the Python code to analyse the results.
+
+In general, bitwise reproducibility is not expected, but with fixed random seeds it "should" be the case with OpenTTD/OpenTTDLab (depending on the analysis performed).
+
+### Replicability
+
+> "For computational experiments, this means that an independent group can obtain the same result using artifacts which they develop completely independently."
+
+This is arguably the most difficult of the 3Rs to plan for, and for other researchers to achieve. To help others replicate your results:
+
+- Take all the repeatability and reproducibility steps above.
+- Note and communicate the high level algorithms involved, so others can create their own implementations of them. For example, if you have written an AI, then precisely communicate the algorithm that AI takes so others can implement it, and then run it with OpenTTDLab.
+
+  For _full_ replicability, it could be argued that OpenTTD itself, or something equivalent, would also have to be implemented. While this sounds unfeasbile, depending on what the AIs involve and what you argue the results are, it might be feasible. However, for this level of replicability OpenTTDLab is unlikely to be helpful.
 
 
 ## Compatibility
