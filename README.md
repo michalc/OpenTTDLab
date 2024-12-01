@@ -181,22 +181,18 @@ The core function of OpenTTDLab is the `run_experiments` function, used to run a
 
 - `openttd_version=None`
 
-   The version of OpenTTD to use. If `None`, the latest version available at `openttd_base_url` is used.
+   The version of OpenTTD to use. If `None`, the latest version available at `openttd_cdn_url` is used.
 
    > **Caution**
    > OpenTTDLab currently does not work with OpenTTD 14.0 or later. The latest version of OpenTTD known to work is 13.4.
 
 - `opengfx_version=None`
 
-   The version of OpenGFX to use. If `None`, the latest version available at `opengfx_base_url` is used.
+   The version of OpenGFX to use. If `None`, the latest version available at `openttd_cdn_url` is used.
 
-- `openttd_base_url='https://cdn.openttd.org/openttd-releases/`
+- `openttd_cdn_url='https://cdn.openttd.org/`
 
-   The base URL used to fetch the list of OpenTTD versions, and OpenTTD binaries.
-
-- `opengfx_base_url='https://cdn.openttd.org/opengfx-releases/`
-
-   The URL used to fetch the list of OpenGFX versions, and OpenGFX binaries.
+   The URL of the OpenTTD CDN, from which the OpenTTD and OpenGFX binaries are fetched.
 
 - `get_http_client=lambda: httpx.Client(transport=httpx.HTTPTransport(retries=3)`
 
