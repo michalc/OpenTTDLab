@@ -31,10 +31,6 @@ jobs:
       - uses: "actions/setup-python@v4"
         with:
           python-version: '${{ matrix.python-version }}'
-      - name: "Install 7z"
-        if: matrix.os == 'macos-13'
-        run: |
-           brew install p7zip
       - name: "Install python dependencies"
         run: |
           pip install ".[ci]"
