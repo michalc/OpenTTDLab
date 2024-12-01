@@ -86,8 +86,7 @@ def run_experiments(
     max_workers=None,
     openttd_version=None,
     opengfx_version=None,
-    openttd_base_url='https://cdn.openttd.org/openttd-releases/',
-    opengfx_base_url='https://cdn.openttd.org/opengfx-releases/',
+    openttd_cdn_url='https://cdn.openttd.org/',
     result_processor=lambda x: (x,),
     get_http_client=lambda: httpx.Client(transport=httpx.HTTPTransport(retries=3)),
     get_cache_dir=lambda: user_cache_dir(appname='OpenTTDLab', version=__version__, ensure_exists=True),
@@ -176,11 +175,11 @@ def run_experiments(
 
         # Find version and coresponding manifest
         if openttd_version is None:
-            openttd_version = str(get_yaml(client, openttd_base_url + 'latest.yaml')['latest'][0]['version'])
+            openttd_version = str(get_yaml(client, openttd_cdn_url + 'openttd-releases/latest.yaml')['latest'][0]['version'])
         if opengfx_version is None:
-            opengfx_version = str(get_yaml(client, opengfx_base_url + 'latest.yaml')['latest'][0]['version'])
-        openttd_manifest = get_yaml(client, openttd_base_url + openttd_version + '/manifest.yaml')
-        opengfx_manifest = get_yaml(client, opengfx_base_url + opengfx_version + '/manifest.yaml')
+            opengfx_version = str(get_yaml(client, openttd_cdn_url + 'opengfx-releases/latest.yaml')['latest'][0]['version'])
+        openttd_manifest = get_yaml(client, openttd_cdn_url + 'openttd-releases/' + openttd_version + '/manifest.yaml')
+        opengfx_manifest = get_yaml(client, openttd_cdn_url + 'opengfx-releases/' + opengfx_version + '/manifest.yaml')
 
         # Find file details in manifest
         openttd_filename = f"{openttd_manifest['base']}{operating_system}-{architecture}.{openttd_extension}"
@@ -192,8 +191,8 @@ def run_experiments(
         cache_dir = get_cache_dir()
         openttd_archive_location = os.path.join(cache_dir, openttd_filename)
         opengfx_archive_location = os.path.join(cache_dir, opengfx_filename)
-        stream_to_file_if_necessary(client, openttd_base_url + openttd_version + '/' + openttd_filename, openttd_archive_location)
-        stream_to_file_if_necessary(client, opengfx_base_url + opengfx_version + '/' + opengfx_filename, opengfx_archive_location)
+        stream_to_file_if_necessary(client, openttd_cdn_url + 'openttd-releases/' + openttd_version + '/' + openttd_filename, openttd_archive_location)
+        stream_to_file_if_necessary(client, openttd_cdn_url + 'opengfx-releases/' + opengfx_version + '/' + opengfx_filename, opengfx_archive_location)
         check_sha_256(openttd_archive_location, openttd_file_details['sha256sum'])
         check_sha_256(opengfx_archive_location, opengfx_file_details['sha256sum'])
 
