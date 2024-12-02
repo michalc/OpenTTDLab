@@ -15,6 +15,7 @@ import lzma
 import os
 import os.path
 import platform
+import re
 import shutil
 import stat
 import struct
@@ -178,8 +179,14 @@ def run_experiments(
             openttd_version = str(get_yaml(client, openttd_cdn_url + 'openttd-releases/latest.yaml')['latest'][0]['version'])
         if opengfx_version is None:
             opengfx_version = str(get_yaml(client, openttd_cdn_url + 'opengfx-releases/latest.yaml')['latest'][0]['version'])
-        openttd_manifest = get_yaml(client, openttd_cdn_url + 'openttd-releases/' + openttd_version + '/manifest.yaml')
-        opengfx_manifest = get_yaml(client, openttd_cdn_url + 'opengfx-releases/' + opengfx_version + '/manifest.yaml')
+        openttd_path = \
+            'openttd-nightlies/' + openttd_version[:4] + '/' + openttd_version + '/' if re.match(r'\d{8}-', openttd_version) else \
+            'openttd-releases/' + openttd_version + '/'
+        opengfx_path = \
+            'opengfx-nightlies/' + opengfx_version + '/' if re.match(r'\d{8}-', opengfx_version) else \
+            'opengfx-releases/' + opengfx_version + '/'
+        openttd_manifest = get_yaml(client, openttd_cdn_url + openttd_path + 'manifest.yaml')
+        opengfx_manifest = get_yaml(client, openttd_cdn_url + opengfx_path + 'manifest.yaml')
 
         # Find file details in manifest
         openttd_filename = f"{openttd_manifest['base']}{operating_system}-{architecture}.{openttd_extension}"
@@ -191,8 +198,8 @@ def run_experiments(
         cache_dir = get_cache_dir()
         openttd_archive_location = os.path.join(cache_dir, openttd_filename)
         opengfx_archive_location = os.path.join(cache_dir, opengfx_filename)
-        stream_to_file_if_necessary(client, openttd_cdn_url + 'openttd-releases/' + openttd_version + '/' + openttd_filename, openttd_archive_location)
-        stream_to_file_if_necessary(client, openttd_cdn_url + 'opengfx-releases/' + opengfx_version + '/' + opengfx_filename, opengfx_archive_location)
+        stream_to_file_if_necessary(client, openttd_cdn_url + openttd_path + openttd_filename, openttd_archive_location)
+        stream_to_file_if_necessary(client, openttd_cdn_url + opengfx_path + opengfx_filename, opengfx_archive_location)
         check_sha_256(openttd_archive_location, openttd_file_details['sha256sum'])
         check_sha_256(opengfx_archive_location, opengfx_file_details['sha256sum'])
 
@@ -207,8 +214,8 @@ def run_experiments(
         experiments_list = list(experiments)
         with tempfile.TemporaryDirectory(prefix=f'OpenTTDLab-{run_id}-') as run_dir:
             # Extract the binaries into the run dir
-            openttd_binary_dir = os.path.join(run_dir, f'{openttd_filename}-{openttd_file_details["sha256sum"]}')
-            opengfx_binary_dir = os.path.join(run_dir, f'{opengfx_filename}-{opengfx_file_details["sha256sum"]}')
+            openttd_binary_dir = os.path.join(run_dir, f'{openttd_filename}')
+            opengfx_binary_dir = os.path.join(run_dir, f'{opengfx_filename}')
             Path(openttd_binary_dir).mkdir(parents=True, exist_ok=True)
             Path(opengfx_binary_dir).mkdir(parents=True, exist_ok=True)
             extractors[openttd_extension](openttd_archive_location, openttd_binary_dir)
