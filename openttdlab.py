@@ -506,7 +506,7 @@ def download_from_bananas(
             try:
                 s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
                 s.settimeout(10.0)
-                s.connect(("content.openttd.org", 3978))
+                s.connect(address)
                 yield recv_bytes, send_bytes
             finally:
                 try:
