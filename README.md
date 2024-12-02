@@ -295,7 +295,7 @@ Note that the function `run_experiments` that uses `bananas_ai` or `bananas_ai_l
 
 ## Tips for repeatability, reproducibility, and replicability
 
-OpenTTDLab should be able to help with all the 3Rs of repeatability, reproducibility and (although to a lesser degree) replicability of simulations. Definitions of the 3Rs are taken from https://www.acm.org/publications/policies/artifact-review-and-badging-current.
+OpenTTDLab should be able to help with all the 3Rs of repeatability, reproducibility and (although to a lesser degree) replicability of simulations. Definitions of the 3Rs are taken from the Association for Computing Machinery (ACM) https://www.acm.org/publications/policies/artifact-review-and-badging-current.
 
 ### Repeatability
 
@@ -320,7 +320,7 @@ To help others reproduce your results:
 - Take all the repeatability steps above, and make sure to communicate all the noted details, e.g. what versions where pinned, along with any results.
 - Make any artifacts that you have created available alongide the results / linked from the results. This can include the source of AIs you have used or created, the Python code to run OpenTTDLab, and the Python code to analyse the results.
 
-In general, bitwise reproducibility is not expected, but with fixed random seeds it "should" be the case with OpenTTD/OpenTTDLab (depending on the analysis performed).
+In general, bitwise identical results are not required in order to meet ACM's definition of reproducibility; but with the same configuration, and specifically with the same fixed random seeds, OpenTTDLab should give bitwise identical results each run.
 
 ### Replicability
 
