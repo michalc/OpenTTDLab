@@ -34,6 +34,7 @@ OpenTTDLab is based on [Patric Stout's OpenTTD Savegame Reader](https://github.c
   - [Downloading from BaNaNaS](#downloading-from-bananas)
 - [Tips for repeatability, reproducibility, and replicability](#tips-for-repeatability-reproducibility-and-replicability)
 - [Compatibility](#compatibility)
+- [How to cite OpenTTDLab](#how-to-cite-openttdlab)
 - [Licenses and attributions](#licenses-and-attributions)
 
 ---
@@ -339,6 +340,27 @@ This is arguably the most difficult of the 3Rs to plan for, and for other resear
 - OpenTTD versions between 12.0 and 13.4 (OpenTTD >= 14.0 is not currently supported. See this [discussion on the changes in OpenTTD 14.0](https://github.com/OpenTTD/OpenTTD/discussions/12496).)
 - Linux (tested on Ubuntu 20.04), Windows (tested on Windows Server 2019), or macOS (tested on macOS 13)
 - Python >= 3.8.0 (tested on 3.8.0 and 3.12.0)
+
+
+## How to cite OpenTTDLab
+
+If you use OpenTTDLab in a scientific publication, I would appreciate a citation to the dissertation for which it was developed, [A Reusable Python Framework for Repeatable, Replicable, & Reproducible Experiments Using OpenTTD](https://doi.org/10.7488/era/5414).
+
+Following is a suggested BibTeX-style entry; feel free to modifiy it for your needs.
+
+```
+@mastersthesis{charemza2024reusable,
+    author       = {Charemza, Michal},
+    title        = {A Reusable {Python} Framework for Repeatable, Replicable, \& Reproducible Experiments Using {OpenTTD}},
+    type         = {Master's dissertation}
+    month        = {11},
+    year         = {2024},
+    school       = {The University of Edinburgh},
+    address      = {UK},
+    doi          = {10.7488/era/5414},
+    url          = {https://doi.org/10.7488/era/5414}
+}
+```
 
 
 ## Licenses and attributions
