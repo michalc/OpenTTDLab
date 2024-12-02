@@ -346,7 +346,7 @@ This is arguably the most difficult of the 3Rs to plan for, and for other resear
 
 If you use OpenTTDLab in a scientific publication, I would appreciate a citation to the dissertation for which it was developed, [A Reusable Python Framework for Repeatable, Replicable, & Reproducible Experiments Using OpenTTD](https://doi.org/10.7488/era/5414).
 
-Following is a suggested BibTeX-style entry; feel free to modifiy it for your needs.
+Following is a suggested BibTeX-style entry; feel free to modify it for your needs.
 
 ```
 @mastersthesis{charemza2024reusable,
