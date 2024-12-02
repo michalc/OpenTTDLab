@@ -111,6 +111,37 @@ def test_run_experiments_local_ai_early_version_of_openttd():
     }
 
 
+def test_run_experiments_local_ai_early_nightly_of_openttd():
+    results = run_experiments(
+        openttd_version='20230323-master-g83eb73a9b2',
+        opengfx_version='20230522-master-g4220c498b2',
+        experiments=(
+            {
+                'seed': seed,
+                'ais': (
+                    local_file('./fixtures/54524149-trAIns-2.1.tar', 'trAIns'),
+                ),
+                'days': 365 * 5 + 1,
+            }
+            for seed in range(2, 4)
+        ),
+        result_processor=_basic_data,
+    )
+
+    assert len(results) == 118
+    assert results[117] == {
+        'openttd_version': '20230323-master-g83eb73a9b2',
+        'opengfx_version': '20230522-master-g4220c498b2',
+        'seed': 3,
+        'name': 'trAIns AI',
+        'date': date(1954, 12, 1),
+        'current_loan': 300000,
+        'money': 1182246,
+        'terrain_type': 1,
+        'error': False,
+    }
+
+
 def test_run_experiments_local_folder_from_tar():
 
     with tempfile.TemporaryDirectory() as d:
