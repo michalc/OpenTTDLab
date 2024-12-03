@@ -180,16 +180,19 @@ The core function of OpenTTDLab is the `run_experiments` function, used to run a
  
    The maximum number of workers to use to run OpenTTD in parallel. If`None`, then `os.cpu_count()` defined how many workers run.
 
-- `openttd_version=None`
+- `openttd_version=None`<br>
+  `opengfx_version=None`
 
-   The version of OpenTTD to use. If `None`, the latest version available at `openttd_cdn_url` is used.
+   The version of OpenTTD or OpenGFX to download and use. For both of these:
+
+   - If `None`, the latest release version available at `openttd_cdn_url` is downloaded and used.
+
+   - If starting with 8 digits followed by a dash, it is assumed this is a date and so a nightly version, for example `'20230323-master-g83eb73a9b2'`.
+
+   - Otherwise a release version is assumed, for example `'13.4'`.
 
    > **Caution**
    > OpenTTDLab currently does not work with OpenTTD 14.0 or later. The latest version of OpenTTD known to work is 13.4.
-
-- `opengfx_version=None`
-
-   The version of OpenGFX to use. If `None`, the latest version available at `openttd_cdn_url` is used.
 
 - `openttd_cdn_url='https://cdn.openttd.org/`
 
