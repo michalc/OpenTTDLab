@@ -347,7 +347,7 @@ This is arguably the most difficult of the 3Rs to plan for, and for other resear
 
 ## How to cite OpenTTDLab
 
-If you use OpenTTDLab in a scientific publication, I would appreciate a citation to the dissertation for which it was developed, [A Reusable Python Framework for Repeatable, Replicable, & Reproducible Experiments Using OpenTTD](https://doi.org/10.7488/era/5414).
+If you use OpenTTDLab in a scientific publication, a citation to the dissertation for which it was developed, [A Reusable Python Framework for Repeatable, Replicable, & Reproducible Experiments Using OpenTTD](https://doi.org/10.7488/era/5414), is appreciated.
 
 Following is a suggested BibTeX-style entry; feel free to modify it for your needs.
 
