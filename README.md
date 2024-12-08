@@ -133,7 +133,7 @@ should output a plot much like this one.
 
 A few examples are available:
 
-- [A Jupyter notebook of the above example, briefly exploring the performance of trAIns](https://github.com/michalc/OpenTTDLab/blob/main/examples/01-single-ai.ipynb)
+- [A Jupyter notebook of the above example](https://github.com/michalc/OpenTTDLab/blob/main/examples/01-single-ai.ipynb), briefly exploring the performance of [trAIns](https://www.luisrios.eti.br/public/en_us/research/trains/)
 - [A Jupyter notebook showing how the performance of OpenTTDLab scales with the number of workers](https://github.com/michalc/OpenTTDLab/blob/main/examples/02-openttdlab-scaling.ipynb)
 - [A pytest .py file using OpenTTDLab as a test harness for an OpenTTD AI](https://github.com/michalc/ParameterisedAI/blob/main/test_parameterised_ai.py), run automatically using [a GitHub action workflow](https://github.com/michalc/ParameterisedAI/blob/main/.github/workflows/test.yml)
 
@@ -386,6 +386,6 @@ The [OpenTTDLab logo](./docs/assets/openttdlab-logo.svg) is a modified version o
 
 The [.gitignore](./.gitignore) file is based on [GitHub's Python .gitignore file](https://github.com/github/gitignore/blob/main/Python.gitignore). This was originally supplied under CC0 1.0 Universal. However, as part of OpenTTDLab it is licensed under GNU General Public License version 2.0.
 
-[trAIns](./fixtures/54524149-trAIns-2.1.tar) is authored by Luis Henrique O. Rios, and licensed under the GNU General Public License version 2.0.
+[trAIns](https://www.luisrios.eti.br/public/en_us/research/trains/), included in [fixtures/](./fixtures/), is authored by Luis Henrique O. Rios, and licensed under the GNU General Public License version 2.0.
 
 [OpenTTD](https://github.com/OpenTTD/OpenTTD) and [OpenGFX](https://github.com/OpenTTD/OpenGFX) are authored by the [OpenTTD team](https://github.com/OpenTTD/OpenTTD/blob/master/CREDITS.md). Both are licensed under the GNU General Public License version 2.0.
