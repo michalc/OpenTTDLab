@@ -21,6 +21,7 @@ OpenTTDLab is based on [Patric Stout's OpenTTD Savegame Reader](https://github.c
 
 ### Contents
 
+- [About](#about)
 - [Features](#features)
 - [Installation](#installation)
 - [Running experiments](#running-experiments)
@@ -39,9 +40,14 @@ OpenTTDLab is based on [Patric Stout's OpenTTD Savegame Reader](https://github.c
 
 ---
 
-## Features
+## About
 
-OpenTTDLab essentially turns OpenTTD into a simulator - and through AIs and AI libraries it allows you to experiment with different techniques of building supply chains and study their effects. In more detail OpenTTDLab:
+[OpenTTD](https://github.com/OpenTTD/OpenTTD) is a business simulation game where typically one or more human players each build a company through constructing and using a transportation network to transport passengers and goods. OpenTTD can be extended by allowing custom AI players to compete against the human players through its [AI API](https://docs.openttd.org/ai-api/).
+
+By _only_ allowing such AI players, making it possible to run ranges of simulations from Python code using different AIs or differently configured AIs, and providing access to metrics from the simulations, OpenTTDLab turns OpenTTD from a game into a system for researching algorithms and their effects, especially on supply chains.
+
+
+## Features
 
 - Allows you to easily run OpenTTD in a headless mode (i.e. without a graphical interface) over a variety of configurations.
 - And allows you to do this from Python code - for example from a Jupyter Notebook.
