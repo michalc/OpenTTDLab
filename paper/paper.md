@@ -31,7 +31,7 @@ There are no other open source frameworks that take a simulation game created fo
 
 Through a single Python function call, OpenTTDLab runs OpenTTD over a range of configurations, such as a range of random seeds and a range of parameters of an AI. It then returns data from every month of in-game time, which can be processed and visualised. \autoref{fig:example-results} shows example results: comparing how the distributions of money in the bank change over time for two configurations of a simple AI. The differences in the distributions show that OpenTTDLab can be used to investigate risk-benefit trades-offs in supply chains.
 
-![How the distribution of money in the bank changes over in-game time for an AI programmed to construct a single bus route with a configurable number of buses [@charemza2024parameterised]. The results of 100 runs of OpenTTD are shown, 50 when the AI is configured to build 1 bus, and 50 for when it is configured to build 16 buses. Adapted from [@charemza2024reusable, chap. 5], © 2024 Michal Charemza.\label{fig:example-results}](example-results-charemza2004reproducible.pdf){height="150pt"}
+![How the distribution of money in the bank changes over in-game time for ParameterisedAI, an AI programmed to construct a single bus route with a configurable number of buses [@charemza2024parameterised]. The results of 100 runs of OpenTTD are shown: 50 runs with 1 bus, and 50 runs with 16 buses. Adapted from [@charemza2024reusable, chap. 5], © 2024 Michal Charemza.\label{fig:example-results}](example-results-charemza2004reproducible.pdf){height="150pt"}
 
 # Acknowledgments
 
