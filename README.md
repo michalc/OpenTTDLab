@@ -35,6 +35,9 @@ OpenTTDLab is based on [Patric Stout's OpenTTD Savegame Reader](https://github.c
   - [Downloading from BaNaNaS](#downloading-from-bananas)
 - [Tips for repeatability, reproducibility, and replicability](#tips-for-repeatability-reproducibility-and-replicability)
 - [Compatibility](#compatibility)
+- [How to report an issue](#how-to-report-an-issue)
+- [How to get help](#how-to-get-help)
+- [How to contribute](#how-to-contribute)
 - [How to cite OpenTTDLab](#how-to-cite-openttdlab)
 - [Licenses and attributions](#licenses-and-attributions)
 
@@ -349,6 +352,23 @@ This is arguably the most difficult of the 3Rs to plan for, and for other resear
 - OpenTTD versions between 12.0 and 13.4 (OpenTTD >= 14.0 is not currently supported. See this [discussion on the changes in OpenTTD 14.0](https://github.com/OpenTTD/OpenTTD/discussions/12496).)
 - Linux (tested on Ubuntu 20.04), Windows (tested on Windows Server 2019), or macOS (tested on macOS 13)
 - Python >= 3.8.0 (tested on 3.8.0 and 3.12.0)
+
+
+## How to report an issue
+
+To report an report an issue with OpenTTDLab, please use [GitHub issues](https://github.com/michalc/OpenTTDLab/issues).
+
+
+## How to get help
+
+If you would like help using OpenTTDLab, please ask a question in [GitHub discussions](https://github.com/michalc/OpenTTDLab/discussions).
+
+
+## How to contribute
+
+Contributions to OpenTTDLab are welcome - see [GitHub's guide on how to contribute to projects through pull requests](https://docs.github.com/en/get-started/exploring-projects-on-github/contributing-to-a-project).
+
+However, if there is no existing [issue](https://github.com/michalc/OpenTTDLab/issues) that you're addressing with your contribution, in most cases it's better to start a [discussion](https://github.com/michalc/OpenTTDLab/discussions) before raising a pull request. However, this is not a requirement, and probably unnecessary for small or no-brainer improvements.
 
 
 ## How to cite OpenTTDLab
