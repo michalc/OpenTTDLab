@@ -19,7 +19,7 @@ bibliography: paper.bib
 
 OpenTTD [@openttdteam2004openttd] is a business simulation game created for recreational play, where one or more human players build commercial companies by constructing a transportation network of buses, trains, planes, and ships for use in moving passengers and cargo. OpenTTD can be extended by allowing autonomous so-called AI players written using the Squirrel programming language, and OpenTTDLab leverages this capability to allow researchers to run experiments using their own AIs. Doing so converts OpenTTD from a game into a system for researching algorithms and their effects on companies and supply chains, and helps to ensure the results of such research are reproducible.
 
-![The OpenTTDLab logo. Adapted from the OpenTTD Logo, © OpenTTD Team, licenced under the GNU General Public License Version 2.](../docs/assets/openttdlab-logo.svg){height="100pt"}
+![The OpenTTDLab logo. Adapted from the OpenTTD Logo, © [OpenTTD Team](https://github.com/OpenTTD/OpenTTD/blob/master/CREDITS.md), [User:Stannerd](https://en.wikipedia.org/wiki/User:Stannered), and Michal Charemza. Licenced under the GNU General Public License Version 2.](../docs/assets/openttdlab-logo.svg){height="100pt"}
 
 # Statement of need
 
