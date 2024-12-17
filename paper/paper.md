@@ -35,6 +35,6 @@ Through a single Python function call, OpenTTDLab runs OpenTTD over a range of c
 
 # Acknowledgments
 
-OpenTTDLab could not have been created without the incredible work of all the [contributors to OpenTTD, its dependencies, and forebears](https://github.com/OpenTTD/OpenTTD/blob/master/CREDITS.md). A further thank you to Patric Stout, a.k.a. TrueBrain, who originally wrote the OpenTTD savegame parser that OpenTTDLab forked from. Finally, thank you to Michael Herrmann, whose invaluable supervision of the current author's dissertation [@charemza2024reusable] resulted in the first versions of OpenTTDLab.
+OpenTTDLab could not have been created without the incredible work of all the [contributors to OpenTTD, its dependencies, and predecessors](https://github.com/OpenTTD/OpenTTD/blob/master/CREDITS.md). A further thank you to Patric Stout, a.k.a. TrueBrain, who originally wrote the OpenTTD savegame parser that OpenTTDLab forked from. Finally, thank you to Michael Herrmann, whose invaluable supervision of the current author's dissertation [@charemza2024reusable] resulted in the first versions of OpenTTDLab.
 
 # References
