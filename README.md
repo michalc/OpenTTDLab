@@ -15,7 +15,7 @@ OpenTTDLab is a Python framework for using [OpenTTD](https://github.com/OpenTTD/
 OpenTTDLab is based on [Patric Stout's OpenTTD Savegame Reader](https://github.com/TrueBrain/OpenTTD-savegame-reader).
 
 > [!CAUTION]
-> OpenTTDLab currently does not work with OpenTTD 14.0 or later. The latest version of OpenTTD known to work is 13.4.
+> OpenTTDLab does not support running experiments using OpenTTD 14.\* - see [Compatibility](#compatibility) for more details.
 
 ---
 
@@ -349,7 +349,7 @@ This is arguably the most difficult of the 3Rs to plan for, and for other resear
 
 ## Compatibility
 
-- OpenTTD versions between 12.0 and 13.4 (OpenTTD >= 14.0 is not currently supported. See this [discussion on the changes in OpenTTD 14.0](https://github.com/OpenTTD/OpenTTD/discussions/12496).)
+- OpenTTD versions 12.\*, 13.\*, and 15.\* and (presumably) later are supported. OpenTTD 14.\* is not supported; see this [discussion on the changes in OpenTTD 14.0](https://github.com/OpenTTD/OpenTTD/discussions/12496).
 - Linux (tested on Ubuntu 20.04), Windows (tested on Windows Server 2019), or macOS (tested on macOS 13)
 - Python >= 3.8.0 (tested on 3.8.0 and 3.12.0)
 

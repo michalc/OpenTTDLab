@@ -31,12 +31,11 @@ def _basic_data(result_row):
         'error': result_row['error'],
     }]
 
-# OpenTTD 14.0 changed the way autosave works which OpenTTDLab depended on
-# It changes saving per X game time to per X real time. While this is being
-# worked on/figured out, disabling the test
-@pytest.mark.skip(reason='OpenTTDLab no longer works on OpenTTD 14.0')
-def test_run_experiments_local_ai_default_version():
+
+def test_run_experiments_local_ai_openttd_15_0_beta_1():
     results = run_experiments(
+        openttd_version='15.0-beta1',
+        opengfx_version='7.1',
         experiments=(
             {
                 'seed': seed,
@@ -47,37 +46,47 @@ def test_run_experiments_local_ai_default_version():
             }
             for seed in range(2, 4)
         ),
+        result_processor=_basic_data,
     )
 
-    assert len(results) == 118
-    assert {
-        key: value
-        for key, value in _basic_data(results[58]).items()
-        if key not in ('openttd_version', 'opengfx_version')
-    } == {
+    assert len(results) == 122
+
+    assert results[0] == {
+        'seed': 2,
+        # AIs typically name themselves just after start, so I think "correct" it has no name
+        'name': '',
+        'date': date(1950, 1, 1),
+        'current_loan': 100000,
+        'money': 100000,
+        'error': False,
+        'opengfx_version': '7.1',
+        'openttd_version': '15.0-beta1',
+        'terrain_type': 1,
+    }
+
+    assert results[59] == {
         'seed': 2,
         'name': 'trAIns AI',
         'date': date(1954, 12, 1),
-        'current_loan': 110000,
-        'money': 6371,
-        'error': '',
+        'current_loan': 300000,
+        'money': 532074,
+        'error': False,
+        'opengfx_version': '7.1',
+        'openttd_version': '15.0-beta1',
+        'terrain_type': 1,
     }
-    assert tuple(int(v) for v in results[58]['openttd_version'].split('.')) >= (13, 4)
-    assert tuple(int(v) for v in results[58]['opengfx_version'].split('.')) >= (7, 1)
 
-    assert {
-        key: value
-        for key, value in _basic_data(results[117]).items()
-        if key not in ('openttd_version', 'opengfx_version')
-    } == {
+    assert results[120] == {
         'seed': 3,
         'name': 'trAIns AI',
         'date': date(1954, 12, 1),
-        'current_loan': 300000,
-        'money': 641561,
+        'current_loan': 0,
+        'money': 1298270,
+        'error': False,
+        'opengfx_version': '7.1',
+        'openttd_version': '15.0-beta1',
+        'terrain_type': 1,
     }
-    assert tuple(int(v) for v in results[117]['openttd_version'].split('.')) >= (13, 4)
-    assert tuple(int(v) for v in results[117]['opengfx_version'].split('.')) >= (7, 1)
 
 
 def test_run_experiments_local_ai_early_version_of_openttd():
