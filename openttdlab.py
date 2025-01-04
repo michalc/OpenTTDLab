@@ -179,14 +179,29 @@ def run_experiments(
             openttd_version = str(get_yaml(client, openttd_cdn_url + 'openttd-releases/latest.yaml')['latest'][0]['version'])
         if opengfx_version is None:
             opengfx_version = str(get_yaml(client, openttd_cdn_url + 'opengfx-releases/latest.yaml')['latest'][0]['version'])
+        is_nightly = re.match(r'\d{8}-', openttd_version)
+        major_version = \
+            None if is_nightly else \
+            int(openttd_version.split('.')[0])
         openttd_path = \
-            'openttd-nightlies/' + openttd_version[:4] + '/' + openttd_version + '/' if re.match(r'\d{8}-', openttd_version) else \
+            'openttd-nightlies/' + openttd_version[:4] + '/' + openttd_version + '/' if is_nightly else \
             'openttd-releases/' + openttd_version + '/'
         opengfx_path = \
             'opengfx-nightlies/' + opengfx_version + '/' if re.match(r'\d{8}-', opengfx_version) else \
             'opengfx-releases/' + opengfx_version + '/'
         openttd_manifest = get_yaml(client, openttd_cdn_url + openttd_path + 'manifest.yaml')
         opengfx_manifest = get_yaml(client, openttd_cdn_url + opengfx_path + 'manifest.yaml')
+
+        # From version we are either 'unsupported', 'autosave', or 'console-script' data extraction mode
+        data_extraction_mode = \
+            'console-script' if is_nightly and openttd_version.split('-')[0] >= '20240602' else \
+            'autosave' if is_nightly and openttd_version.split('-')[0] <= '20230323' else \
+            'console-script' if major_version >= 15 else \
+            'autosave' if 12 <= major_version < 14 else \
+            'unsupported'
+
+        if data_extraction_mode == 'unsupported':
+            raise Exception(f'OpenTTD version {openttd_version} is not supported')
 
         # Find file details in manifest
         openttd_filename = f"{openttd_manifest['base']}{operating_system}-{architecture}.{openttd_extension}"
@@ -278,7 +293,7 @@ def run_experiments(
                                 opengfx_binary, openttd_binary, final_screenshot_directory,
                                 openttd_version, opengfx_version, dumps(result_processor),
                                 run_dir, i, dumps(experiment), ai_and_library_filenames,
-                                xvfb_run_available,
+                                xvfb_run_available, data_extraction_mode,
                             ),
                             callback=partial(run_done, progress, task),
                         )
@@ -301,7 +316,7 @@ def _run_experiment(
         opengfx_binary, openttd_binary, final_screenshot_directory,
         openttd_version, opengfx_version, result_processor,
         run_dir, i, experiment, ai_and_library_filenames,
-        xvfb_run_available,
+        xvfb_run_available, data_extraction_mode,
 ):
     result_processor = loads(result_processor)
     experiment = loads(experiment)
@@ -358,11 +373,25 @@ def _run_experiment(
     with open(config_file, 'w') as f:
         f.write(textwrap.dedent(openttd_config) + textwrap.dedent('''
             [gui]
+            threaded_saves = false
+        ''') + (textwrap.dedent('''
             autosave = monthly
             keep_all_autosave = true
-            threaded_saves = false
-        ''')
+        ''') if data_extraction_mode == 'autosave' else textwrap.dedent('''
+            autosave = off
+        '''))
     )
+
+    if data_extraction_mode == 'console-script':
+        months = days // 28
+        with open(os.path.join(experiment_script_dir, 'game_start.scr'), 'a') as f:
+            f.write(f'schedule on-next-calendar-month {0:09}.scr\n')
+            f.write(f'save 0')
+        for month in range(0, months):
+            with open(os.path.join(experiment_dir, f'{month:09}.scr'), 'w') as f:
+                f.write(f'save {month:09}\n')
+                if month < months - 1:
+                    f.write(f'schedule on-next-calendar-month {month+1:09}.scr\n')
 
     # Run the experiment
     ticks_per_day = 74
@@ -374,15 +403,21 @@ def _run_experiment(
             '-snull',                 # No sound
             '-mnull',                 # No music
             '-vnull:ticks=' + ticks,  # No video, with fixed number of "ticks" and then exit
-             '-c', config_file,       # Config file
+            '-c', config_file,       # Config file
         ),
         cwd=experiment_dir,                  # OpenTTD looks in the current working directory for files
         stderr=subprocess.STDOUT,
         text=True,
     )
 
-    autosave_dir = os.path.join(experiment_dir, 'save', 'autosave')
-    autosave_filenames = sorted(list(os.listdir(autosave_dir)))
+    save_dir = \
+        os.path.join(experiment_dir, 'save', 'autosave') if data_extraction_mode == 'autosave' else \
+        os.path.join(experiment_dir, 'save')
+    save_filenames = sorted(list(
+        direntry.name
+        for direntry in os.scandir(save_dir)
+        if direntry.is_file()
+    ))
 
     if final_screenshot_directory is not None:
         with open(os.path.join(experiment_script_dir, 'game_start.scr'), 'w') as f:
@@ -391,7 +426,7 @@ def _run_experiment(
 
         subprocess.check_output(
             (('xvfb-run', '-a',) if xvfb_run_available else ()) + (openttd_binary,) + (
-                '-g', os.path.join(autosave_dir, autosave_filenames[-1]),
+                '-g', os.path.join(save_dir, save_filenames[-1]),
                 '-G', str(seed),          # Seed for random number generator
                 '-snull',                 # No sound
                 '-mnull',                 # No music
@@ -407,8 +442,8 @@ def _run_experiment(
 
     return dumps([
         result_row
-        for filename in autosave_filenames
-        for result_row in get_savegame_row(openttd_version, opengfx_version, experiment, os.path.join(autosave_dir, filename), output)
+        for filename in save_filenames
+        for result_row in get_savegame_row(openttd_version, opengfx_version, experiment, os.path.join(save_dir, filename), output)
     ])
 
 
