@@ -384,7 +384,7 @@ Following is a suggested BibTeX-style entry; feel free to modify it for your nee
     type         = {Master's dissertation},
     month        = {11},
     year         = {2024},
-    school       = {The University of Edinburgh},
+    school       = {University of Edinburgh},
     address      = {UK},
     doi          = {10.7488/era/5414},
     url          = {https://doi.org/10.7488/era/5414}
