@@ -381,7 +381,7 @@ Following is a suggested BibTeX-style entry; feel free to modify it for your nee
 @mastersthesis{charemza2024reusable,
     author       = {Charemza, Michal},
     title        = {A Reusable {Python} Framework for Repeatable, Replicable, \& Reproducible Experiments Using {OpenTTD}},
-    type         = {Master's dissertation}
+    type         = {Master's dissertation},
     month        = {11},
     year         = {2024},
     school       = {The University of Edinburgh},
