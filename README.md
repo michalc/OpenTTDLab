@@ -385,7 +385,7 @@ Following is a suggested BibTeX-style entry; feel free to modify it for your nee
     month        = {11},
     year         = {2024},
     school       = {University of Edinburgh},
-    address      = {UK},
+    address      = {United Kingdom},
     doi          = {10.7488/era/5414},
     url          = {https://doi.org/10.7488/era/5414}
 }
