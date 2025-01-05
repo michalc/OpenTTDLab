@@ -349,7 +349,7 @@ This is arguably the most difficult of the 3Rs to plan for, and for other resear
 
 ## Compatibility
 
-- OpenTTD versions 12.\*, 13.\*, and 15.\* and (presumably) later are supported. OpenTTD 14.\* is not supported; see this [discussion on the changes in OpenTTD 14.0](https://github.com/OpenTTD/OpenTTD/discussions/12496).
+- OpenTTD versions 12.\*, 13.\*, 15.\* and (presumably) later are supported. OpenTTD 14.\* is not supported; see this [discussion on the changes in OpenTTD 14.0](https://github.com/OpenTTD/OpenTTD/discussions/12496).
 - Linux (tested on Ubuntu 20.04), Windows (tested on Windows Server 2019), or macOS (tested on macOS 13)
 - Python >= 3.8.0 (tested on 3.8.0 and 3.12.0)
 
