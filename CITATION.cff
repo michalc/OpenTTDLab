@@ -7,7 +7,7 @@ authors:
 title: "OpenTTDLab"
 url: "https://github.com/michalc/OpenTTDLab"
 preferred-citation:
-  type: thesis
+  type: mastersthesis
   thesis-type: Master's dissertation
   authors:
   - family-names: "Charemza"
@@ -18,4 +18,5 @@ preferred-citation:
   year: 2024
   month: 11
   title: "A Reusable Python Framework for Repeatable, Replicable, & Reproducible Experiments Using OpenTTD"
-  notes: "Master's dissertation, University of Edinburgh, United Kingdom"
+  institution:
+    name: University of Edinburgh
