@@ -374,21 +374,23 @@ However, if there is no existing [issue](https://github.com/michalc/OpenTTDLab/i
 
 ## How to cite OpenTTDLab
 
-If you use OpenTTDLab in a scientific publication, a citation to the dissertation for which it was developed, [A Reusable Python Framework for Repeatable, Replicable, & Reproducible Experiments Using OpenTTD](https://doi.org/10.7488/era/5414), is appreciated.
+If you use OpenTTDLab in a scientific publication, a citation to its corresponding peer-reviewed paper, [OpenTTDLab: A Python framework for reproducible experiments using OpenTTD](https://doi.org/10.21105/joss.08014), is appreciated.
 
 Following is a suggested BibTeX-style entry; feel free to modify it for your needs.
 
 ```
-@mastersthesis{charemza2024reusable,
-    author       = {Charemza, Michal},
-    title        = {A Reusable {Python} Framework for Repeatable, Replicable, \& Reproducible Experiments Using {OpenTTD}},
-    type         = {Master's dissertation},
-    month        = {11},
-    year         = {2024},
-    school       = {University of Edinburgh},
-    address      = {United Kingdom},
-    doi          = {10.7488/era/5414},
-    url          = {https://doi.org/10.7488/era/5414}
+@article{
+    Charemza2025,
+    doi       = {10.21105/joss.08014},
+    url       = {https://doi.org/10.21105/joss.08014},
+    year      = {2025},
+    publisher = {The Open Journal},
+    volume    = {10},
+    number    = {110},
+    pages     = {8014},
+    author    = {Michal Charemza},
+    title     = {OpenTTDLab: A Python framework for reproducible experiments using OpenTTD},
+    journal   = {Journal of Open Source Software}
 }
 ```
 
