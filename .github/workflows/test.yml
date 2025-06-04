@@ -12,15 +12,15 @@ jobs:
     strategy:
       matrix:
         include:
-          - python-version: "3.8.0"
-            os: "ubuntu-20.04"
+          - python-version: "3.8.2"
+            os: "ubuntu-24.04"
           - python-version: "3.12.0"
-            os: "ubuntu-20.04"
-          - python-version: "3.8.0"
+            os: "ubuntu-24.04"
+          - python-version: "3.8.2"
             os: "macos-13"
           - python-version: "3.12.0"
             os: "macos-13"
-          - python-version: "3.8.0"
+          - python-version: "3.8.2"
             os: "windows-2019"
           - python-version: "3.12.0"
             os: "windows-2019"
@@ -28,12 +28,16 @@ jobs:
     steps:
       - name: "Checkout"
         uses: "actions/checkout@v3"
-      - uses: "actions/setup-python@v4"
+      - name: Install uv and set the python version
+        uses: astral-sh/setup-uv@v6
         with:
-          python-version: '${{ matrix.python-version }}'
+          # Pin to be able to install older Python
+          version: "0.6.17"
+          python-version: ${{ matrix.python-version }}
+          activate-environment: true
       - name: "Install python dependencies"
         run: |
-          pip install ".[ci]"
+          uv pip install ".[ci]"
       - name: "Run tests"
         run: |
           pytest --cov
