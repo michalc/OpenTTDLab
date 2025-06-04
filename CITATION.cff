@@ -1,22 +1,26 @@
-cff-version: 1.2.0
-message: "If you use OpenTTDLab, please cite it as below."
+cff-version: "1.2.0"
 authors:
-- family-names: "Charemza"
-  given-names: "Michal"
+- family-names: Charemza
+  given-names: Michal
   orcid: "https://orcid.org/0009-0009-1002-1036"
-title: "OpenTTDLab"
-url: "https://github.com/michalc/OpenTTDLab"
+doi: 10.5281/zenodo.15305719
+message: If you use this software, please cite our article in the Journal of Open Source Software.
 preferred-citation:
-  type: mastersthesis
-  thesis-type: Master's dissertation
   authors:
-  - family-names: "Charemza"
-    given-names: "Michal"
+  - family-names: Charemza
+    given-names: Michal
     orcid: "https://orcid.org/0009-0009-1002-1036"
-  doi: "10.7488/era/5414"
-  url: https://doi.org/10.7488/era/5414
-  year: 2024
-  month: 11
-  title: "A Reusable Python Framework for Repeatable, Replicable, & Reproducible Experiments Using OpenTTD"
-  institution:
-    name: University of Edinburgh
+  date-published: 2025-06-04
+  doi: 10.21105/joss.08014
+  issn: 2475-9066
+  issue: 110
+  journal: Journal of Open Source Software
+  publisher:
+    name: Open Journals
+  start: 8014
+  title: "OpenTTDLab: A Python framework for reproducible experiments using OpenTTD"
+  type: article
+  url: "https://joss.theoj.org/papers/10.21105/joss.08014"
+  volume: 10
+title: "OpenTTDLab: A Python framework for reproducible experiments
+  using OpenTTD"
